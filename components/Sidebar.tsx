@@ -19,11 +19,11 @@ import { cn } from '@/lib/utils';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: Calculator, label: 'Cálculos', href: '/payments' },
-  { icon: Users, label: 'Funcionários', href: '/employees' },
-  { icon: Map, label: 'Rotas', href: '/routes' },
-  { icon: Truck, label: 'Veículos', href: '/vehicles' },
+  { icon: Map, label: 'Viagens', href: '/routes' },
+  { icon: Calculator, label: 'Pagamentos', href: '/payments' },
   { icon: Receipt, label: 'Despesas', href: '/expenses' },
+  { icon: Truck, label: 'Veículos', href: '/vehicles' },
+  { icon: Users, label: 'Funcionários', href: '/employees' },
   { icon: Users, label: 'Usuários', href: '/users' },
 ];
 

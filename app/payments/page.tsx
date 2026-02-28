@@ -28,7 +28,7 @@ export default function PaymentsPage() {
   return (
     <AppLayout>
       <Header 
-        title="Cálculo de Pagamentos" 
+        title="Pagamentos" 
         actionLabel="Finalizar e Gerar Relatório" 
       />
       
@@ -38,8 +38,8 @@ export default function PaymentsPage() {
           {/* Welcome & Filters */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
             <div className="lg:col-span-1">
-              <h3 className="text-2xl font-black text-white tracking-tight">Cálculo de Repasses</h3>
-              <p className="text-slate-400 text-sm mt-1">Gestão de produtividade e ganhos dos motoristas.</p>
+              <h3 className="text-2xl font-black text-white tracking-tight">Pagamentos</h3>
+              <p className="text-slate-400 text-sm mt-1">Gestão de pagamentos e ganhos dos motoristas.</p>
             </div>
             
             <div className="lg:col-span-2 flex flex-wrap gap-4 justify-end">

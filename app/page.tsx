@@ -10,7 +10,9 @@ import {
   Receipt, 
   Wallet,
   Navigation,
-  MoreVertical
+  MoreVertical,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -22,49 +24,58 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-const data = [
-  { name: 'Semana 01', revenue: 4000, expenses: 2400 },
-  { name: 'Semana 02', revenue: 3000, expenses: 1398 },
-  { name: 'Semana 03', revenue: 2000, expenses: 9800 },
-  { name: 'Semana 04', revenue: 2780, expenses: 3908 },
-  { name: 'Final', revenue: 1890, expenses: 4800 },
-];
+const iconMap: Record<string, any> = {
+  DollarSign,
+  Receipt,
+  Wallet
+};
 
-const stats = [
-  { 
-    label: 'RECEITA TOTAL', 
-    value: 'R$ 45.280,00', 
-    change: '+12.5%', 
-    trend: 'up', 
-    icon: DollarSign,
-    color: 'text-primary'
-  },
-  { 
-    label: 'DESPESAS TOTAIS', 
-    value: 'R$ 12.150,00', 
-    change: '-2.4%', 
-    trend: 'down', 
-    icon: Receipt,
-    color: 'text-rose-500'
-  },
-  { 
-    label: 'LUCRO FINAL', 
-    value: 'R$ 33.130,00', 
-    change: '+15.8%', 
-    trend: 'up', 
-    icon: Wallet,
-    color: 'text-emerald-500'
-  },
-];
-
-const recentTrips = [
-  { route: 'RJ → SP', plate: 'KXP-4D21', id: '#FR-8892', value: 'R$ 2.450,00', status: 'Entregue', date: '24 Out, 08:30' },
-  { route: 'MG → RJ', plate: 'ABC-1J22', id: '#FR-8895', value: 'R$ 1.890,00', status: 'Em Trânsito', date: '25 Out, 06:15' },
-  { route: 'SP → PR', plate: 'LMX-0A15', id: '#FR-8901', value: 'R$ 3.120,00', status: 'Agendado', date: '25 Out, 14:00' },
+const months = [
+  { id: 1, name: 'Janeiro' },
+  { id: 2, name: 'Fevereiro' },
+  { id: 3, name: 'Março' },
+  { id: 4, name: 'Abril' },
+  { id: 5, name: 'Maio' },
+  { id: 6, name: 'Junho' },
+  { id: 7, name: 'Julho' },
+  { id: 8, name: 'Agosto' },
+  { id: 9, name: 'Setembro' },
+  { id: 10, name: 'Outubro' },
+  { id: 11, name: 'Novembro' },
+  { id: 12, name: 'Dezembro' },
 ];
 
 export default function Dashboard() {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
+  const [loading, setLoading] = React.useState(true);
+  const [dashboardData, setDashboardData] = React.useState<any>(null);
+
+  const fetchStats = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/dashboard/stats?month=${selectedMonth}&year=${selectedYear}`);
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  React.useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const stats = dashboardData?.stats || [];
+  const chartData = dashboardData?.chart || [];
+  const trips = dashboardData?.recentTrips || [];
+
   return (
     <AppLayout>
       <Header title="Visão Geral do Dashboard" actionLabel="Nova Viagem" />
@@ -72,29 +83,73 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-8">
           
+          {/* Filter Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+                <Calendar className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {months.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+
+                <select 
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {[2024, 2025, 2026].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className={cn("w-2 h-2 rounded-full bg-emerald-500", loading ? "animate-pulse" : "")}></span>
+              {loading ? 'Atualizando...' : 'Dados Sincronizados'}
+            </div>
+          </div>
+          
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {stats.map((stat, i) => (
-              <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm relative overflow-hidden group">
-                <div className="flex justify-between items-start mb-4">
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{stat.label}</p>
-                  <div className={cn("p-2 rounded-lg bg-opacity-10", stat.color.replace('text-', 'bg-'))}>
-                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+            {loading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm animate-pulse h-32"></div>
+              ))
+            ) : stats.map((stat: any, i: number) => {
+              const Icon = iconMap[stat.icon] || DollarSign;
+              return (
+                <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm relative overflow-hidden group">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{stat.label}</p>
+                    <div className={cn("p-2 rounded-lg bg-opacity-10", stat.color.replace('text-', 'bg-'))}>
+                      <Icon className={cn("w-5 h-5", stat.color)} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <span className={cn(
+                      "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                      stat.trend === 'up' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                    )}>
+                      {stat.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                      {stat.change}
+                    </span>
+                    <span className="text-slate-500 text-[10px] font-medium uppercase">vs mês anterior</span>
                   </div>
                 </div>
-                <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <span className={cn(
-                    "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                    stat.trend === 'up' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                  )}>
-                    {stat.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                    {stat.change}
-                  </span>
-                  <span className="text-slate-500 text-[10px] font-medium uppercase">vs mês anterior</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Chart Section */}
@@ -102,7 +157,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-lg font-bold text-white">Desempenho Financeiro</h3>
-                <p className="text-sm text-slate-500">Comparativo de Receitas vs Despesas</p>
+                <p className="text-sm text-slate-500">Comparativo de Receitas vs Despesas - {months.find(m => m.id === selectedMonth)?.name} {selectedYear}</p>
               </div>
               <div className="flex gap-6">
                 <div className="flex items-center gap-2">
@@ -117,59 +172,65 @@ export default function Dashboard() {
             </div>
             
             <div className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f48c25" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#f48c25" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#393028" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#5A5A40" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false}
-                    dy={10}
-                  />
-                  <YAxis 
-                    stroke="#5A5A40" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false}
-                    tickFormatter={(value) => `R$ ${value}`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#27211b', border: '1px solid #393028', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#f48c25" 
-                    strokeWidth={4}
-                    fillOpacity={1} 
-                    fill="url(#colorRevenue)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="expenses" 
-                    stroke="#94a3b8" 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    fill="transparent"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="w-full h-full flex items-center justify-center bg-background-dark/20 rounded-lg">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f48c25" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#f48c25" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#393028" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#5A5A40" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false}
+                      dy={10}
+                    />
+                    <YAxis 
+                      stroke="#5A5A40" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false}
+                      tickFormatter={(value) => `R$ ${value}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#27211b', border: '1px solid #393028', borderRadius: '8px' }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#f48c25" 
+                      strokeWidth={4}
+                      fillOpacity={1} 
+                      fill="url(#colorRevenue)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="expenses" 
+                      stroke="#94a3b8" 
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      fill="transparent"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
           {/* Recent Trips Table */}
           <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border-dark flex justify-between items-center">
-              <h3 className="font-bold text-white">Viagens Recentes</h3>
+              <h3 className="font-bold text-white">Viagens do Período</h3>
               <button className="text-sm font-bold text-primary hover:underline">Ver Todas</button>
             </div>
             <div className="overflow-x-auto">
@@ -185,7 +246,19 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-dark">
-                  {recentTrips.map((trip, i) => (
+                  {loading ? (
+                    [1, 2, 3].map(i => (
+                      <tr key={i} className="animate-pulse">
+                        <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
+                      </tr>
+                    ))
+                  ) : trips.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 text-sm italic">
+                        Nenhuma viagem encontrada para este período.
+                      </td>
+                    </tr>
+                  ) : trips.map((trip: any, i: number) => (
                     <tr key={i} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -194,7 +267,7 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-white">{trip.route}</p>
-                            <p className="text-[10px] text-slate-500">Agendado: {trip.date}</p>
+                            <p className="text-[10px] text-slate-500">{trip.date}</p>
                           </div>
                         </div>
                       </td>
@@ -204,8 +277,8 @@ export default function Dashboard() {
                       <td className="px-6 py-4">
                         <span className={cn(
                           "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",
-                          trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                          trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
+                          trip.status === 'DELIVERED' || trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                          trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
                           "bg-blue-500/10 text-blue-500 border-blue-500/20"
                         )}>
                           {trip.status}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -11,84 +11,19 @@ import {
   ChevronRight,
   X,
   UserPlus,
-  Info,
-  Loader2
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Employee {
-  id: number;
-  name: string;
-  role: 'DRIVER' | 'HELPER';
-  phone: string | null;
-  createdAt: string;
-}
+const employees = [
+  { name: 'João Silva', role: 'Motorista', phone: '(21) 98888-1111', vehicle: 'ABC-1234' },
+  { name: 'Ricardo Souza', role: 'Ajudante', phone: '(21) 97777-2222', vehicle: '-' },
+  { name: 'Marcos Oliveira', role: 'Motorista', phone: '(21) 96666-3333', vehicle: 'XYZ-9876' },
+  { name: 'Ana Costa', role: 'Ajudante', phone: '(21) 95555-4444', vehicle: '-' },
+];
 
 export default function EmployeesPage() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    role: 'DRIVER',
-    phone: ''
-  });
-
-  const fetchEmployees = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch('/api/employees');
-      if (res.ok) {
-        const data = await res.json();
-        setEmployees(data);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  const handleSave = async () => {
-    if (!formData.name || !formData.role) {
-      alert('Por favor, preencha o nome e a função.');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        setIsDrawerOpen(false);
-        setFormData({
-          name: '',
-          role: 'DRIVER',
-          phone: ''
-        });
-        fetchEmployees();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao salvar funcionário');
-      }
-    } catch (error) {
-      console.error('Error saving employee:', error);
-      alert('Erro de conexão ao salvar funcionário');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
 
   return (
     <AppLayout>
@@ -125,27 +60,12 @@ export default function EmployeesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-dark">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-sm text-slate-500">Carregando funcionários...</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : employees.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                      Nenhum funcionário cadastrado.
-                    </td>
-                  </tr>
-                ) : employees.map((emp, i) => (
-                  <tr key={emp.id || i} className="hover:bg-white/5 transition-colors group">
+                {employees.map((emp, i) => (
+                  <tr key={i} className="hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-background-dark flex items-center justify-center text-[10px] font-bold text-slate-400 border border-border-dark">
-                          {emp.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          {emp.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <span className="text-sm font-semibold text-white">{emp.name}</span>
                       </div>
@@ -153,13 +73,13 @@ export default function EmployeesPage() {
                     <td className="px-6 py-4">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                        emp.role === 'DRIVER' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                        emp.role === 'Motorista' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
                       )}>
-                        {emp.role === 'DRIVER' ? 'Motorista' : 'Ajudante'}
+                        {emp.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-400">{emp.phone || '-'}</td>
-                    <td className="px-6 py-4 text-sm font-mono font-medium text-slate-300">-</td>
+                    <td className="px-6 py-4 text-sm text-slate-400">{emp.phone}</td>
+                    <td className="px-6 py-4 text-sm font-mono font-medium text-slate-300">{emp.vehicle}</td>
                     <td className="px-6 py-4 text-right">
                       <button className="text-slate-500 hover:text-primary transition-colors">
                         <Edit className="w-4 h-4" />
@@ -209,20 +129,15 @@ export default function EmployeesPage() {
                   className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
                   placeholder="Ex: Maria Oliveira"
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Função</label>
-                <select 
-                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'DRIVER' | 'HELPER' })}
-                >
-                  <option value="DRIVER">Motorista</option>
-                  <option value="HELPER">Ajudante</option>
+                <select className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none">
+                  <option disabled selected value="">Selecione uma função</option>
+                  <option value="motorista">Motorista</option>
+                  <option value="ajudante">Ajudante</option>
                 </select>
               </div>
 
@@ -232,9 +147,16 @@ export default function EmployeesPage() {
                   className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
                   placeholder="(00) 00000-0000"
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo Designado (Placa)</label>
+                <select className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none">
+                  <option selected value="">Nenhum (Apenas ajudante)</option>
+                  <option value="abc1234">ABC-1234 (Caminhão Bau)</option>
+                  <option value="xyz9876">XYZ-9876 (Van Escolar)</option>
+                </select>
               </div>
 
               <div className="mt-8 p-4 bg-primary/5 border border-primary/20 rounded-xl">
@@ -243,7 +165,7 @@ export default function EmployeesPage() {
                   <div>
                     <p className="text-sm font-bold text-primary mb-1">Atenção</p>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      Ao cadastrar um novo motorista, ele será automaticamente habilitado para receber rotas no sistema mobile.
+                      Ao cadastrar um novo motorista, ele será automaticamente habilitado para receber viagens no sistema mobile.
                     </p>
                   </div>
                 </div>
@@ -254,21 +176,12 @@ export default function EmployeesPage() {
               <button 
                 onClick={() => setIsDrawerOpen(false)}
                 className="flex-1 px-4 py-3 border border-border-dark rounded-lg text-sm font-bold text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"
-                disabled={isSaving}
               >
                 Cancelar
               </button>
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <UserPlus className="w-4 h-4" />
-                )}
-                {isSaving ? 'Salvando...' : 'Cadastrar'}
+              <button className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                <UserPlus className="w-4 h-4" />
+                Cadastrar
               </button>
             </div>
           </div>
