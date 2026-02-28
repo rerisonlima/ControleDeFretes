@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  username  String   @unique
+  password  String
+  role      Role     @default(OPERATOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  OPERATOR
+}
+
+model Vehicle {
+  id              Int      @id @default(autoincrement())
+  plate           String   @unique
+  type            String
+  brand           String
+  model           String
+  year            Int
+  capacity        Float
+  status          VehicleStatus @default(ACTIVE)
+  lastMaintenance DateTime?
+  trips           Trip[]
+  expenses        Expense[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+model Employee {
+  id        Int      @id @default(autoincrement())
+  name      String
+  role      EmployeeRole
+  phone     String?
+  trips     Trip[]   @relation("DriverTrips")
+  helperTrips Trip[] @relation("HelperTrips")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EmployeeRole {
+  DRIVER
+  HELPER
+}
+
+model Route {
+  id              Int      @id @default(autoincrement())
+  destination     String
+  freightValue    Float
+  driverValue1    Float
+  driverValue2    Float
+  helperValue1    Float
+  helperValue2    Float
+  trips           Trip[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Trip {
+  id          Int      @id @default(autoincrement())
+  tripId      String   @unique
+  routeId     Int
+  route       Route    @relation(fields: [routeId], references: [id])
+  vehicleId   Int
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  driverId    Int
+  driver      Employee @relation("DriverTrips", fields: [driverId], references: [id])
+  helperId    Int?
+  helper      Employee? @relation("HelperTrips", fields: [helperId], references: [id])
+  scheduledAt DateTime
+  value       Float
+  status      TripStatus @default(SCHEDULED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  type        String
+  vehicleId   Int?
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  value       Float
+  status      ExpenseStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+}
