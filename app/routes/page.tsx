@@ -30,6 +30,8 @@ export default function RoutesPage() {
   const [employees, setEmployees] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedTrip, setSelectedTrip] = React.useState<any>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [vehicleFilter, setVehicleFilter] = React.useState('');
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -157,6 +159,13 @@ export default function RoutesPage() {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const filteredTrips = trips.filter(trip => {
+    const matchesSearch = trip.route?.destination?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         trip.contract?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesVehicle = vehicleFilter === '' || trip.vehicleId.toString() === vehicleFilter;
+    return matchesSearch && matchesVehicle;
+  });
+
   return (
     <AppLayout>
       <Header 
@@ -180,9 +189,24 @@ export default function RoutesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
               <input 
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                placeholder="Buscar por cidade de destino..." 
+                placeholder="Buscar por cidade de destino ou contrato..." 
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
+            </div>
+            <div className="w-full md:w-64 relative">
+              <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <select 
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                value={vehicleFilter}
+                onChange={(e) => setVehicleFilter(e.target.value)}
+              >
+                <option value="">Todos os Veículos</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -193,13 +217,12 @@ export default function RoutesPage() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-background-dark/50 border-b border-border-dark">
                 <tr>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
                 </tr>
               </thead>
@@ -208,16 +231,27 @@ export default function RoutesPage() {
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Carregando viagens...</td>
                   </tr>
-                ) : trips.length === 0 ? (
+                ) : filteredTrips.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem cadastrada.</td>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem encontrada com os filtros aplicados.</td>
                   </tr>
-                ) : trips.map((trip) => (
+                ) : filteredTrips.map((trip) => (
                   <tr 
                     key={trip.id} 
                     className="hover:bg-white/5 transition-colors group cursor-pointer"
                     onClick={() => handleOpenDrawer(trip)}
                   >
+                    <td className={cn(
+                      "px-6 py-4 transition-colors",
+                      (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
+                    )}>
+                      <span className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
+                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                      )}>
+                        {trip.paid || 'não'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-primary" />
@@ -241,27 +275,6 @@ export default function RoutesPage() {
                     </td>
                     <td className="px-6 py-4 font-mono font-medium text-slate-300">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                        trip.status === 'DELIVERED' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                        trip.status === 'IN_TRANSIT' ? "bg-primary/10 text-primary border-primary/20" :
-                        "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                      )}>
-                        {trip.status}
-                      </span>
-                    </td>
-                    <td className={cn(
-                      "px-6 py-4 transition-colors",
-                      trip.paid === 'sim' ? "bg-emerald-500/20" : ""
-                    )}>
-                      <span className={cn(
-                        "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
-                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
-                      )}>
-                        {trip.paid || 'não'}
-                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
