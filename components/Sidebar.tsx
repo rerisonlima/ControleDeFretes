@@ -8,10 +8,10 @@ import {
   LayoutDashboard, 
   Calculator, 
   Users, 
+  UserCog, 
   Map, 
   Truck, 
   Receipt, 
-  Settings,
   LogOut,
   TruckIcon
 } from 'lucide-react';
@@ -24,7 +24,7 @@ const menuItems = [
   { icon: Receipt, label: 'Despesas', href: '/expenses' },
   { icon: Truck, label: 'Veículos', href: '/vehicles' },
   { icon: Users, label: 'Funcionários', href: '/employees' },
-  { icon: Users, label: 'Usuários', href: '/users' },
+  { icon: UserCog, label: 'Usuários', href: '/users' },
 ];
 
 export function Sidebar() {
@@ -75,20 +75,13 @@ export function Sidebar() {
             />
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-semibold text-white truncate">Ricardo Silva</p>
+            <p className="text-sm font-semibold text-white truncate">Rerison Lima</p>
             <p className="text-[10px] text-slate-500 truncate uppercase">Gerente de Operações</p>
           </div>
           <button className="ml-auto text-slate-500 hover:text-white transition-colors">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
-        <Link 
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-sm font-medium">Configurações</span>
-        </Link>
       </div>
     </aside>
   );

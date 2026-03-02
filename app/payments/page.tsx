@@ -11,8 +11,7 @@ import {
   RefreshCw, 
   Info,
   FileText,
-  ChevronDown,
-  Settings2
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -67,10 +66,6 @@ export default function PaymentsPage() {
                   <Calendar className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
                 </div>
               </div>
-              
-              <button className="bg-surface-dark hover:bg-border-dark text-white p-2.5 rounded-lg border border-border-dark transition-colors h-11 self-end">
-                <Settings2 className="w-5 h-5" />
-              </button>
             </div>
           </div>
 

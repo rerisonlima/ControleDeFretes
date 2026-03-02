@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -13,15 +13,9 @@ model User {
   email     String   @unique
   username  String   @unique
   password  String
-  role      Role     @default(OPERATOR)
+  role      String   @default("OPERATOR")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  ADMIN
-  MANAGER
-  OPERATOR
 }
 
 model Vehicle {
@@ -32,7 +26,7 @@ model Vehicle {
   model           String
   year            Int
   capacity        Float
-  status          VehicleStatus @default(ACTIVE)
+  status          String   @default("ACTIVE")
   lastMaintenance DateTime?
   trips           Trip[]
   expenses        Expense[]
@@ -40,26 +34,15 @@ model Vehicle {
   updatedAt       DateTime @updatedAt
 }
 
-enum VehicleStatus {
-  ACTIVE
-  MAINTENANCE
-  INACTIVE
-}
-
 model Employee {
   id        Int      @id @default(autoincrement())
   name      String
-  role      EmployeeRole
+  role      String
   phone     String?
   trips     Trip[]   @relation("DriverTrips")
   helperTrips Trip[] @relation("HelperTrips")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum EmployeeRole {
-  DRIVER
-  HELPER
 }
 
 model Route {
@@ -88,16 +71,12 @@ model Trip {
   helper      Employee? @relation("HelperTrips", fields: [helperId], references: [id])
   scheduledAt DateTime
   value       Float
-  status      TripStatus @default(SCHEDULED)
+  status      String   @default("SCHEDULED")
+  paid        String   @default("não")
+  contract    String?
+  paymentDate DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-enum TripStatus {
-  SCHEDULED
-  IN_TRANSIT
-  DELIVERED
-  CANCELLED
 }
 
 model Expense {
@@ -107,12 +86,7 @@ model Expense {
   vehicleId   Int?
   vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
   value       Float
-  status      ExpenseStatus @default(PENDING)
+  status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-enum ExpenseStatus {
-  PENDING
-  PAID
 }

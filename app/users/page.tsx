@@ -45,10 +45,13 @@ export default function UsersPage() {
     try {
       setIsLoading(true);
       const res = await fetch('/api/users');
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('API error response:', text);
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
+      const data = await res.json();
+      setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {

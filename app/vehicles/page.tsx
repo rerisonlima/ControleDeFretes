@@ -48,10 +48,13 @@ export default function VehiclesPage() {
     try {
       setIsLoading(true);
       const res = await fetch('/api/vehicles');
-      if (res.ok) {
-        const data = await res.json();
-        setVehicles(data);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('API error response:', text);
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
+      const data = await res.json();
+      setVehicles(data);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
     } finally {

@@ -61,8 +61,17 @@ export default function ExpensesPage() {
         fetch('/api/vehicles')
       ]);
       
-      if (expRes.ok) setExpenses(await expRes.json());
-      if (vehRes.ok) setVehicles(await vehRes.json());
+      if (!expRes.ok) {
+        console.error('Expenses API error:', await expRes.text());
+      } else {
+        setExpenses(await expRes.json());
+      }
+
+      if (!vehRes.ok) {
+        console.error('Vehicles API error:', await vehRes.text());
+      } else {
+        setVehicles(await vehRes.json());
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

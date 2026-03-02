@@ -13,26 +13,156 @@ import {
   X,
   Check,
   BadgeInfo,
-  UserPlus
+  UserPlus,
+  Calendar,
+  Truck,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const routes = [
-  { destination: 'Rio de Janeiro', freight: 'R$ 500,00', driver: 'R$ 150 / R$ 120', helper: 'R$ 80 / R$ 60' },
-  { destination: 'São Paulo', freight: 'R$ 1.200,00', driver: 'R$ 350 / R$ 300', helper: 'R$ 150 / R$ 120' },
-  { destination: 'Belo Horizonte', freight: 'R$ 950,00', driver: 'R$ 280 / R$ 240', helper: 'R$ 120 / R$ 100' },
-  { destination: 'Curitiba', freight: 'R$ 1.500,00', driver: 'R$ 450 / R$ 400', helper: 'R$ 200 / R$ 160' },
-];
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function RoutesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const [trips, setTrips] = React.useState<any[]>([]);
+  const [routes, setRoutes] = React.useState<any[]>([]);
+  const [vehicles, setVehicles] = React.useState<any[]>([]);
+  const [employees, setEmployees] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [selectedTrip, setSelectedTrip] = React.useState<any>(null);
+
+  // Form state
+  const [formData, setFormData] = React.useState({
+    tripId: '',
+    routeId: '',
+    vehicleId: '',
+    driverId: '',
+    helperId: '',
+    scheduledAt: '',
+    value: '',
+    status: 'SCHEDULED',
+    paid: 'não',
+    contract: '',
+    paymentDate: ''
+  });
+
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const fetchJson = async (url: string, name: string) => {
+        const res = await fetch(url);
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`${name} API error:`, errorText);
+          return [];
+        }
+        return res.json();
+      };
+
+      const [tripsData, routesData, vehiclesData, employeesData] = await Promise.all([
+        fetchJson('/api/trips', 'Trips'),
+        fetchJson('/api/routes', 'Routes'),
+        fetchJson('/api/vehicles', 'Vehicles'),
+        fetchJson('/api/employees', 'Employees')
+      ]);
+
+      setTrips(tripsData);
+      setRoutes(routesData);
+      setVehicles(vehiclesData);
+      setEmployees(employeesData);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleOpenDrawer = (trip: any = null) => {
+    if (trip) {
+      setSelectedTrip(trip);
+      setFormData({
+        tripId: trip.tripId,
+        routeId: trip.routeId.toString(),
+        vehicleId: trip.vehicleId.toString(),
+        driverId: trip.driverId.toString(),
+        helperId: trip.helperId?.toString() || '',
+        scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : '',
+        value: trip.value.toString(),
+        status: trip.status,
+        paid: trip.paid || 'não',
+        contract: trip.contract || '',
+        paymentDate: trip.paymentDate ? format(new Date(trip.paymentDate), 'yyyy-MM-dd') : ''
+      });
+    } else {
+      setSelectedTrip(null);
+      setFormData({
+        tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
+        routeId: '',
+        vehicleId: '',
+        driverId: '',
+        helperId: '',
+        scheduledAt: format(new Date(), 'yyyy-MM-dd'),
+        value: '',
+        status: 'SCHEDULED',
+        paid: 'não',
+        contract: '',
+        paymentDate: ''
+      });
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const url = selectedTrip ? `/api/trips/${selectedTrip.id}` : '/api/trips';
+      const method = selectedTrip ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setIsDrawerOpen(false);
+        fetchData();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao salvar viagem');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Erro de conexão ao salvar');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir esta viagem?')) return;
+    try {
+      const response = await fetch(`/api/trips/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+  };
 
   return (
     <AppLayout>
       <Header 
         title="Viagens" 
         actionLabel="Nova Viagem" 
-        onAction={() => setIsDrawerOpen(true)}
+        onAction={() => handleOpenDrawer()}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -54,13 +184,6 @@ export default function RoutesPage() {
                 type="text"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <select className="bg-surface-dark border border-border-dark rounded-lg py-2.5 px-4 text-sm text-slate-300 focus:ring-primary focus:border-primary outline-none appearance-none pr-10 relative">
-                <option>Status: Ativo</option>
-                <option>Status: Inativo</option>
-                <option>Todos</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -70,35 +193,88 @@ export default function RoutesPage() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-background-dark/50 border-b border-border-dark">
                 <tr>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Motorista (1ª/2ª)</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ajudante (1ª/2ª)</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-dark">
-                {routes.map((route, i) => (
-                  <tr key={i} className="hover:bg-white/5 transition-colors group">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Carregando viagens...</td>
+                  </tr>
+                ) : trips.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem cadastrada.</td>
+                  </tr>
+                ) : trips.map((trip) => (
+                  <tr 
+                    key={trip.id} 
+                    className="hover:bg-white/5 transition-colors group cursor-pointer"
+                    onClick={() => handleOpenDrawer(trip)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <MapPin className="w-4 h-4 text-primary" />
-                        <span className="font-semibold text-white">{route.destination}</span>
+                        <span className="font-semibold text-white">{trip.route?.destination || 'N/A'}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono font-medium text-slate-300">{route.freight}</td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{route.driver}</span>
+                      <span className="text-sm text-slate-400">{trip.contract || '-'}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{route.helper}</span>
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono font-medium text-slate-300">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border",
+                        trip.status === 'DELIVERED' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                        trip.status === 'IN_TRANSIT' ? "bg-primary/10 text-primary border-primary/20" :
+                        "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                      )}>
+                        {trip.status}
+                      </span>
+                    </td>
+                    <td className={cn(
+                      "px-6 py-4 transition-colors",
+                      trip.paid === 'sim' ? "bg-emerald-500/20" : ""
+                    )}>
+                      <span className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
+                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                      )}>
+                        {trip.paid || 'não'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
+                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(trip.id); }}
+                          className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -107,17 +283,6 @@ export default function RoutesPage() {
                 ))}
               </tbody>
             </table>
-            <div className="px-6 py-4 bg-background-dark/30 flex items-center justify-between border-t border-border-dark">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Exibindo 4 de 128 viagens cadastradas</p>
-              <div className="flex gap-2">
-                <button className="p-1.5 rounded hover:bg-surface-dark text-slate-500">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="p-1.5 rounded hover:bg-surface-dark text-slate-500">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -128,8 +293,8 @@ export default function RoutesPage() {
           <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div>
-                <h3 className="text-xl font-bold text-white">Nova Viagem</h3>
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Configuração de Valores Operacionais</p>
+                <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Valores Operacionais da Viagem</p>
               </div>
               <button 
                 onClick={() => setIsDrawerOpen(false)}
@@ -142,88 +307,159 @@ export default function RoutesPage() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
               {/* Main Info */}
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Cidade de Destino</label>
-                  <input 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                    placeholder="Ex: Rio de Janeiro" 
-                    type="text"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor Total do Frete</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">ID Viagem</label>
                     <input 
-                      className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                      placeholder="0,00" 
-                      type="text"
+                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                      value={formData.tripId}
+                      onChange={(e) => setFormData({...formData, tripId: e.target.value})}
+                      placeholder="Ex: TRIP-1234"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                      <input 
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                        type="date"
+                        value={formData.scheduledAt}
+                        onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <hr className="border-border-dark" />
-
-              {/* Driver Rates */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <BadgeInfo className="w-4 h-4 text-primary" />
-                  <h4 className="font-bold text-[10px] uppercase tracking-widest text-slate-400">Valores Motorista</h4>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
+                  <input 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                    value={formData.contract}
+                    onChange={(e) => setFormData({...formData, contract: e.target.value})}
+                    placeholder="Número ou nome do contrato"
+                  />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
+                  <select 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                    value={formData.routeId}
+                    onChange={(e) => setFormData({...formData, routeId: e.target.value})}
+                  >
+                    <option value="">Selecionar Rota</option>
+                    {routes.map(r => (
+                      <option key={r.id} value={r.id}>{r.destination} (R$ {r.freightValue})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
+                  <select 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                    value={formData.vehicleId}
+                    onChange={(e) => setFormData({...formData, vehicleId: e.target.value})}
+                  >
+                    <option value="">Selecionar Veículo</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">1ª Viagem</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-600">R$</span>
-                      <input 
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                        placeholder="0,00" 
-                        type="text"
-                      />
-                    </div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                      value={formData.driverId}
+                      onChange={(e) => setFormData({...formData, driverId: e.target.value})}
+                    >
+                      <option value="">Selecionar</option>
+                      {employees.map(e => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">2ª Viagem</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-600">R$</span>
-                      <input 
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                        placeholder="0,00" 
-                        type="text"
-                      />
-                    </div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante (Opcional)</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                      value={formData.helperId}
+                      onChange={(e) => setFormData({...formData, helperId: e.target.value})}
+                    >
+                      <option value="">Nenhum</option>
+                      {employees.map(e => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </div>
 
-              {/* Helper Rates */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-primary" />
-                  <h4 className="font-bold text-[10px] uppercase tracking-widest text-slate-400">Valores Ajudante</h4>
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">1ª Viagem</label>
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor do Frete</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-600">R$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
                       <input 
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
                         placeholder="0,00" 
-                        type="text"
+                        type="number"
+                        step="0.01"
+                        value={formData.value}
+                        onChange={(e) => setFormData({...formData, value: e.target.value})}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">2ª Viagem</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-600">R$</span>
-                      <input 
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                        placeholder="0,00" 
-                        type="text"
-                      />
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    >
+                      <option value="SCHEDULED">Agendado</option>
+                      <option value="IN_TRANSIT">Em Trânsito</option>
+                      <option value="DELIVERED">Entregue</option>
+                      <option value="CANCELLED">Cancelado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <hr className="border-border-dark" />
+
+                {/* Payment Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                    <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Pago</label>
+                      <select 
+                        className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                        value={formData.paid}
+                        onChange={(e) => setFormData({...formData, paid: e.target.value})}
+                      >
+                        <option value="não">Não</option>
+                        <option value="sim">Sim</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pagamento</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                        <input 
+                          className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                          type="date"
+                          value={formData.paymentDate}
+                          onChange={(e) => setFormData({...formData, paymentDate: e.target.value})}
+                          disabled={formData.paid === 'não'}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -231,7 +467,7 @@ export default function RoutesPage() {
 
               <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
                 <p className="text-[10px] leading-relaxed text-slate-500 italic">
-                  * Os valores aqui cadastrados serão utilizados como base para o cálculo automático de fechamento de quinzena dos colaboradores.
+                  * Informe o status de pagamento para controle financeiro das viagens realizadas.
                 </p>
               </div>
             </div>
@@ -243,9 +479,12 @@ export default function RoutesPage() {
               >
                 Cancelar
               </button>
-              <button className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+              <button 
+                onClick={handleSave}
+                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+              >
                 <Check className="w-4 h-4" />
-                Salvar Viagem
+                {selectedTrip ? 'Atualizar Viagem' : 'Salvar Viagem'}
               </button>
             </div>
           </aside>

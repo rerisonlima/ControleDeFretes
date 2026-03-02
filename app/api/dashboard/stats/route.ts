@@ -107,6 +107,7 @@ export async function GET(request: Request) {
         id: t.tripId,
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
         status: t.status,
+        contract: t.contract,
         date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
       }))
     });

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -49,6 +50,7 @@ const months = [
 ];
 
 export default function Dashboard() {
+  const router = useRouter();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -59,6 +61,11 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const response = await fetch(`/api/dashboard/stats?month=${selectedMonth}&year=${selectedYear}`);
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('API error response:', text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setDashboardData(data);
     } catch (error) {
@@ -78,7 +85,11 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <Header title="Visão Geral do Dashboard" actionLabel="Nova Viagem" />
+      <Header 
+        title="Visão Geral do Dashboard" 
+        actionLabel="Nova Viagem" 
+        onAction={() => router.push('/routes')}
+      />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-8">
@@ -238,6 +249,7 @@ export default function Dashboard() {
                 <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                   <tr>
                     <th className="px-6 py-4">Rota</th>
+                    <th className="px-6 py-4">Contrato</th>
                     <th className="px-6 py-4">Placa</th>
                     <th className="px-6 py-4">ID Viagem</th>
                     <th className="px-6 py-4">Valor</th>
@@ -271,6 +283,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm text-slate-400">{trip.contract || '-'}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-300">{trip.plate}</td>
                       <td className="px-6 py-4 text-sm font-mono text-slate-500">{trip.id}</td>
                       <td className="px-6 py-4 text-sm font-bold text-white">{trip.value}</td>
