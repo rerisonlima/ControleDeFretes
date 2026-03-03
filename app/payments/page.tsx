@@ -15,7 +15,7 @@ import {
   Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const dailyDetails = [
@@ -61,6 +61,31 @@ export default function PaymentsPage() {
   const weeklyPayments = React.useMemo(() => {
     const payments: Record<string, { driver: number, helper: number, start: Date, end: Date }> = {};
     
+    // Initialize payments with all weeks of the selected month
+    if (selectedMonth) {
+      const monthDate = parse(selectedMonth, 'yyyy-MM', new Date());
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthDate);
+      
+      const weeksInMonth = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+      
+      weeksInMonth.forEach(weekStart => {
+        const friday = addDays(weekStart, 4);
+        
+        // Only include weeks that have at least one weekday (Mon-Fri) in the selected month
+        if (friday < monthStart || weekStart > monthEnd) return;
+
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
+        
+        // Bound the displayed dates to the current month
+        const displayStart = max([weekStart, monthStart]);
+        const displayEnd = min([weekEnd, monthEnd]);
+        
+        payments[weekKey] = { driver: 0, helper: 0, start: displayStart, end: displayEnd };
+      });
+    }
+
     // Group trips by day first
     const tripsByDay: Record<string, any[]> = {};
     
@@ -115,7 +140,7 @@ export default function PaymentsPage() {
       });
     });
     
-    return Object.values(payments).sort((a, b) => b.start.getTime() - a.start.getTime());
+    return Object.values(payments).sort((a, b) => a.start.getTime() - b.start.getTime());
   }, [trips, selectedVehicleId, selectedMonth]);
 
   return (
@@ -268,8 +293,8 @@ export default function PaymentsPage() {
                     <th className="px-6 py-4 border-b border-border-dark">Data</th>
                     <th className="px-6 py-4 border-b border-border-dark">Rota Principal</th>
                     <th className="px-6 py-4 border-b border-border-dark text-center">Viagens</th>
-                    <th className="px-6 py-4 border-b border-border-dark">Valor Unit.</th>
-                    <th className="px-6 py-4 border-b border-border-dark">Extra (2ª)</th>
+                    <th className="px-6 py-4 border-b border-border-dark">Valor 1ª Viagem</th>
+                    <th className="px-6 py-4 border-b border-border-dark">Valor 2ª Viagem</th>
                     <th className="px-6 py-4 border-b border-border-dark text-right">Total Dia</th>
                     <th className="px-6 py-4 border-b border-border-dark text-center">Status</th>
                   </tr>
