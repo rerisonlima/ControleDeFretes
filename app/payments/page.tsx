@@ -11,19 +11,113 @@ import {
   RefreshCw, 
   Info,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const dailyDetails = [
-  { date: '12 Out, 2023', route: 'Centro x Barra da Tijuca', trips: '08', unitValue: 'R$ 35,00', extra: 'R$ 15,00', total: 'R$ 295,00', status: 'CONCLUÍDO' },
-  { date: '11 Out, 2023', route: 'Copacabana x Galeão (GIG)', trips: '06', unitValue: 'R$ 45,00', extra: 'R$ 20,00', total: 'R$ 290,00', status: 'CONCLUÍDO' },
-  { date: '10 Out, 2023', route: 'Niterói x Recreio', trips: '04', unitValue: 'R$ 55,00', extra: 'R$ 25,00', total: 'R$ 245,00', status: 'CONCLUÍDO' },
-  { date: '09 Out, 2023', route: 'Madureira x Botafogo', trips: '10', unitValue: 'R$ 28,00', extra: 'R$ 10,00', total: 'R$ 290,00', status: 'CONCLUÍDO' },
-  { date: '08 Out, 2023', route: 'Centro x Ilha do Governador', trips: '07', unitValue: 'R$ 38,00', extra: 'R$ 12,00', total: 'R$ 278,00', status: 'CONCLUÍDO' },
+  { date: '12 Out, 2023', route: 'Centro x Barra da Tijuca', trips: '08', unitValue: 'R$ 35,00', extra: 'R$ 15,00', total: 'R$ 140,00', status: 'CONCLUÍDO' },
+  { date: '11 Out, 2023', route: 'Copacabana x Galeão (GIG)', trips: '06', unitValue: 'R$ 45,00', extra: 'R$ 20,00', total: 'R$ 145,00', status: 'CONCLUÍDO' },
+  { date: '10 Out, 2023', route: 'Niterói x Recreio', trips: '04', unitValue: 'R$ 55,00', extra: 'R$ 25,00', total: 'R$ 130,00', status: 'CONCLUÍDO' },
+  { date: '09 Out, 2023', route: 'Madureira x Botafogo', trips: '10', unitValue: 'R$ 28,00', extra: 'R$ 10,00', total: 'R$ 118,00', status: 'CONCLUÍDO' },
+  { date: '08 Out, 2023', route: 'Centro x Ilha do Governador', trips: '07', unitValue: 'R$ 38,00', extra: 'R$ 12,00', total: 'R$ 110,00', status: 'CONCLUÍDO' },
 ];
 
 export default function PaymentsPage() {
+  const [trips, setTrips] = React.useState<any[]>([]);
+  const [vehicles, setVehicles] = React.useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = React.useState<string>('');
+  const [selectedMonth, setSelectedMonth] = React.useState<string>(format(new Date(), 'yyyy-MM'));
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tripsRes, vehiclesRes] = await Promise.all([
+          fetch('/api/trips'),
+          fetch('/api/vehicles')
+        ]);
+        const tripsData = await tripsRes.json();
+        const vehiclesData = await vehiclesRes.json();
+        
+        setTrips(tripsData);
+        setVehicles(vehiclesData);
+        if (vehiclesData.length > 0) {
+          setSelectedVehicleId(vehiclesData[0].id.toString());
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Calculate weekly payments for the selected vehicle
+  const weeklyPayments = React.useMemo(() => {
+    const payments: Record<string, { driver: number, helper: number, start: Date, end: Date }> = {};
+    
+    // Group trips by day first
+    const tripsByDay: Record<string, any[]> = {};
+    
+    trips.forEach(trip => {
+      // Only consider trips for the selected vehicle
+      if (trip.vehicleId.toString() !== selectedVehicleId) return;
+      
+      const tripDate = new Date(trip.scheduledAt);
+      
+      // Only consider trips in the selected month
+      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
+      
+      const dayOfWeek = tripDate.getDay();
+      
+      // Only consider Monday (1) to Friday (5)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        const dayKey = format(tripDate, 'yyyy-MM-dd');
+        if (!tripsByDay[dayKey]) {
+          tripsByDay[dayKey] = [];
+        }
+        tripsByDay[dayKey].push(trip);
+      }
+    });
+
+    Object.entries(tripsByDay).forEach(([dayKey, dayTrips]) => {
+      // Sort trips by time to determine which is first
+      dayTrips.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+      
+      const tripDate = parseISO(dayKey);
+      const weekStart = startOfWeek(tripDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(tripDate, { weekStartsOn: 1 });
+      const weekKey = format(weekStart, 'yyyy-MM-dd');
+      
+      if (!payments[weekKey]) {
+        payments[weekKey] = { driver: 0, helper: 0, start: weekStart, end: weekEnd };
+      }
+      
+      dayTrips.forEach((trip, index) => {
+        if (index === 0) {
+          // First trip of the day uses Value1
+          payments[weekKey].driver += trip.route?.driverValue1 || 0;
+          if (trip.helperId) {
+            payments[weekKey].helper += trip.route?.helperValue1 || 0;
+          }
+        } else {
+          // Second trip onwards uses Value2
+          payments[weekKey].driver += trip.route?.driverValue2 || 0;
+          if (trip.helperId) {
+            payments[weekKey].helper += trip.route?.helperValue2 || 0;
+          }
+        }
+      });
+    });
+    
+    return Object.values(payments).sort((a, b) => b.start.getTime() - a.start.getTime());
+  }, [trips, selectedVehicleId, selectedMonth]);
+
   return (
     <AppLayout>
       <Header 
@@ -43,25 +137,30 @@ export default function PaymentsPage() {
             
             <div className="lg:col-span-2 flex flex-wrap gap-4 justify-end">
               <div className="flex flex-col gap-1.5 min-w-[240px]">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Motorista Profissional</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Veículo</label>
                 <div className="relative">
-                  <select className="w-full bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary appearance-none outline-none text-sm">
-                    <option>Carlos Eduardo Oliveira</option>
-                    <option>Marcos Vinícius Santos</option>
-                    <option>Ana Paula Ferreira</option>
+                  <select 
+                    className="w-full bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary appearance-none outline-none text-sm"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                  >
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                    ))}
                   </select>
-                  <User className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
+                  <Truck className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
                   <ChevronDown className="absolute right-3 top-3 text-slate-500 w-4 h-4" />
                 </div>
               </div>
               
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Período</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Mês</label>
                 <div className="relative">
                   <input 
                     className="bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary w-[240px] text-sm outline-none" 
-                    type="text" 
-                    defaultValue="01/10/2023 - 31/10/2023"
+                    type="month" 
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
                   />
                   <Calendar className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
                 </div>
@@ -70,7 +169,7 @@ export default function PaymentsPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                 <Calculator className="w-16 h-16 text-primary" />
@@ -104,6 +203,48 @@ export default function PaymentsPage() {
               <div className="flex items-center gap-1 mt-2 text-primary text-[10px] font-bold uppercase tracking-tight">
                 <Info className="w-3 h-3" />
                 Disponibilidade de 100%
+              </div>
+            </div>
+
+            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                <Truck className="w-16 h-16 text-primary" />
+              </div>
+              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pagamento Motorista (Seg-Sex)</p>
+              <div className="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                {weeklyPayments.length === 0 ? (
+                  <p className="text-sm text-slate-400">Nenhuma viagem registrada</p>
+                ) : (
+                  weeklyPayments.map((week, idx) => (
+                    <div key={idx} className="flex justify-between items-center border-b border-border-dark/50 pb-1 last:border-0">
+                      <span className="text-xs text-slate-400">{format(week.start, 'dd/MM')} a {format(week.end, 'dd/MM')}</span>
+                      <span className="text-sm font-bold text-white">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.driver)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                <User className="w-16 h-16 text-primary" />
+              </div>
+              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pagamento Ajudante (Seg-Sex)</p>
+              <div className="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                {weeklyPayments.length === 0 ? (
+                  <p className="text-sm text-slate-400">Nenhuma viagem registrada</p>
+                ) : (
+                  weeklyPayments.map((week, idx) => (
+                    <div key={idx} className="flex justify-between items-center border-b border-border-dark/50 pb-1 last:border-0">
+                      <span className="text-xs text-slate-400">{format(week.start, 'dd/MM')} a {format(week.end, 'dd/MM')}</span>
+                      <span className="text-sm font-bold text-white">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.helper)}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -155,7 +296,7 @@ export default function PaymentsPage() {
                     <td className="px-6 py-6 text-right font-bold text-slate-500 text-[10px] uppercase tracking-widest" colSpan={5}>
                       SUBTOTAL PERÍODO VISÍVEL:
                     </td>
-                    <td className="px-6 py-6 text-right font-black text-primary text-xl">R$ 1.398,00</td>
+                    <td className="px-6 py-6 text-right font-black text-primary text-xl">R$ 643,00</td>
                     <td></td>
                   </tr>
                 </tfoot>
