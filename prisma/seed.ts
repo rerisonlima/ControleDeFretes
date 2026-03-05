@@ -18,6 +18,36 @@ async function main() {
     },
   });
 
+  // Create vehicle categories
+  const categories = [
+    'Fiorino', 'Kombi', 'Van', 'VUC', '3/4', 'Toco', 'Truck', 'Carretas 2 eixos', 'Carreta 3 eixos', 'Bitrem'
+  ];
+
+  for (const cat of categories) {
+    await prisma.categoriaVeiculos.upsert({
+      where: { CategoriaNome: cat },
+      update: {},
+      create: { CategoriaNome: cat },
+    });
+  }
+
+  // Create contratantes
+  const contratantes = ['MP', 'MaxPet', 'Parati'];
+
+  for (const cont of contratantes) {
+    await prisma.contratante.upsert({
+      where: { ContratanteNome: cont },
+      update: {},
+      create: { ContratanteNome: cont },
+    });
+  }
+
+  // Fetch categories to assign to vehicles
+  const fiorinoCat = await prisma.categoriaVeiculos.findUnique({ where: { CategoriaNome: 'Fiorino' } });
+  const vucCat = await prisma.categoriaVeiculos.findUnique({ where: { CategoriaNome: 'VUC' } });
+  const carretaCat = await prisma.categoriaVeiculos.findUnique({ where: { CategoriaNome: 'Carretas 2 eixos' } });
+  const truckCat = await prisma.categoriaVeiculos.findUnique({ where: { CategoriaNome: 'Truck' } });
+
   // Create some vehicles
   const v1 = await prisma.vehicle.upsert({
     where: { plate: 'ABC-1234' },
@@ -30,6 +60,7 @@ async function main() {
       year: 2022,
       capacity: 10.5,
       status: 'ACTIVE',
+      categoriaId: truckCat?.id,
     },
   });
 
@@ -44,6 +75,7 @@ async function main() {
       year: 2021,
       capacity: 6.0,
       status: 'ACTIVE',
+      categoriaId: vucCat?.id,
     },
   });
 
@@ -58,6 +90,7 @@ async function main() {
       year: 2023,
       capacity: 32.0,
       status: 'ACTIVE',
+      categoriaId: carretaCat?.id,
     },
   });
 
@@ -72,6 +105,7 @@ async function main() {
       year: 2022,
       capacity: 0.65,
       status: 'ACTIVE',
+      categoriaId: fiorinoCat?.id,
     },
   });
 
@@ -158,8 +192,10 @@ async function main() {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  await prisma.trip.create({
-    data: {
+  await prisma.trip.upsert({
+    where: { tripId: 'TRP-001' },
+    update: {},
+    create: {
       tripId: 'TRP-001',
       routeId: r1.id,
       vehicleId: v1.id,
@@ -173,8 +209,10 @@ async function main() {
     },
   });
 
-  await prisma.trip.create({
-    data: {
+  await prisma.trip.upsert({
+    where: { tripId: 'TRP-002' },
+    update: {},
+    create: {
       tripId: 'TRP-002',
       routeId: r2.id,
       vehicleId: v2.id,
@@ -186,8 +224,10 @@ async function main() {
     },
   });
 
-  await prisma.trip.create({
-    data: {
+  await prisma.trip.upsert({
+    where: { tripId: 'TRP-003' },
+    update: {},
+    create: {
       tripId: 'TRP-003',
       routeId: r3.id,
       vehicleId: v3.id,
@@ -200,8 +240,10 @@ async function main() {
     },
   });
 
-  await prisma.trip.create({
-    data: {
+  await prisma.trip.upsert({
+    where: { tripId: 'TRP-004' },
+    update: {},
+    create: {
       tripId: 'TRP-004',
       routeId: r4.id,
       vehicleId: v4.id,
@@ -214,8 +256,10 @@ async function main() {
     },
   });
 
-  await prisma.trip.create({
-    data: {
+  await prisma.trip.upsert({
+    where: { tripId: 'TRP-005' },
+    update: {},
+    create: {
       tripId: 'TRP-005',
       routeId: r1.id,
       vehicleId: v1.id,

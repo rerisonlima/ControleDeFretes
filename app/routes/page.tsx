@@ -28,6 +28,8 @@ export default function RoutesPage() {
   const [routes, setRoutes] = React.useState<any[]>([]);
   const [vehicles, setVehicles] = React.useState<any[]>([]);
   const [employees, setEmployees] = React.useState<any[]>([]);
+  const [contratantes, setContratantes] = React.useState<any[]>([]);
+  const [fretes, setFretes] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedTrip, setSelectedTrip] = React.useState<any>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -37,11 +39,17 @@ export default function RoutesPage() {
   const [formData, setFormData] = React.useState({
     tripId: '',
     routeId: '',
+    freteId: '',
+    contratanteId: '',
     vehicleId: '',
     driverId: '',
     helperId: '',
     scheduledAt: '',
     value: '',
+    valor1aViagemMotorista: '',
+    valor2aViagemMotorista: '',
+    valor1aViagemAjudante: '',
+    valor2aViagemAjudante: '',
     status: 'SCHEDULED',
     paid: 'não',
     contract: '',
@@ -61,17 +69,21 @@ export default function RoutesPage() {
         return res.json();
       };
 
-      const [tripsData, routesData, vehiclesData, employeesData] = await Promise.all([
+      const [tripsData, routesData, vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
         fetchJson('/api/trips', 'Trips'),
         fetchJson('/api/routes', 'Routes'),
         fetchJson('/api/vehicles', 'Vehicles'),
-        fetchJson('/api/employees', 'Employees')
+        fetchJson('/api/employees', 'Employees'),
+        fetchJson('/api/contratantes', 'Contratantes'),
+        fetchJson('/api/fretes', 'Fretes')
       ]);
 
       setTrips(tripsData);
       setRoutes(routesData);
       setVehicles(vehiclesData);
       setEmployees(employeesData);
+      setContratantes(contratantesData);
+      setFretes(fretesData);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -88,12 +100,18 @@ export default function RoutesPage() {
       setSelectedTrip(trip);
       setFormData({
         tripId: trip.tripId,
-        routeId: trip.routeId.toString(),
+        routeId: trip.routeId?.toString() || '',
+        freteId: trip.freteId?.toString() || '',
+        contratanteId: trip.contratanteId?.toString() || '',
         vehicleId: trip.vehicleId.toString(),
         driverId: trip.driverId.toString(),
         helperId: trip.helperId?.toString() || '',
         scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : '',
-        value: trip.value.toString(),
+        value: trip.value?.toString() || '',
+        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
+        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
+        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
+        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
         status: trip.status,
         paid: trip.paid || 'não',
         contract: trip.contract || '',
@@ -104,11 +122,17 @@ export default function RoutesPage() {
       setFormData({
         tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
         routeId: '',
+        freteId: '',
+        contratanteId: '',
         vehicleId: '',
         driverId: '',
         helperId: '',
         scheduledAt: format(new Date(), 'yyyy-MM-dd'),
         value: '',
+        valor1aViagemMotorista: '',
+        valor2aViagemMotorista: '',
+        valor1aViagemAjudante: '',
+        valor2aViagemAjudante: '',
         status: 'SCHEDULED',
         paid: 'não',
         contract: '',
@@ -160,8 +184,10 @@ export default function RoutesPage() {
   };
 
   const filteredTrips = trips.filter(trip => {
-    const matchesSearch = trip.route?.destination?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         trip.contract?.toLowerCase().includes(searchTerm.toLowerCase());
+    const destination = trip.frete?.cidade || trip.route?.destination || '';
+    const contract = trip.contratante?.ContratanteNome || trip.contract || '';
+    const matchesSearch = destination.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         contract.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVehicle = vehicleFilter === '' || trip.vehicleId.toString() === vehicleFilter;
     return matchesSearch && matchesVehicle;
   });
@@ -261,11 +287,11 @@ export default function RoutesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <MapPin className="w-4 h-4 text-primary" />
-                        <span className="font-semibold text-white">{trip.route?.destination || 'N/A'}</span>
+                        <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{trip.contract || '-'}</span>
+                      <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -345,39 +371,89 @@ export default function RoutesPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
+                  <select 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                    value={formData.vehicleId}
+                    onChange={(e) => {
+                      const vehicleId = e.target.value;
+                      setFormData(prev => ({
+                        ...prev, 
+                        vehicleId,
+                        freteId: '',
+                        value: '',
+                        valor1aViagemMotorista: '',
+                        valor2aViagemMotorista: '',
+                        valor1aViagemAjudante: '',
+                        valor2aViagemAjudante: ''
+                      }));
+                    }}
+                  >
+                    <option value="">Selecionar Veículo</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
-                  <input 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                    value={formData.contract}
-                    onChange={(e) => setFormData({...formData, contract: e.target.value})}
-                    placeholder="Número ou nome do contrato"
-                  />
+                  <select 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                    value={formData.contratanteId}
+                    onChange={(e) => {
+                      setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
+                    }}
+                  >
+                    <option value="">Selecionar Contratante</option>
+                    {contratantes.map(c => (
+                      <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
                   <select 
                     className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.routeId}
-                    onChange={(e) => setFormData({...formData, routeId: e.target.value})}
+                    value={formData.freteId}
+                    onChange={(e) => {
+                      const selectedFreteId = e.target.value;
+                      const frete = fretes.find(f => f.id.toString() === selectedFreteId);
+                      if (frete) {
+                        setFormData({
+                          ...formData, 
+                          freteId: selectedFreteId,
+                          value: frete.valorFrete.toString(),
+                          valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
+                          valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
+                          valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
+                          valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
+                        });
+                      } else {
+                        setFormData({
+                          ...formData, 
+                          freteId: selectedFreteId,
+                          value: '',
+                          valor1aViagemMotorista: '',
+                          valor2aViagemMotorista: '',
+                          valor1aViagemAjudante: '',
+                          valor2aViagemAjudante: ''
+                        });
+                      }
+                    }}
+                    disabled={!formData.contratanteId || !formData.vehicleId}
                   >
-                    <option value="">Selecionar Rota</option>
-                    {routes.map(r => (
-                      <option key={r.id} value={r.id}>{r.destination} (R$ {r.freightValue})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.vehicleId}
-                    onChange={(e) => setFormData({...formData, vehicleId: e.target.value})}
-                  >
-                    <option value="">Selecionar Veículo</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
+                    <option value="">Selecionar Destino</option>
+                    {fretes
+                      .filter(f => {
+                        const matchesContratante = f.contratanteId.toString() === formData.contratanteId;
+                        const selectedVehicle = vehicles.find(v => v.id.toString() === formData.vehicleId);
+                        const matchesCategoria = selectedVehicle ? f.categoriaId === selectedVehicle.categoriaId : false;
+                        return matchesContratante && matchesCategoria;
+                      })
+                      .map(f => (
+                      <option key={f.id} value={f.id}>{f.cidade} - {f.categoria?.CategoriaNome} (R$ {f.valorFrete})</option>
                     ))}
                   </select>
                 </div>
@@ -422,7 +498,7 @@ export default function RoutesPage() {
                         type="number"
                         step="0.01"
                         value={formData.value}
-                        onChange={(e) => setFormData({...formData, value: e.target.value})}
+                        readOnly
                       />
                     </div>
                   </div>
@@ -438,6 +514,68 @@ export default function RoutesPage() {
                       <option value="DELIVERED">Entregue</option>
                       <option value="CANCELLED">Cancelado</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Mot.</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                      <input 
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                        placeholder="0,00" 
+                        type="number"
+                        step="0.01"
+                        value={formData.valor1aViagemMotorista}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Mot.</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                      <input 
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                        placeholder="0,00" 
+                        type="number"
+                        step="0.01"
+                        value={formData.valor2aViagemMotorista}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Ajud.</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                      <input 
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                        placeholder="0,00" 
+                        type="number"
+                        step="0.01"
+                        value={formData.valor1aViagemAjudante}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Ajud.</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                      <input 
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                        placeholder="0,00" 
+                        type="number"
+                        step="0.01"
+                        value={formData.valor2aViagemAjudante}
+                        readOnly
+                      />
+                    </div>
                   </div>
                 </div>
 

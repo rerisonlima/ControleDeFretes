@@ -18,6 +18,38 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+model CategoriaVeiculos {
+  id            Int       @id @default(autoincrement())
+  CategoriaNome String    @unique
+  veiculos      Vehicle[]
+  fretes        Frete[]
+}
+
+model Contratante {
+  id              Int       @id @default(autoincrement())
+  ContratanteNome String    @unique
+  fretes          Frete[]
+  trips           Trip[]
+}
+
+model Frete {
+  id                      Int               @id @default(autoincrement())
+  cidade                  String
+  contratanteId           Int
+  contratante             Contratante       @relation(fields: [contratanteId], references: [id])
+  categoriaId             Int
+  categoria               CategoriaVeiculos @relation(fields: [categoriaId], references: [id])
+  valorFrete              Float
+  valor1aViagemMotorista  Float
+  valor2aViagemMotorista  Float
+  valor1aViagemAjudante   Float
+  valor2aViagemAjudante   Float
+  validade                DateTime
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  trips                   Trip[]
+}
+
 model Vehicle {
   id              Int      @id @default(autoincrement())
   plate           String   @unique
@@ -28,6 +60,8 @@ model Vehicle {
   capacity        Float
   status          String   @default("ACTIVE")
   lastMaintenance DateTime?
+  categoriaId     Int?
+  categoria       CategoriaVeiculos? @relation(fields: [categoriaId], references: [id])
   trips           Trip[]
   expenses        Expense[]
   createdAt       DateTime @default(now())
@@ -61,8 +95,12 @@ model Route {
 model Trip {
   id          Int      @id @default(autoincrement())
   tripId      String   @unique
-  routeId     Int
-  route       Route    @relation(fields: [routeId], references: [id])
+  routeId     Int?
+  route       Route?   @relation(fields: [routeId], references: [id])
+  freteId     Int?
+  frete       Frete?   @relation(fields: [freteId], references: [id])
+  contratanteId Int?
+  contratante Contratante? @relation(fields: [contratanteId], references: [id])
   vehicleId   Int
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
   driverId    Int
@@ -71,6 +109,10 @@ model Trip {
   helper      Employee? @relation("HelperTrips", fields: [helperId], references: [id])
   scheduledAt DateTime
   value       Float
+  valor1aViagemMotorista Float?
+  valor2aViagemMotorista Float?
+  valor1aViagemAjudante  Float?
+  valor2aViagemAjudante  Float?
   status      String   @default("SCHEDULED")
   paid        String   @default("não")
   contract    String?

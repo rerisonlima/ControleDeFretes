@@ -28,12 +28,18 @@ export async function POST(req: Request) {
     const trip = await prisma.trip.create({
       data: {
         tripId: body.tripId,
-        routeId: parseInt(body.routeId),
+        routeId: body.routeId ? parseInt(body.routeId) : null,
+        freteId: body.freteId ? parseInt(body.freteId) : null,
+        contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,
         vehicleId: parseInt(body.vehicleId),
         driverId: parseInt(body.driverId),
         helperId: body.helperId ? parseInt(body.helperId) : null,
         scheduledAt: new Date(body.scheduledAt),
         value: parseFloat(body.value),
+        valor1aViagemMotorista: body.valor1aViagemMotorista ? parseFloat(body.valor1aViagemMotorista) : null,
+        valor2aViagemMotorista: body.valor2aViagemMotorista ? parseFloat(body.valor2aViagemMotorista) : null,
+        valor1aViagemAjudante: body.valor1aViagemAjudante ? parseFloat(body.valor1aViagemAjudante) : null,
+        valor2aViagemAjudante: body.valor2aViagemAjudante ? parseFloat(body.valor2aViagemAjudante) : null,
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
@@ -41,6 +47,8 @@ export async function POST(req: Request) {
       },
       include: {
         route: true,
+        frete: true,
+        contratante: true,
         vehicle: true,
         driver: true,
         helper: true,
