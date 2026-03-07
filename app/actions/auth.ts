@@ -38,7 +38,8 @@ export async function loginAction(formData: FormData) {
 
     const encryptedSessionData = await encrypt(sessionData);
 
-    cookies().set('session', encryptedSessionData, {
+    const cookieStore = await cookies();
+    cookieStore.set('session', encryptedSessionData, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24, // 24 horas
@@ -53,7 +54,8 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  cookies().set('session', '', {
+  const cookieStore = await cookies();
+  cookieStore.set('session', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: 0,
