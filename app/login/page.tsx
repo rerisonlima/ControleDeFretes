@@ -1,25 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
   Truck, 
   Lock, 
   User, 
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
+import { loginAction } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError('');
+    
+    const formData = new FormData(e.currentTarget);
+    const result = await loginAction(formData);
+    
+    if (result?.error) {
+      setError(result.error);
+      setLoading(false);
+    } else {
       router.push('/');
-    }, 1500);
+      router.refresh();
+    }
   };
 
   return (
@@ -65,12 +77,20 @@ export default function LoginPage() {
             </div>
 
             <form className="space-y-6" onSubmit={handleLogin}>
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Usuário</label>
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors w-5 h-5" />
                   <input 
                     required
+                    name="username"
                     className="w-full pl-12 pr-4 py-4 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
                     placeholder="Digite seu usuário" 
                     type="text"
@@ -84,6 +104,7 @@ export default function LoginPage() {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors w-5 h-5" />
                   <input 
                     required
+                    name="password"
                     className="w-full pl-12 pr-4 py-4 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
                     placeholder="••••••••" 
                     type="password"

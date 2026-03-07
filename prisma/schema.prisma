@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -131,4 +132,17 @@ model Expense {
   status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ValoresPagamentoMotoristaAjudante {
+  id                        Int      @id @default(autoincrement())
+  validade                  DateTime
+  destino                   String
+  categoria                 String?
+  valorPgto1ViagemMotorista Int
+  valorPgto2ViagemMotorista Int
+  valorPgto1ViagemAjudante  Int
+  valorPgto2ViagemAjudante  Int
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }

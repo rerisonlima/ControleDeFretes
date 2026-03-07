@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const records = await prisma.categoriaVeiculos.findMany({
-      orderBy: { categoriaNome: 'asc' },
+    const categorias = await prisma.categoriaVeiculos.findMany({
+      orderBy: { CategoriaNome: 'asc' }
     });
-    return NextResponse.json(records);
+    return NextResponse.json(categorias);
   } catch (error) {
-    console.error('Error fetching categorias:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Failed to fetch categorias:', error);
+    return NextResponse.json({ error: 'Failed to fetch categorias' }, { status: 500 });
   }
 }
