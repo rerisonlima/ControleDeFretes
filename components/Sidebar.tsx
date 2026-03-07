@@ -14,7 +14,8 @@ import {
   Receipt, 
   LogOut,
   TruckIcon,
-  Table
+  Table,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: Calculator, label: 'Pagamentos', href: '/payments' },
   { icon: Receipt, label: 'Despesas', href: '/expenses' },
   { icon: Truck, label: 'Veículos', href: '/vehicles' },
+  { icon: FileText, label: 'Contratos', href: '/contracts' },
   { icon: Table, label: 'Tabelas', href: '/tables' },
   { icon: Users, label: 'Funcionários', href: '/employees' },
   { icon: UserCog, label: 'Usuários', href: '/users' },
