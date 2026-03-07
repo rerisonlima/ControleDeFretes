@@ -31,13 +31,15 @@ interface Vehicle {
 export default function VehiclesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [categories, setCategories] = useState<{id: number, CategoriaNome: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
   // Form State
   const [formData, setFormData] = useState({
     plate: '',
-    type: 'Caminhão',
+    type: '',
+    categoriaId: '',
     brand: '',
     model: '',
     year: new Date().getFullYear().toString(),
@@ -62,8 +64,21 @@ export default function VehiclesPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categorias');
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   useEffect(() => {
     fetchVehicles();
+    fetchCategories();
   }, []);
 
   const handleSave = async () => {
@@ -84,7 +99,8 @@ export default function VehiclesPage() {
         setIsDrawerOpen(false);
         setFormData({
           plate: '',
-          type: 'Caminhão',
+          type: '',
+          categoriaId: '',
           brand: '',
           model: '',
           year: new Date().getFullYear().toString(),
@@ -252,13 +268,20 @@ export default function VehiclesPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Veículo</label>
                 <select 
                   className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  value={formData.categoriaId}
+                  onChange={(e) => {
+                    const selectedCat = categories.find(c => c.id.toString() === e.target.value);
+                    setFormData({ 
+                      ...formData, 
+                      categoriaId: e.target.value,
+                      type: selectedCat ? selectedCat.CategoriaNome : ''
+                    });
+                  }}
                 >
-                  <option value="Caminhão">Caminhão</option>
-                  <option value="Van">Van</option>
-                  <option value="Carro de Passeio">Carro de Passeio</option>
-                  <option value="Utilitário">Utilitário</option>
+                  <option value="">Selecione um tipo</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.CategoriaNome}</option>
+                  ))}
                 </select>
               </div>
 

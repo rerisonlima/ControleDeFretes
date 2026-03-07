@@ -24,6 +24,7 @@ export async function POST(req: Request) {
         year: parseInt(body.year),
         capacity: parseFloat(body.capacity),
         status: body.status || 'ACTIVE',
+        categoriaId: body.categoriaId ? parseInt(body.categoriaId) : null,
       }
     });
     return NextResponse.json(vehicle);
