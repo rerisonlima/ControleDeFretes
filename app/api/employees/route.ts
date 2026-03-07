@@ -4,7 +4,12 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: { trips: true, helperTrips: true }
+        }
+      }
     });
     return NextResponse.json(employees);
   } catch (error) {
@@ -20,6 +25,9 @@ export async function POST(req: Request) {
         name: body.name,
         role: body.role,
         phone: body.phone,
+        pix: body.pix,
+        cnh: body.cnh,
+        cnhCategory: body.cnhCategory,
       }
     });
     return NextResponse.json(employee);

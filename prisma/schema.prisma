@@ -74,6 +74,9 @@ model Employee {
   name      String
   role      String
   phone     String?
+  pix       String?
+  cnh       String?
+  cnhCategory String? @db.VarChar(5)
   trips     Trip[]   @relation("DriverTrips")
   helperTrips Trip[] @relation("HelperTrips")
   createdAt DateTime @default(now())
