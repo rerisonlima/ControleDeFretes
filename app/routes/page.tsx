@@ -173,9 +173,14 @@ export default function RoutesPage() {
       if (response.ok) {
         setDeleteConfirmId(null);
         fetchData();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Erro ao excluir viagem');
+        setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Delete error:', error);
+      alert('Erro de conexão ao excluir');
     }
   };
 

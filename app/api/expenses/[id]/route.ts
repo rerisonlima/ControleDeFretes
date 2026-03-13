@@ -27,15 +27,5 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-    
-    await prisma.expense.delete({ where: { id } });
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to delete expense:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
+  return NextResponse.json({ error: 'Exclusão desabilitada. Por favor, cancele o registro se necessário.' }, { status: 403 });
 }

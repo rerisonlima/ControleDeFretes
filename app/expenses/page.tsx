@@ -147,9 +147,14 @@ export default function ExpensesPage() {
       if (res.ok) {
         setDeleteConfirmId(null);
         fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao excluir despesa');
+        setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Error deleting expense:', error);
+      alert('Erro de conexão ao excluir');
     }
   };
 

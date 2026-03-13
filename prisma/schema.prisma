@@ -29,6 +29,7 @@ model CategoriaVeiculos {
 model Contratante {
   id              Int       @id @default(autoincrement())
   ContratanteNome String    @unique
+  active          Boolean   @default(true)
   fretes          Frete[]
   trips           Trip[]
 }

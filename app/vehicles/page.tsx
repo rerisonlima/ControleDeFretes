@@ -12,7 +12,10 @@ import {
   ChevronRight,
   X,
   Check,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff,
+  Power
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +29,7 @@ interface Vehicle {
   capacity: number;
   status: string;
   lastMaintenance: string | null;
+  categoriaId: number | null;
 }
 
 export default function VehiclesPage() {
@@ -34,6 +38,8 @@ export default function VehiclesPage() {
   const [categories, setCategories] = useState<{id: number, CategoriaNome: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -43,13 +49,14 @@ export default function VehiclesPage() {
     brand: '',
     model: '',
     year: new Date().getFullYear().toString(),
-    capacity: ''
+    capacity: '',
+    status: 'ACTIVE'
   });
 
   const fetchVehicles = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/vehicles');
+      const res = await fetch(`/api/vehicles?showInactive=${showInactive}`);
       if (!res.ok) {
         const text = await res.text();
         console.error('API error response:', text);
@@ -79,7 +86,36 @@ export default function VehiclesPage() {
   useEffect(() => {
     fetchVehicles();
     fetchCategories();
-  }, []);
+  }, [showInactive]);
+
+  const handleOpenDrawer = (vehicle: Vehicle | null = null) => {
+    if (vehicle) {
+      setSelectedVehicle(vehicle);
+      setFormData({
+        plate: vehicle.plate,
+        type: vehicle.type,
+        categoriaId: vehicle.categoriaId?.toString() || '',
+        brand: vehicle.brand,
+        model: vehicle.model,
+        year: vehicle.year.toString(),
+        capacity: vehicle.capacity.toString(),
+        status: vehicle.status
+      });
+    } else {
+      setSelectedVehicle(null);
+      setFormData({
+        plate: '',
+        type: '',
+        categoriaId: '',
+        brand: '',
+        model: '',
+        year: new Date().getFullYear().toString(),
+        capacity: '',
+        status: 'ACTIVE'
+      });
+    }
+    setIsDrawerOpen(true);
+  };
 
   const handleSave = async () => {
     if (!formData.plate || !formData.brand || !formData.model) {
@@ -89,23 +125,17 @@ export default function VehiclesPage() {
 
     try {
       setIsSaving(true);
-      const res = await fetch('/api/vehicles', {
-        method: 'POST',
+      const url = selectedVehicle ? `/api/vehicles/${selectedVehicle.id}` : '/api/vehicles';
+      const method = selectedVehicle ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
         setIsDrawerOpen(false);
-        setFormData({
-          plate: '',
-          type: '',
-          categoriaId: '',
-          brand: '',
-          model: '',
-          year: new Date().getFullYear().toString(),
-          capacity: ''
-        });
         fetchVehicles();
       } else {
         const error = await res.json();
@@ -119,12 +149,33 @@ export default function VehiclesPage() {
     }
   };
 
+  const handleToggleStatus = async (vehicle: Vehicle) => {
+    const newStatus = vehicle.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    const action = newStatus === 'ACTIVE' ? 'ativar' : 'desativar';
+    
+    if (window.confirm(`Tem certeza que deseja ${action} este veículo?`)) {
+      try {
+        const res = await fetch(`/api/vehicles/${vehicle.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...vehicle, status: newStatus }),
+        });
+
+        if (res.ok) {
+          fetchVehicles();
+        }
+      } catch (error) {
+        console.error('Error toggling vehicle status:', error);
+      }
+    }
+  };
+
   return (
     <AppLayout>
       <Header 
         title="Cadastro de Veículos" 
         actionLabel="Novo Veículo" 
-        onAction={() => setIsDrawerOpen(true)}
+        onAction={() => handleOpenDrawer()}
       />
       
       <div className="flex-1 overflow-auto p-8 custom-scrollbar">
@@ -141,13 +192,17 @@ export default function VehiclesPage() {
               />
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-3 bg-surface-dark border border-border-dark rounded-xl text-sm font-medium hover:border-primary transition-colors text-slate-300">
-                <span>Tipo</span>
-                <Filter className="w-4 h-4" />
-              </button>
-              <button className="flex items-center gap-2 px-4 py-3 bg-surface-dark border border-border-dark rounded-xl text-sm font-medium hover:border-primary transition-colors text-slate-300">
-                <span>Status</span>
-                <Filter className="w-4 h-4" />
+              <button 
+                onClick={() => setShowInactive(!showInactive)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  showInactive 
+                    ? "bg-primary text-background-dark" 
+                    : "bg-surface-dark border border-border-dark text-slate-300 hover:border-primary"
+                )}
+              >
+                {showInactive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                <span>{showInactive ? 'Exibindo Inativos' : 'Ver Inativos'}</span>
               </button>
             </div>
           </div>
@@ -210,9 +265,27 @@ export default function VehiclesPage() {
                       {v.lastMaintenance ? new Date(v.lastMaintenance).toLocaleDateString('pt-BR') : 'Sem registro'}
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <button className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors">
-                        <Edit className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handleOpenDrawer(v)}
+                          className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleToggleStatus(v)}
+                          className={cn(
+                            "p-2 rounded-lg transition-colors",
+                            v.status === 'INACTIVE' 
+                              ? "text-emerald-500 hover:bg-emerald-500/10" 
+                              : "text-rose-500 hover:bg-rose-500/10"
+                          )}
+                          title={v.status === 'INACTIVE' ? "Ativar" : "Desativar"}
+                        >
+                          <Power className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -241,8 +314,8 @@ export default function VehiclesPage() {
           <div className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
             <div className="p-8 border-b border-border-dark flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">Novo Veículo</h3>
-                <p className="text-sm text-slate-500 mt-1">Preencha os dados básicos do veículo</p>
+                <h3 className="text-xl font-bold text-white">{selectedVehicle ? 'Editar Veículo' : 'Novo Veículo'}</h3>
+                <p className="text-sm text-slate-500 mt-1">{selectedVehicle ? 'Atualize as informações do veículo' : 'Preencha os dados básicos do veículo'}</p>
               </div>
               <button 
                 onClick={() => setIsDrawerOpen(false)}
@@ -329,6 +402,21 @@ export default function VehiclesPage() {
                   onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
                 />
               </div>
+
+              {selectedVehicle && (
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="MAINTENANCE">Manutenção</option>
+                    <option value="INACTIVE">Inativo</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
@@ -349,7 +437,7 @@ export default function VehiclesPage() {
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {isSaving ? 'Salvando...' : 'Salvar Veículo'}
+                {isSaving ? 'Salvando...' : selectedVehicle ? 'Atualizar Veículo' : 'Salvar Veículo'}
               </button>
             </div>
           </div>

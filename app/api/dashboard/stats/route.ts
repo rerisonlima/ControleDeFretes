@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   const endDate = endOfMonth(startDate);
 
   try {
-    // Fetch trips for the month
     const trips = await prisma.trip.findMany({
       where: {
         scheduledAt: {
@@ -23,12 +22,16 @@ export async function GET(request: Request) {
       include: {
         route: true,
         frete: true,
-        contratante: true,
+        contratante: {
+          select: {
+            id: true,
+            ContratanteNome: true
+          }
+        },
         vehicle: true
       }
     });
 
-    // Fetch expenses for the month
     const expenses = await prisma.expense.findMany({
       where: {
         date: {
@@ -60,6 +63,7 @@ export async function GET(request: Request) {
     const prevTrips = await prisma.trip.findMany({
       where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
     });
+
     const prevExpenses = await prisma.expense.findMany({
       where: { date: { gte: prevStartDate, lte: prevEndDate } },
     });

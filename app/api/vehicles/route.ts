@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const showInactive = searchParams.get('showInactive') === 'true';
+
     const vehicles = await prisma.vehicle.findMany({
+      where: showInactive ? {} : { status: { not: 'INACTIVE' } },
       orderBy: { updatedAt: 'desc' }
     });
     return NextResponse.json(vehicles);

@@ -11,15 +11,19 @@ import {
   Trash2, 
   FileText,
   AlertCircle,
-  X
+  X,
+  Eye,
+  EyeOff,
+  Power
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getContracts, createContract, updateContract, deleteContract } from '@/app/actions/contracts';
+import { getContracts, createContract, updateContract, deleteContract, toggleContractStatus } from '@/app/actions/contracts';
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +34,7 @@ export default function ContractsPage() {
 
   const fetchContracts = async () => {
     setLoading(true);
-    const result = await getContracts();
+    const result = await getContracts(showInactive);
     if (result.contracts) {
       setContracts(result.contracts);
     }
@@ -39,7 +43,7 @@ export default function ContractsPage() {
 
   useEffect(() => {
     fetchContracts();
-  }, []);
+  }, [showInactive]);
 
   const handleOpenCreateModal = () => {
     setModalMode('create');
@@ -85,9 +89,10 @@ export default function ContractsPage() {
     setIsSubmitting(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este contrato?')) {
-      const result = await deleteContract(id);
+  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    const action = currentStatus ? 'desativar' : 'ativar';
+    if (window.confirm(`Tem certeza que deseja ${action} este contrato?`)) {
+      const result = await toggleContractStatus(id);
       if (result.error) {
         alert(result.error);
       } else {
@@ -111,18 +116,30 @@ export default function ContractsPage() {
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-6">
           
-          {/* Search Bar */}
-          <div className="flex items-center gap-4 bg-surface-dark border border-border-dark rounded-xl p-2 shadow-sm">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          {/* Search Bar and Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
               <input 
-                type="text" 
-                placeholder="Buscar contrato por nome..." 
+                className="w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-white placeholder:text-slate-600"
+                placeholder="Pesquisar contratante..."
+                type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent border-none text-white pl-10 pr-4 py-2 focus:outline-none focus:ring-0 placeholder:text-slate-600 text-sm"
               />
             </div>
+            <button 
+              onClick={() => setShowInactive(!showInactive)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                showInactive 
+                  ? "bg-primary text-background-dark" 
+                  : "bg-surface-dark border border-border-dark text-slate-300 hover:border-primary"
+              )}
+            >
+              {showInactive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              <span>{showInactive ? 'Exibindo Inativos' : 'Ver Inativos'}</span>
+            </button>
           </div>
 
           {/* Contracts Table */}
@@ -133,6 +150,7 @@ export default function ContractsPage() {
                   <tr>
                     <th className="px-6 py-4">ID</th>
                     <th className="px-6 py-4">Nome do Contratante</th>
+                    <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -150,7 +168,10 @@ export default function ContractsPage() {
                       </td>
                     </tr>
                   ) : filteredContracts.map((contract) => (
-                    <tr key={contract.id} className="hover:bg-white/5 transition-colors group">
+                    <tr key={contract.id} className={cn(
+                      "hover:bg-white/5 transition-colors group",
+                      !contract.active && "opacity-60"
+                    )}>
                       <td className="px-6 py-4">
                         <span className="text-sm font-mono text-slate-500">#{contract.id}</span>
                       </td>
@@ -162,6 +183,16 @@ export default function ContractsPage() {
                           <span className="text-sm font-bold text-white">{contract.ContratanteNome}</span>
                         </div>
                       </td>
+                      <td className="px-6 py-5">
+                        <span className={cn(
+                          "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
+                          contract.active 
+                            ? "bg-emerald-500/10 text-emerald-500" 
+                            : "bg-rose-500/10 text-rose-500"
+                        )}>
+                          {contract.active ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
@@ -172,11 +203,16 @@ export default function ContractsPage() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDelete(contract.id)}
-                            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                            title="Excluir"
+                            onClick={() => handleToggleStatus(contract.id, contract.active)}
+                            className={cn(
+                              "p-2 rounded-lg transition-colors",
+                              contract.active 
+                                ? "text-slate-400 hover:text-rose-500 hover:bg-rose-500/10" 
+                                : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10"
+                            )}
+                            title={contract.active ? "Desativar" : "Ativar"}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Power className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -220,13 +256,26 @@ export default function ContractsPage() {
                 </label>
                 <input 
                   required
-                  name="name"
+                  name="ContratanteNome"
                   defaultValue={selectedContract?.ContratanteNome || ''}
                   className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
                   placeholder="Ex: Empresa XYZ Ltda" 
                   type="text"
                 />
               </div>
+
+              {modalMode === 'edit' && (
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox"
+                    name="active"
+                    id="active"
+                    defaultChecked={selectedContract?.active}
+                    className="w-4 h-4 rounded border-border-dark bg-surface-dark text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="active" className="text-sm text-slate-300">Contrato Ativo</label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button 
