@@ -34,6 +34,7 @@ export default function RoutesPage() {
   const [selectedTrip, setSelectedTrip] = React.useState<any>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [vehicleFilter, setVehicleFilter] = React.useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -167,10 +168,10 @@ export default function RoutesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta viagem?')) return;
     try {
       const response = await fetch(`/api/trips/${id}`, { method: 'DELETE' });
       if (response.ok) {
+        setDeleteConfirmId(null);
         fetchData();
       }
     } catch (error) {
@@ -303,19 +304,38 @@ export default function RoutesPage() {
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(trip.id); }}
-                          className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {deleteConfirmId === trip.id ? (
+                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                              onClick={() => handleDelete(trip.id)}
+                              className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
+                            >
+                              Confirmar
+                            </button>
+                            <button 
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                            >
+                              Sair
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
+                              className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(trip.id); }}
+                              className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -18,7 +18,9 @@ import {
   Info,
   Wrench,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +45,7 @@ export default function ExpensesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -52,6 +55,8 @@ export default function ExpensesPage() {
     vehicleId: '',
     status: 'PAID'
   });
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const fetchData = async () => {
     try {
@@ -83,39 +88,68 @@ export default function ExpensesPage() {
     fetchData();
   }, []);
 
+  const handleOpenDrawer = (expense: Expense | null = null) => {
+    if (expense) {
+      setSelectedExpense(expense);
+      setFormData({
+        type: expense.type,
+        value: expense.value.toString(),
+        date: new Date(expense.date).toISOString().split('T')[0],
+        vehicleId: expense.vehicleId?.toString() || '',
+        status: expense.status
+      });
+    } else {
+      setSelectedExpense(null);
+      setFormData({
+        type: '',
+        value: '',
+        date: new Date().toISOString().split('T')[0],
+        vehicleId: '',
+        status: 'PAID'
+      });
+    }
+    setIsDrawerOpen(true);
+  };
+
   const handleSave = async () => {
     if (!formData.type || !formData.value || !formData.date) {
-      alert('Por favor, preencha os campos obrigatórios.');
       return;
     }
 
     try {
       setIsSaving(true);
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
+      const url = selectedExpense ? `/api/expenses/${selectedExpense.id}` : '/api/expenses';
+      const method = selectedExpense ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
         setIsDrawerOpen(false);
-        setFormData({
-          type: '',
-          value: '',
-          date: new Date().toISOString().split('T')[0],
-          vehicleId: '',
-          status: 'PAID'
-        });
         fetchData();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao salvar despesa');
       }
     } catch (error) {
       console.error('Error saving expense:', error);
-      alert('Erro de conexão ao salvar despesa');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`/api/expenses/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setDeleteConfirmId(null);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
     }
   };
 
@@ -131,7 +165,7 @@ export default function ExpensesPage() {
       <Header 
         title="Cadastro de Despesas" 
         actionLabel="Nova Despesa" 
-        onAction={() => setIsDrawerOpen(true)}
+        onAction={() => handleOpenDrawer()}
       />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -238,9 +272,39 @@ export default function ExpensesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="text-slate-500 hover:text-white transition-colors">
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {deleteConfirmId === exp.id ? (
+                            <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                              <button 
+                                onClick={() => handleDelete(exp.id)}
+                                className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
+                              >
+                                Confirmar
+                              </button>
+                              <button 
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                              >
+                                Sair
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => handleOpenDrawer(exp)}
+                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => setDeleteConfirmId(exp.id)}
+                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -270,8 +334,8 @@ export default function ExpensesPage() {
           <div className="w-full max-w-[400px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
             <div className="p-8 border-b border-border-dark flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">Nova Despesa</h3>
-                <p className="text-sm text-slate-500 mt-1">Registre uma nova saída financeira</p>
+                <h3 className="text-xl font-bold text-white">{selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}</h3>
+                <p className="text-sm text-slate-500 mt-1">{selectedExpense ? 'Atualize os dados da despesa' : 'Registre uma nova saída financeira'}</p>
               </div>
               <button 
                 onClick={() => setIsDrawerOpen(false)}
@@ -399,7 +463,7 @@ export default function ExpensesPage() {
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {isSaving ? 'Salvando...' : 'Salvar Despesa'}
+                {isSaving ? 'Salvando...' : selectedExpense ? 'Atualizar Despesa' : 'Salvar Despesa'}
               </button>
             </div>
           </div>
