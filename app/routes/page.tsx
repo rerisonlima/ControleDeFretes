@@ -16,7 +16,8 @@ import {
   UserPlus,
   Calendar,
   Truck,
-  DollarSign
+  DollarSign,
+  Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -184,6 +185,47 @@ export default function RoutesPage() {
     }
   };
 
+  const handleClone = async (trip: any) => {
+    try {
+      const newTripId = `TRIP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const cloneData = {
+        tripId: newTripId,
+        routeId: trip.routeId?.toString() || '',
+        freteId: trip.freteId?.toString() || '',
+        contratanteId: trip.contratanteId?.toString() || '',
+        vehicleId: trip.vehicleId.toString(),
+        driverId: trip.driverId.toString(),
+        helperId: trip.helperId?.toString() || '',
+        scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        value: trip.value?.toString() || '',
+        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
+        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
+        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
+        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
+        status: trip.status,
+        paid: 'não',
+        contract: trip.contract || '',
+        paymentDate: ''
+      };
+
+      const response = await fetch('/api/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cloneData)
+      });
+
+      if (response.ok) {
+        fetchData();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao clonar viagem');
+      }
+    } catch (error) {
+      console.error('Clone error:', error);
+      alert('Erro de conexão ao clonar');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
@@ -327,6 +369,13 @@ export default function RoutesPage() {
                           </div>
                         ) : (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleClone(trip); }}
+                              className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                              title="Clonar Viagem"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
                               className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
