@@ -6,6 +6,12 @@ export async function GET() {
     const trips = await prisma.trip.findMany({
       include: {
         route: true,
+        frete: {
+          include: {
+            categoria: true
+          }
+        },
+        contratante: true,
         vehicle: true,
         driver: true,
         helper: true,
@@ -27,7 +33,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const trip = await prisma.trip.create({
       data: {
-        tripId: body.tripId,
         routeId: body.routeId ? parseInt(body.routeId) : null,
         freteId: body.freteId ? parseInt(body.freteId) : null,
         contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,

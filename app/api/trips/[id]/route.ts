@@ -9,7 +9,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const trip = await prisma.trip.update({
       where: { id },
       data: {
-        tripId: body.tripId,
         routeId: body.routeId ? parseInt(body.routeId) : null,
         freteId: body.freteId ? parseInt(body.freteId) : null,
         contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,

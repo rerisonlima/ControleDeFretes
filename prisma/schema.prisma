@@ -98,7 +98,6 @@ model Route {
 
 model Trip {
   id          Int      @id @default(autoincrement())
-  tripId      String   @unique
   routeId     Int?
   route       Route?   @relation(fields: [routeId], references: [id])
   freteId     Int?

@@ -251,7 +251,6 @@ export default function Dashboard() {
                     <th className="px-6 py-4">Rota</th>
                     <th className="px-6 py-4">Contrato</th>
                     <th className="px-6 py-4">Placa</th>
-                    <th className="px-6 py-4">ID Viagem</th>
                     <th className="px-6 py-4">Valor</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Ações</th>
@@ -261,7 +260,7 @@ export default function Dashboard() {
                   {loading ? (
                     [1, 2, 3].map(i => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
+                      <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
                       </tr>
                     ))
                   ) : trips.length === 0 ? (
@@ -285,7 +284,6 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-400">{trip.contract || '-'}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-300">{trip.plate}</td>
-                      <td className="px-6 py-4 text-sm font-mono text-slate-500">{trip.id}</td>
                       <td className="px-6 py-4 text-sm font-bold text-white">{trip.value}</td>
                       <td className="px-6 py-4">
                         <span className={cn(

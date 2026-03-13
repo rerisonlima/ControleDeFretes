@@ -20,6 +20,12 @@ export async function GET(request: Request) {
           lte: endDate,
         },
       },
+      include: {
+        route: true,
+        frete: true,
+        contratante: true,
+        vehicle: true
+      }
     });
 
     // Fetch expenses for the month
@@ -102,12 +108,12 @@ export async function GET(request: Request) {
       ],
       chart: chartData,
       recentTrips: trips.slice(0, 5).map(t => ({
-        route: 'Rota ' + t.routeId, // Simplified for now
-        plate: 'Veículo ' + t.vehicleId,
-        id: t.tripId,
+        route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
+        plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
+        id: t.id,
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
         status: t.status,
-        contract: t.contract,
+        contract: t.contratante?.ContratanteNome || t.contract || '-',
         date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
       }))
     });

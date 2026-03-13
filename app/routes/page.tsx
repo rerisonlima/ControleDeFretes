@@ -346,27 +346,16 @@ export default function RoutesPage() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
               {/* Main Info */}
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">ID Viagem</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                     <input 
-                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                      value={formData.tripId}
-                      onChange={(e) => setFormData({...formData, tripId: e.target.value})}
-                      placeholder="Ex: TRIP-1234"
+                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                      type="date"
+                      value={formData.scheduledAt}
+                      onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                      <input 
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                        type="date"
-                        value={formData.scheduledAt}
-                        onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -467,7 +456,7 @@ export default function RoutesPage() {
                       onChange={(e) => setFormData({...formData, driverId: e.target.value})}
                     >
                       <option value="">Selecionar</option>
-                      {employees.map(e => (
+                      {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
                         <option key={e.id} value={e.id}>{e.name}</option>
                       ))}
                     </select>
@@ -480,7 +469,7 @@ export default function RoutesPage() {
                       onChange={(e) => setFormData({...formData, helperId: e.target.value})}
                     >
                       <option value="">Nenhum</option>
-                      {employees.map(e => (
+                      {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
                         <option key={e.id} value={e.id}>{e.name}</option>
                       ))}
                     </select>
