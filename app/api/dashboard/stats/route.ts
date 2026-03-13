@@ -40,7 +40,17 @@ export async function GET(request: Request) {
 
     // Calculate stats
     const totalRevenue = trips.reduce((sum, trip) => sum + trip.value, 0);
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0);
+    
+    // Total Expenses = Sum(Expense table) + Sum(Trip driver/helper values)
+    const tripExpenses = trips.reduce((sum, trip) => {
+      return sum + 
+        (trip.valor1aViagemMotorista || 0) + 
+        (trip.valor2aViagemMotorista || 0) + 
+        (trip.valor1aViagemAjudante || 0) + 
+        (trip.valor2aViagemAjudante || 0);
+    }, 0);
+    
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0) + tripExpenses;
     const profit = totalRevenue - totalExpenses;
 
     // Calculate previous month stats for comparison
@@ -55,7 +65,15 @@ export async function GET(request: Request) {
     });
 
     const prevRevenue = prevTrips.reduce((sum, trip) => sum + trip.value, 0);
-    const prevExpensesVal = prevExpenses.reduce((sum, expense) => sum + expense.value, 0);
+    const prevTripExpenses = prevTrips.reduce((sum, trip) => {
+      return sum + 
+        (trip.valor1aViagemMotorista || 0) + 
+        (trip.valor2aViagemMotorista || 0) + 
+        (trip.valor1aViagemAjudante || 0) + 
+        (trip.valor2aViagemAjudante || 0);
+    }, 0);
+    
+    const prevExpensesVal = prevExpenses.reduce((sum, expense) => sum + expense.value, 0) + prevTripExpenses;
     const prevProfit = prevRevenue - prevExpensesVal;
 
     const calculateChange = (current: number, previous: number) => {
@@ -72,10 +90,18 @@ export async function GET(request: Request) {
       const weekTrips = trips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
       const weekExpenses = expenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
 
+      const weekTripExpenses = weekTrips.reduce((sum, trip) => {
+        return sum + 
+          (trip.valor1aViagemMotorista || 0) + 
+          (trip.valor2aViagemMotorista || 0) + 
+          (trip.valor1aViagemAjudante || 0) + 
+          (trip.valor2aViagemAjudante || 0);
+      }, 0);
+
       return {
         name: `Semana ${index + 1}`,
         revenue: weekTrips.reduce((sum, t) => sum + t.value, 0),
-        expenses: weekExpenses.reduce((sum, e) => sum + e.value, 0),
+        expenses: weekExpenses.reduce((sum, e) => sum + e.value, 0) + weekTripExpenses,
       };
     });
 
