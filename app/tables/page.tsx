@@ -19,17 +19,43 @@ import { cn } from '@/lib/utils';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+interface Contratante {
+  id: number;
+  ContratanteNome: string;
+}
+
+interface Categoria {
+  id: number;
+  CategoriaNome: string;
+}
+
+interface Frete {
+  id: number;
+  cidade: string;
+  contratanteId: number;
+  categoriaId: number;
+  valorFrete: number;
+  valor1aViagemMotorista: number;
+  valor2aViagemMotorista: number;
+  valor1aViagemAjudante: number;
+  valor2aViagemAjudante: number;
+  validade: string;
+  contratante: Contratante;
+  categoria: Categoria;
+}
+
 export default function TablesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const [fretes, setFretes] = React.useState<any[]>([]);
-  const [contratantes, setContratantes] = React.useState<any[]>([]);
-  const [categorias, setCategorias] = React.useState<any[]>([]);
+  const [fretes, setFretes] = React.useState<Frete[]>([]);
+  const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
+  const [categorias, setCategorias] = React.useState<Categoria[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [selectedFrete, setSelectedFrete] = React.useState<any>(null);
+  const [selectedFrete, setSelectedFrete] = React.useState<Frete | null>(null);
   
   // Filters
   const [searchTerm, setSearchTerm] = React.useState('');
   const [validityFilter, setValidityFilter] = React.useState<'valid' | 'expired' | 'all'>('valid');
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -77,7 +103,7 @@ export default function TablesPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleOpenDrawer = (frete: any = null) => {
+  const handleOpenDrawer = (frete: Frete | null = null) => {
     if (frete) {
       setSelectedFrete(frete);
       setFormData({
@@ -123,8 +149,15 @@ export default function TablesPage() {
         setIsDrawerOpen(false);
         fetchData();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Erro ao salvar frete');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          alert(error.error || 'Erro ao salvar frete');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao salvar frete');
+        }
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -133,14 +166,28 @@ export default function TablesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este frete?')) return;
     try {
       const response = await fetch(`/api/fretes/${id}`, { method: 'DELETE' });
+      
       if (response.ok) {
+        setDeleteConfirmId(null);
         fetchData();
+      } else {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const data = await response.json();
+          alert(data.error || 'Erro ao excluir frete');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao excluir frete');
+        }
+        setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Delete error:', error);
+      alert('Erro de conexão ao excluir');
+      setDeleteConfirmId(null);
     }
   };
 
@@ -173,7 +220,7 @@ export default function TablesPage() {
   });
 
   // Group by Categoria, then sort by Contratante within each group
-  const groupedFretes = filteredFretes.reduce((acc: any, frete) => {
+  const groupedFretes = filteredFretes.reduce((acc: Record<string, Frete[]>, frete) => {
     const categoriaNome = frete.categoria?.CategoriaNome || 'Sem Categoria';
     if (!acc[categoriaNome]) {
       acc[categoriaNome] = [];
@@ -184,7 +231,7 @@ export default function TablesPage() {
 
   // Sort each group by Contratante
   Object.keys(groupedFretes).forEach(categoria => {
-    groupedFretes[categoria].sort((a: any, b: any) => {
+    groupedFretes[categoria].sort((a, b) => {
       const nomeA = a.contratante?.ContratanteNome || '';
       const nomeB = b.contratante?.ContratanteNome || '';
       return nomeA.localeCompare(nomeB);
@@ -225,7 +272,7 @@ export default function TablesPage() {
               <select 
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
                 value={validityFilter}
-                onChange={(e) => setValidityFilter(e.target.value as any)}
+                onChange={(e) => setValidityFilter(e.target.value as 'valid' | 'expired' | 'all')}
               >
                 <option value="valid">Vigentes (Validade &gt; Hoje)</option>
                 <option value="expired">Vencidos (Validade &lt; Hoje)</option>
@@ -245,7 +292,7 @@ export default function TablesPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedFretes).map(([categoria, fretesList]: [string, any]) => (
+              {Object.entries(groupedFretes).map(([categoria, fretesList]) => (
                 <div key={categoria} className="border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
                   <div className="bg-primary/10 px-6 py-4 border-b border-border-dark flex items-center gap-3">
                     <Truck className="w-5 h-5 text-primary" />
@@ -265,7 +312,7 @@ export default function TablesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-dark">
-                      {fretesList.map((frete: any) => (
+                      {fretesList.map((frete) => (
                         <tr 
                           key={frete.id} 
                           className="hover:bg-white/5 transition-colors group cursor-pointer"
@@ -297,19 +344,38 @@ export default function TablesPage() {
                             {formatCurrency(frete.valorFrete)}
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
-                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(frete.id); }}
-                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            <div className="flex items-center justify-end gap-2">
+                              {deleteConfirmId === frete.id ? (
+                                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                                  <button 
+                                    onClick={() => handleDelete(frete.id)}
+                                    className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
+                                  >
+                                    Confirmar
+                                  </button>
+                                  <button 
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                                  >
+                                    Sair
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
+                                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(frete.id); }}
+                                    className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -503,6 +569,7 @@ export default function TablesPage() {
           </aside>
         </div>
       )}
+
     </AppLayout>
   );
 }

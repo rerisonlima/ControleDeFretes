@@ -37,12 +37,28 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const { id: idStr } = await params;
     const id = parseInt(idStr);
+    
+    // Check if frete is used in any trips
+    const tripsCount = await prisma.trip.count({
+      where: { freteId: id }
+    });
+    
+    if (tripsCount > 0) {
+      return NextResponse.json({ 
+        error: 'Não é possível excluir este frete pois ele está vinculado a viagens existentes.',
+        details: 'Foreign key constraint: Trip references Frete'
+      }, { status: 400 });
+    }
+
     await prisma.frete.delete({
       where: { id }
     });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Failed to delete frete:', error);
-    return NextResponse.json({ error: 'Failed to delete frete' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erro ao excluir frete',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

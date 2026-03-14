@@ -17,13 +17,33 @@ import {
   Calendar,
   Truck,
   DollarSign,
-  Copy
+  Copy,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const months = [
+  { id: 1, name: 'Janeiro' },
+  { id: 2, name: 'Fevereiro' },
+  { id: 3, name: 'Março' },
+  { id: 4, name: 'Abril' },
+  { id: 5, name: 'Maio' },
+  { id: 6, name: 'Junho' },
+  { id: 7, name: 'Julho' },
+  { id: 8, name: 'Agosto' },
+  { id: 9, name: 'Setembro' },
+  { id: 10, name: 'Outubro' },
+  { id: 11, name: 'Novembro' },
+  { id: 12, name: 'Dezembro' },
+];
+
 export default function RoutesPage() {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
+  const [showUnpaidOnly, setShowUnpaidOnly] = React.useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [trips, setTrips] = React.useState<any[]>([]);
   const [routes, setRoutes] = React.useState<any[]>([]);
@@ -72,7 +92,7 @@ export default function RoutesPage() {
       };
 
       const [tripsData, routesData, vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
-        fetchJson('/api/trips', 'Trips'),
+        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&unpaidOnly=${showUnpaidOnly}`, 'Trips'),
         fetchJson('/api/routes', 'Routes'),
         fetchJson('/api/vehicles', 'Vehicles'),
         fetchJson('/api/employees', 'Employees'),
@@ -91,7 +111,7 @@ export default function RoutesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedMonth, selectedYear, showUnpaidOnly]);
 
   React.useEffect(() => {
     fetchData();
@@ -285,29 +305,75 @@ export default function RoutesPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <input 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                placeholder="Buscar por cidade de destino ou contrato..." 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-64 relative">
-              <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <select 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                value={vehicleFilter}
-                onChange={(e) => setVehicleFilter(e.target.value)}
+          <div className="mt-8 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {months.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {[2024, 2025, 2026].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowUnpaidOnly(!showUnpaidOnly)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold text-xs uppercase tracking-wider shadow-sm",
+                  showUnpaidOnly 
+                    ? "bg-amber-500/10 border-amber-500/50 text-amber-500" 
+                    : "bg-surface-dark border-border-dark text-slate-400 hover:text-white"
+                )}
               >
-                <option value="">Todos os Veículos</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
-                ))}
-              </select>
+                <Receipt className="w-4 h-4" />
+                {showUnpaidOnly ? 'Exibindo Apenas Não Pagas' : 'Filtrar Não Pagas'}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[300px] relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <input 
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                  placeholder="Buscar por cidade de destino ou contrato..." 
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="w-full md:w-64 relative">
+                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  value={vehicleFilter}
+                  onChange={(e) => setVehicleFilter(e.target.value)}
+                >
+                  <option value="">Todos os Veículos</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>

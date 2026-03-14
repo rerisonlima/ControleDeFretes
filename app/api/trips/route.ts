@@ -1,9 +1,31 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
+    const unpaidOnly = searchParams.get('unpaidOnly') === 'true';
+
+    const where: Prisma.TripWhereInput = {};
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      where.scheduledAt = {
+        gte: startDate,
+        lte: endDate
+      };
+    }
+
+    if (unpaidOnly) {
+      where.paid = 'não';
+    }
+
     const trips = await prisma.trip.findMany({
+      where,
       include: {
         route: true,
         frete: {
