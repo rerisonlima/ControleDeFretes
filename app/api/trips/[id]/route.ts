@@ -5,10 +5,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id: idStr } = await params;
     const body = await req.json();
+    console.log('Updating trip with body:', body);
     const id = parseInt(idStr);
     const trip = await prisma.trip.update({
       where: { id },
       data: {
+        tripId: body.tripId,
         routeId: body.routeId ? parseInt(body.routeId) : null,
         freteId: body.freteId ? parseInt(body.freteId) : null,
         contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,
@@ -17,10 +19,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         helperId: body.helperId ? parseInt(body.helperId) : null,
         scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
         value: body.value ? parseFloat(body.value) : undefined,
-        valor1aViagemMotorista: body.valor1aViagemMotorista ? parseFloat(body.valor1aViagemMotorista) : null,
-        valor2aViagemMotorista: body.valor2aViagemMotorista ? parseFloat(body.valor2aViagemMotorista) : null,
-        valor1aViagemAjudante: body.valor1aViagemAjudante ? parseFloat(body.valor1aViagemAjudante) : null,
-        valor2aViagemAjudante: body.valor2aViagemAjudante ? parseFloat(body.valor2aViagemAjudante) : null,
+        valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
+        valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
+        valor1aViagemAjudante: (body.valor1aViagemAjudante !== undefined && body.valor1aViagemAjudante !== '' && body.valor1aViagemAjudante !== null) ? parseFloat(body.valor1aViagemAjudante) : null,
+        valor2aViagemAjudante: (body.valor2aViagemAjudante !== undefined && body.valor2aViagemAjudante !== '' && body.valor2aViagemAjudante !== null) ? parseFloat(body.valor2aViagemAjudante) : null,
         status: body.status,
         paid: body.paid,
         contract: body.contract,
@@ -43,5 +45,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  return NextResponse.json({ error: 'Exclusão desabilitada. Por favor, cancele a viagem se necessário.' }, { status: 403 });
+  try {
+    const { id: idStr } = await params;
+    const id = parseInt(idStr);
+    
+    await prisma.trip.delete({
+      where: { id }
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete trip:', error);
+    return NextResponse.json({ 
+      error: 'Erro ao excluir viagem', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
+  }
 }

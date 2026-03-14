@@ -159,8 +159,15 @@ export default function RoutesPage() {
         setIsDrawerOpen(false);
         fetchData();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Erro ao salvar viagem');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          alert(error.error || 'Erro ao salvar viagem');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao salvar viagem');
+        }
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -171,12 +178,20 @@ export default function RoutesPage() {
   const handleDelete = async (id: number) => {
     try {
       const response = await fetch(`/api/trips/${id}`, { method: 'DELETE' });
+      
+      const contentType = response.headers.get("content-type");
       if (response.ok) {
         setDeleteConfirmId(null);
         fetchData();
       } else {
-        const data = await response.json();
-        alert(data.error || 'Erro ao excluir viagem');
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const data = await response.json();
+          alert(data.error || 'Erro ao excluir viagem');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao excluir viagem');
+        }
         setDeleteConfirmId(null);
       }
     } catch (error) {
@@ -187,26 +202,29 @@ export default function RoutesPage() {
 
   const handleClone = async (trip: any) => {
     try {
+      console.log('Cloning trip:', trip);
       const newTripId = `TRIP-${Math.floor(1000 + Math.random() * 9000)}`;
       const cloneData = {
         tripId: newTripId,
         routeId: trip.routeId?.toString() || '',
         freteId: trip.freteId?.toString() || '',
         contratanteId: trip.contratanteId?.toString() || '',
-        vehicleId: trip.vehicleId.toString(),
-        driverId: trip.driverId.toString(),
+        vehicleId: trip.vehicleId?.toString() || '',
+        driverId: trip.driverId?.toString() || '',
         helperId: trip.helperId?.toString() || '',
         scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        value: trip.value?.toString() || '',
+        value: trip.value?.toString() || '0',
         valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
         valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
         valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
         valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
-        status: trip.status,
+        status: trip.status || 'SCHEDULED',
         paid: 'não',
         contract: trip.contract || '',
         paymentDate: ''
       };
+
+      console.log('Sending clone data:', cloneData);
 
       const response = await fetch('/api/trips', {
         method: 'POST',
@@ -215,10 +233,19 @@ export default function RoutesPage() {
       });
 
       if (response.ok) {
+        console.log('Clone successful');
         fetchData();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Erro ao clonar viagem');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          console.error('Clone failed:', error);
+          alert(error.details || error.error || 'Erro ao clonar viagem');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao clonar viagem');
+        }
       }
     } catch (error) {
       console.error('Clone error:', error);

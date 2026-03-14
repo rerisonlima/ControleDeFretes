@@ -31,8 +31,10 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('Creating trip with body:', body);
     const trip = await prisma.trip.create({
       data: {
+        tripId: body.tripId || `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
         routeId: body.routeId ? parseInt(body.routeId) : null,
         freteId: body.freteId ? parseInt(body.freteId) : null,
         contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,
@@ -41,10 +43,10 @@ export async function POST(req: Request) {
         helperId: body.helperId ? parseInt(body.helperId) : null,
         scheduledAt: new Date(body.scheduledAt),
         value: parseFloat(body.value),
-        valor1aViagemMotorista: body.valor1aViagemMotorista ? parseFloat(body.valor1aViagemMotorista) : null,
-        valor2aViagemMotorista: body.valor2aViagemMotorista ? parseFloat(body.valor2aViagemMotorista) : null,
-        valor1aViagemAjudante: body.valor1aViagemAjudante ? parseFloat(body.valor1aViagemAjudante) : null,
-        valor2aViagemAjudante: body.valor2aViagemAjudante ? parseFloat(body.valor2aViagemAjudante) : null,
+        valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
+        valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
+        valor1aViagemAjudante: (body.valor1aViagemAjudante !== undefined && body.valor1aViagemAjudante !== '' && body.valor1aViagemAjudante !== null) ? parseFloat(body.valor1aViagemAjudante) : null,
+        valor2aViagemAjudante: (body.valor2aViagemAjudante !== undefined && body.valor2aViagemAjudante !== '' && body.valor2aViagemAjudante !== null) ? parseFloat(body.valor2aViagemAjudante) : null,
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
