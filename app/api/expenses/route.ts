@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const expense = await prisma.expense.create({
       data: {
-        date: new Date(body.date),
+        date: new Date(`${body.date}T12:00:00Z`),
         type: body.type,
         value: parseFloat(body.value),
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,

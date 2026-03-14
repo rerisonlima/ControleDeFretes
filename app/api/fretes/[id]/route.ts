@@ -19,7 +19,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         valor2aViagemMotorista: parseFloat(body.valor2aViagemMotorista),
         valor1aViagemAjudante: parseFloat(body.valor1aViagemAjudante),
         valor2aViagemAjudante: parseFloat(body.valor2aViagemAjudante),
-        validade: new Date(body.validade),
+        validade: new Date(`${body.validade}T12:00:00Z`),
       },
       include: {
         contratante: true,

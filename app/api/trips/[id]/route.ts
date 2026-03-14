@@ -17,7 +17,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : undefined,
         driverId: body.driverId ? parseInt(body.driverId) : undefined,
         helperId: body.helperId ? parseInt(body.helperId) : null,
-        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+        scheduledAt: body.scheduledAt ? new Date(`${body.scheduledAt}T12:00:00Z`) : undefined,
         value: body.value ? parseFloat(body.value) : undefined,
         valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
         valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
@@ -26,7 +26,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         status: body.status,
         paid: body.paid,
         contract: body.contract,
-        paymentDate: body.paymentDate ? new Date(body.paymentDate) : null,
+        paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
       include: {
         route: true,

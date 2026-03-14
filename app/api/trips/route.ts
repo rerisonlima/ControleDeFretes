@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         vehicleId: parseInt(body.vehicleId),
         driverId: parseInt(body.driverId),
         helperId: body.helperId ? parseInt(body.helperId) : null,
-        scheduledAt: new Date(body.scheduledAt),
+        scheduledAt: new Date(`${body.scheduledAt}T12:00:00Z`),
         value: parseFloat(body.value),
         valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
         valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
-        paymentDate: body.paymentDate ? new Date(body.paymentDate) : null,
+        paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
       include: {
         route: true,

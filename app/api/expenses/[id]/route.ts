@@ -10,7 +10,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const expense = await prisma.expense.update({
       where: { id },
       data: {
-        date: body.date ? new Date(body.date) : undefined,
+        date: body.date ? new Date(`${body.date}T12:00:00Z`) : undefined,
         type: body.type,
         value: body.value ? parseFloat(body.value) : undefined,
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,

@@ -14,24 +14,118 @@ import {
   ChevronDown,
   Truck
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min } from 'date-fns';
+import { format, startOfWeek, endOfWeek, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const dailyDetails = [
-  { date: '12 Out, 2023', route: 'Centro x Barra da Tijuca', trips: '08', unitValue: 'R$ 35,00', extra: 'R$ 15,00', total: 'R$ 140,00', status: 'CONCLUÍDO' },
-  { date: '11 Out, 2023', route: 'Copacabana x Galeão (GIG)', trips: '06', unitValue: 'R$ 45,00', extra: 'R$ 20,00', total: 'R$ 145,00', status: 'CONCLUÍDO' },
-  { date: '10 Out, 2023', route: 'Niterói x Recreio', trips: '04', unitValue: 'R$ 55,00', extra: 'R$ 25,00', total: 'R$ 130,00', status: 'CONCLUÍDO' },
-  { date: '09 Out, 2023', route: 'Madureira x Botafogo', trips: '10', unitValue: 'R$ 28,00', extra: 'R$ 10,00', total: 'R$ 118,00', status: 'CONCLUÍDO' },
-  { date: '08 Out, 2023', route: 'Centro x Ilha do Governador', trips: '07', unitValue: 'R$ 38,00', extra: 'R$ 12,00', total: 'R$ 110,00', status: 'CONCLUÍDO' },
-];
+interface Trip {
+  id: number;
+  vehicleId: number;
+  scheduledAt: string;
+  frete?: { cidade: string; valor1aViagemMotorista: number; valor2aViagemMotorista: number };
+  route?: { destination: string; driverValue1: number; driverValue2: number; helperValue1: number; helperValue2: number };
+  helperId?: number;
+}
+
+interface Vehicle {
+  id: number;
+  plate: string;
+  model: string;
+}
 
 export default function PaymentsPage() {
-  const [trips, setTrips] = React.useState<any[]>([]);
-  const [vehicles, setVehicles] = React.useState<any[]>([]);
+  const [trips, setTrips] = React.useState<Trip[]>([]);
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = React.useState<string>('');
   const [selectedMonth, setSelectedMonth] = React.useState<string>(format(new Date(), 'yyyy-MM'));
   const [loading, setLoading] = React.useState(true);
+
+  // Group trips by day for the "Detalhamento Diário" table
+  const dailyDetails = React.useMemo(() => {
+    const details: Record<string, { 
+      date: string, 
+      route: string, 
+      trips: number, 
+      unitValue: number, 
+      extra: number, 
+      total: number, 
+      status: string 
+    }> = {};
+
+    trips.forEach(trip => {
+      // Only consider trips for the selected vehicle
+      if (trip.vehicleId.toString() !== selectedVehicleId) return;
+      
+      const tripDate = new Date(trip.scheduledAt);
+      
+      // Only consider trips in the selected month
+      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
+
+      const dayKey = format(tripDate, 'yyyy-MM-dd');
+      
+      if (!details[dayKey]) {
+        details[dayKey] = {
+          date: format(tripDate, 'dd MMM, yyyy', { locale: ptBR }),
+          route: trip.frete?.cidade || trip.route?.destination || 'N/A',
+          trips: 0,
+          unitValue: 0,
+          extra: 0,
+          total: 0,
+          status: 'CONCLUÍDO'
+        };
+      }
+
+      details[dayKey].trips += 1;
+      
+      // Calculate values based on trip index in that day
+      // We need to know if it's the 1st or 2nd trip of the day for this vehicle
+      // This is a bit complex because we are iterating trips.
+    });
+
+    // Let's refine the calculation to match the logic in weeklyPayments
+    const tripsByDay: Record<string, Trip[]> = {};
+    trips.forEach(trip => {
+      if (trip.vehicleId.toString() !== selectedVehicleId) return;
+      const tripDate = new Date(trip.scheduledAt);
+      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
+      const dayKey = format(tripDate, 'yyyy-MM-dd');
+      if (!tripsByDay[dayKey]) tripsByDay[dayKey] = [];
+      tripsByDay[dayKey].push(trip);
+    });
+
+    const result = Object.entries(tripsByDay).map(([dayKey, dayTrips]) => {
+      dayTrips.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+      
+      let totalDay = 0;
+      let val1 = 0;
+      let val2 = 0;
+
+      dayTrips.forEach((trip, index) => {
+        const v1 = trip.route?.driverValue1 || trip.frete?.valor1aViagemMotorista || 0;
+        const v2 = trip.route?.driverValue2 || trip.frete?.valor2aViagemMotorista || 0;
+        
+        if (index === 0) {
+          val1 = v1;
+          totalDay += v1;
+        } else {
+          val2 += v2;
+          totalDay += v2;
+        }
+      });
+
+      const firstTrip = dayTrips[0];
+      return {
+        date: format(new Date(dayKey), 'dd MMM, yyyy', { locale: ptBR }),
+        route: firstTrip.frete?.cidade || firstTrip.route?.destination || 'N/A',
+        trips: dayTrips.length,
+        unitValue: val1,
+        extra: val2,
+        total: totalDay,
+        status: 'CONCLUÍDO'
+      };
+    });
+
+    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [trips, selectedVehicleId, selectedMonth]);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -87,7 +181,7 @@ export default function PaymentsPage() {
     }
 
     // Group trips by day first
-    const tripsByDay: Record<string, any[]> = {};
+    const tripsByDay: Record<string, Trip[]> = {};
     
     trips.forEach(trip => {
       // Only consider trips for the selected vehicle
@@ -151,7 +245,12 @@ export default function PaymentsPage() {
       />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-6xl mx-auto space-y-8">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : (
+          <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Welcome & Filters */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
@@ -200,10 +299,14 @@ export default function PaymentsPage() {
                 <Calculator className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total a Pagar</p>
-              <h4 className="text-3xl font-black text-white mt-2">R$ 4.850,00</h4>
+              <h4 className="text-3xl font-black text-white mt-2">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
+                )}
+              </h4>
               <div className="flex items-center gap-1 mt-2 text-emerald-500 text-[10px] font-bold uppercase tracking-tight">
                 <TrendingUp className="w-3 h-3" />
-                +12.5% vs mês anterior
+                Cálculo em tempo real
               </div>
             </div>
             
@@ -212,10 +315,12 @@ export default function PaymentsPage() {
                 <RefreshCw className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total de Viagens</p>
-              <h4 className="text-3xl font-black text-white mt-2">142</h4>
+              <h4 className="text-3xl font-black text-white mt-2">
+                {dailyDetails.reduce((acc, curr) => acc + curr.trips, 0)}
+              </h4>
               <div className="flex items-center gap-1 mt-2 text-slate-500 text-[10px] font-bold uppercase tracking-tight">
                 <RefreshCw className="w-3 h-3" />
-                Média de 6.4/dia
+                Média de {(dailyDetails.reduce((acc, curr) => acc + curr.trips, 0) / (dailyDetails.length || 1)).toFixed(1)}/dia
               </div>
             </div>
             
@@ -224,10 +329,10 @@ export default function PaymentsPage() {
                 <Calendar className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Dias Ativos</p>
-              <h4 className="text-3xl font-black text-white mt-2">22</h4>
+              <h4 className="text-3xl font-black text-white mt-2">{dailyDetails.length}</h4>
               <div className="flex items-center gap-1 mt-2 text-primary text-[10px] font-bold uppercase tracking-tight">
                 <Info className="w-3 h-3" />
-                Disponibilidade de 100%
+                No período selecionado
               </div>
             </div>
 
@@ -304,10 +409,10 @@ export default function PaymentsPage() {
                     <tr key={i} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium text-white">{row.date}</td>
                       <td className="px-6 py-4 text-xs">{row.route}</td>
-                      <td className="px-6 py-4 text-center font-mono">{row.trips}</td>
-                      <td className="px-6 py-4 text-xs">{row.unitValue}</td>
-                      <td className="px-6 py-4 text-xs">{row.extra}</td>
-                      <td className="px-6 py-4 text-right font-bold text-white">{row.total}</td>
+                      <td className="px-6 py-4 text-center font-mono">{row.trips.toString().padStart(2, '0')}</td>
+                      <td className="px-6 py-4 text-xs">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.unitValue)}</td>
+                      <td className="px-6 py-4 text-xs">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.extra)}</td>
+                      <td className="px-6 py-4 text-right font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.total)}</td>
                       <td className="px-6 py-4 text-center">
                         <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-bold uppercase tracking-tighter border border-emerald-500/20">
                           {row.status}
@@ -315,13 +420,24 @@ export default function PaymentsPage() {
                       </td>
                     </tr>
                   ))}
+                  {dailyDetails.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500 italic">
+                        Nenhum detalhamento disponível para este período.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
                     <td className="px-6 py-6 text-right font-bold text-slate-500 text-[10px] uppercase tracking-widest" colSpan={5}>
                       SUBTOTAL PERÍODO VISÍVEL:
                     </td>
-                    <td className="px-6 py-6 text-right font-black text-primary text-xl">R$ 643,00</td>
+                    <td className="px-6 py-6 text-right font-black text-primary text-xl">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
+                      )}
+                    </td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -341,6 +457,7 @@ export default function PaymentsPage() {
           </div>
 
         </div>
+        )}
       </div>
     </AppLayout>
   );
