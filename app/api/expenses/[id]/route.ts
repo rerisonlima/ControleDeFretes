@@ -27,5 +27,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  return NextResponse.json({ error: 'Exclusão desabilitada. Por favor, cancele o registro se necessário.' }, { status: 403 });
+  try {
+    const { id: idStr } = await params;
+    const id = parseInt(idStr);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
+    
+    await prisma.expense.delete({
+      where: { id }
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete expense:', error);
+    // If the record doesn't exist, Prisma might throw an error.
+    // We can handle it gracefully.
+    return NextResponse.json({ error: 'Erro ao excluir despesa ou registro não encontrado' }, { status: 500 });
+  }
 }
