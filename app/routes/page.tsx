@@ -8,17 +8,14 @@ import {
   MapPin, 
   Edit, 
   Trash2, 
-  ChevronLeft, 
-  ChevronRight,
   X,
   Check,
-  BadgeInfo,
-  UserPlus,
   Calendar,
   Truck,
   DollarSign,
   Copy,
-  Receipt
+  Receipt,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -39,23 +36,89 @@ const months = [
   { id: 12, name: 'Dezembro' },
 ];
 
+interface Trip {
+  id: number;
+  tripId: string;
+  routeId?: number;
+  freteId?: number;
+  contratanteId?: number;
+  vehicleId: number;
+  driverId: number;
+  helperId?: number;
+  scheduledAt: string;
+  value: number;
+  valor1aViagemMotorista?: number;
+  valor2aViagemMotorista?: number;
+  valor1aViagemAjudante?: number;
+  valor2aViagemAjudante?: number;
+  status: string;
+  paid: string;
+  contract?: string;
+  paymentDate?: string;
+  vehicle?: { plate: string };
+  contratante?: { ContratanteNome: string };
+  frete?: { 
+    cidade: string; 
+    valorFrete: number; 
+    valor1aViagemMotorista: number; 
+    valor2aViagemMotorista: number; 
+    valor1aViagemAjudante: number; 
+    valor2aViagemAjudante: number 
+  };
+  route?: { destination: string };
+}
+
+interface Route {
+  id: number;
+  destination: string;
+}
+
+interface Vehicle {
+  id: number;
+  plate: string;
+  brand: string;
+  model: string;
+}
+
+interface Employee {
+  id: number;
+  name: string;
+  role: string;
+}
+
+interface Contratante {
+  id: number;
+  ContratanteNome: string;
+}
+
+interface Frete {
+  id: number;
+  cidade: string;
+  valorFrete: number;
+  valor1aViagemMotorista: number;
+  valor2aViagemMotorista: number;
+  valor1aViagemAjudante: number;
+  valor2aViagemAjudante: number;
+}
+
 export default function RoutesPage() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
   const [showUnpaidOnly, setShowUnpaidOnly] = React.useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const [trips, setTrips] = React.useState<any[]>([]);
-  const [routes, setRoutes] = React.useState<any[]>([]);
-  const [vehicles, setVehicles] = React.useState<any[]>([]);
-  const [employees, setEmployees] = React.useState<any[]>([]);
-  const [contratantes, setContratantes] = React.useState<any[]>([]);
-  const [fretes, setFretes] = React.useState<any[]>([]);
+  const [trips, setTrips] = React.useState<Trip[]>([]);
+  const [routes, setRoutes] = React.useState<Route[]>([]);
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
+  const [employees, setEmployees] = React.useState<Employee[]>([]);
+  const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
+  const [fretes, setFretes] = React.useState<Frete[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [selectedTrip, setSelectedTrip] = React.useState<any>(null);
+  const [selectedTrip, setSelectedTrip] = React.useState<Trip | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [vehicleFilter, setVehicleFilter] = React.useState('');
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -91,7 +154,7 @@ export default function RoutesPage() {
         return res.json();
       };
 
-      const [tripsData, routesData, vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
+      const [tripsData, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
         fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&unpaidOnly=${showUnpaidOnly}`, 'Trips'),
         fetchJson('/api/routes', 'Routes'),
         fetchJson('/api/vehicles', 'Vehicles'),
@@ -101,7 +164,6 @@ export default function RoutesPage() {
       ]);
 
       setTrips(tripsData);
-      setRoutes(routesData);
       setVehicles(vehiclesData);
       setEmployees(employeesData);
       setContratantes(contratantesData);
@@ -117,7 +179,7 @@ export default function RoutesPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleOpenDrawer = (trip: any = null) => {
+  const handleOpenDrawer = (trip: Trip | null = null) => {
     if (trip) {
       setSelectedTrip(trip);
       setFormData({
@@ -165,6 +227,7 @@ export default function RoutesPage() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const url = selectedTrip ? `/api/trips/${selectedTrip.id}` : '/api/trips';
       const method = selectedTrip ? 'PUT' : 'POST';
@@ -192,6 +255,8 @@ export default function RoutesPage() {
     } catch (error) {
       console.error('Save error:', error);
       alert('Erro de conexão ao salvar');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -220,7 +285,7 @@ export default function RoutesPage() {
     }
   };
 
-  const handleClone = async (trip: any) => {
+  const handleClone = async (trip: Trip) => {
     try {
       console.log('Cloning trip:', trip);
       const newTripId = `TRIP-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -788,10 +853,15 @@ export default function RoutesPage() {
               </button>
               <button 
                 onClick={handleSave}
-                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                disabled={isSaving}
+                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <Check className="w-4 h-4" />
-                {selectedTrip ? 'Atualizar Viagem' : 'Salvar Viagem'}
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                {isSaving ? 'Salvando...' : selectedTrip ? 'Atualizar Viagem' : 'Salvar Viagem'}
               </button>
             </div>
           </aside>

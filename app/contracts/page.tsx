@@ -4,23 +4,27 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
-  Plus, 
   Search, 
-  MoreVertical, 
   Edit2, 
-  Trash2, 
   FileText,
   AlertCircle,
   X,
   Eye,
   EyeOff,
-  Power
+  Power,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getContracts, createContract, updateContract, deleteContract, toggleContractStatus } from '@/app/actions/contracts';
 
+interface Contract {
+  id: number;
+  ContratanteNome: string;
+  active: boolean;
+}
+
 export default function ContractsPage() {
-  const [contracts, setContracts] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -28,22 +32,22 @@ export default function ContractsPage() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [selectedContract, setSelectedContract] = useState<any>(null);
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchContracts = async () => {
+  const fetchContracts = React.useCallback(async () => {
     setLoading(true);
     const result = await getContracts(showInactive);
     if (result.contracts) {
       setContracts(result.contracts);
     }
     setLoading(false);
-  };
+  }, [showInactive]);
 
   useEffect(() => {
     fetchContracts();
-  }, [showInactive]);
+  }, [fetchContracts]);
 
   const handleOpenCreateModal = () => {
     setModalMode('create');
@@ -52,7 +56,7 @@ export default function ContractsPage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (contract: any) => {
+  const handleOpenEditModal = (contract: Contract) => {
     setModalMode('edit');
     setSelectedContract(contract);
     setError('');
@@ -288,10 +292,13 @@ export default function ContractsPage() {
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center"
+                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin" />
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Salvando...</span>
+                    </>
                   ) : (
                     modalMode === 'create' ? 'Criar Contrato' : 'Salvar Alterações'
                   )}

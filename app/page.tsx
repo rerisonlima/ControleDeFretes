@@ -13,7 +13,8 @@ import {
   Navigation,
   MoreVertical,
   Calendar,
-  ChevronDown
+  Truck,
+  User
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -25,13 +26,43 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
-const iconMap: Record<string, any> = {
+interface DashboardStat {
+  label: string;
+  value: string;
+  change: string;
+  trend: 'up' | 'down';
+  icon: string;
+  color: string;
+}
+
+interface ChartData {
+  name: string;
+  revenue: number;
+  expenses: number;
+}
+
+interface RecentTrip {
+  route: string;
+  date: string;
+  contract: string;
+  plate: string;
+  value: string;
+  status: string;
+}
+
+interface DashboardData {
+  stats: DashboardStat[];
+  chart: ChartData[];
+  recentTrips: RecentTrip[];
+}
+
+const iconMap: Record<string, React.ElementType> = {
   DollarSign,
   Receipt,
-  Wallet
+  Wallet,
+  Truck,
+  User
 };
 
 const months = [
@@ -54,13 +85,14 @@ export default function Dashboard() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
+  const [selectedWeek, setSelectedWeek] = React.useState<string>('all');
   const [loading, setLoading] = React.useState(true);
-  const [dashboardData, setDashboardData] = React.useState<any>(null);
+  const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/dashboard/stats?month=${selectedMonth}&year=${selectedYear}`);
+      const response = await fetch(`/api/dashboard/stats?month=${selectedMonth}&year=${selectedYear}&week=${selectedWeek}`);
       if (!response.ok) {
         const text = await response.text();
         console.error('API error response:', text);
@@ -73,7 +105,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedWeek]);
 
   React.useEffect(() => {
     fetchStats();
@@ -122,6 +154,19 @@ export default function Dashboard() {
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
+
+                <select 
+                  value={selectedWeek}
+                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  <option value="all">Mês Inteiro</option>
+                  <option value="1">Semana 1</option>
+                  <option value="2">Semana 2</option>
+                  <option value="3">Semana 3</option>
+                  <option value="4">Semana 4</option>
+                  <option value="5">Semana 5</option>
+                </select>
               </div>
             </div>
             
@@ -132,12 +177,12 @@ export default function Dashboard() {
           </div>
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
-              [1, 2, 3].map(i => (
+              [1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm animate-pulse h-32"></div>
               ))
-            ) : stats.map((stat: any, i: number) => {
+            ) : stats.map((stat, i) => {
               const Icon = iconMap[stat.icon] || DollarSign;
               return (
                 <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm relative overflow-hidden group">
@@ -269,7 +314,7 @@ export default function Dashboard() {
                         Nenhuma viagem encontrada para este período.
                       </td>
                     </tr>
-                  ) : trips.map((trip: any, i: number) => (
+                  ) : trips.map((trip, i) => (
                     <tr key={i} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">

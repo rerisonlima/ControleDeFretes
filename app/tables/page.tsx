@@ -13,7 +13,8 @@ import {
   Calendar,
   Truck,
   Building2,
-  DollarSign
+  DollarSign,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
@@ -56,6 +57,7 @@ export default function TablesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [validityFilter, setValidityFilter] = React.useState<'valid' | 'expired' | 'all'>('valid');
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -135,6 +137,7 @@ export default function TablesPage() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const url = selectedFrete ? `/api/fretes/${selectedFrete.id}` : '/api/fretes';
       const method = selectedFrete ? 'PUT' : 'POST';
@@ -162,6 +165,8 @@ export default function TablesPage() {
     } catch (error) {
       console.error('Save error:', error);
       alert('Erro de conexão ao salvar');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -560,10 +565,15 @@ export default function TablesPage() {
               </button>
               <button 
                 onClick={handleSave}
-                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                disabled={isSaving}
+                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <Check className="w-4 h-4" />
-                {selectedFrete ? 'Atualizar Frete' : 'Salvar Frete'}
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                {isSaving ? 'Salvando...' : selectedFrete ? 'Atualizar Frete' : 'Salvar Frete'}
               </button>
             </div>
           </aside>

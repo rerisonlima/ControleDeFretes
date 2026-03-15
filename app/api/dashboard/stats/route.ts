@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachWeekOfInterval, format, isSameMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, endOfWeek, eachWeekOfInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Trip, Route, Frete } from '@prisma/client';
+
+interface TripWithRelations extends Trip {
+  route?: Route | null;
+  frete?: Frete | null;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const month = parseInt(searchParams.get('month') || format(new Date(), 'M'));
   const year = parseInt(searchParams.get('year') || format(new Date(), 'yyyy'));
+  const weekIndex = searchParams.get('week');
 
-  const startDate = startOfMonth(new Date(year, month - 1));
-  const endDate = endOfMonth(startDate);
+  let startDate = startOfMonth(new Date(year, month - 1));
+  let endDate = endOfMonth(startDate);
+
+  // If a specific week is selected, adjust the date range
+  if (weekIndex && weekIndex !== 'all') {
+    const weeks = eachWeekOfInterval({ start: startDate, end: endDate });
+    const selectedWeekStart = weeks[parseInt(weekIndex) - 1];
+    if (selectedWeekStart) {
+      startDate = selectedWeekStart;
+      endDate = endOfWeek(startDate);
+    }
+  }
 
   try {
     const trips = await prisma.trip.findMany({
@@ -41,19 +58,81 @@ export async function GET(request: Request) {
       },
     });
 
+    // Helper function to calculate trip operational costs based on daily frequency
+    const calculateTripOperationalCosts = (tripsList: TripWithRelations[], filterWeekdays = false) => {
+      // Sort trips by date/time to determine first/second correctly
+      const sortedTrips = [...tripsList].sort((a, b) => 
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      );
+
+      const driverDailyCount: Record<string, number> = {};
+      const helperDailyCount: Record<string, number> = {};
+      
+      let total = 0;
+      let driverTotal = 0;
+      let helperTotal = 0;
+      
+      for (const trip of sortedTrips) {
+        const tripDate = new Date(trip.scheduledAt);
+        const dateKey = format(tripDate, 'yyyy-MM-dd');
+        const dayOfWeek = tripDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+        // If filterWeekdays is true, only consider Mon-Fri (1-5)
+        if (filterWeekdays && (dayOfWeek < 1 || dayOfWeek > 5)) continue;
+        
+        // Driver cost
+        if (trip.driverId) {
+          const driverKey = `${dateKey}_${trip.driverId}`;
+          const isFirst = !driverDailyCount[driverKey];
+          driverDailyCount[driverKey] = (driverDailyCount[driverKey] || 0) + 1;
+          
+          let cost = 0;
+          if (isFirst) {
+            cost = trip.valor1aViagemMotorista ?? trip.frete?.valor1aViagemMotorista ?? trip.route?.driverValue1 ?? 0;
+          } else {
+            cost = trip.valor2aViagemMotorista ?? trip.frete?.valor2aViagemMotorista ?? trip.route?.driverValue2 ?? 0;
+          }
+          total += cost;
+          driverTotal += cost;
+        }
+        
+        // Helper cost
+        if (trip.helperId) {
+          const helperKey = `${dateKey}_${trip.helperId}`;
+          const isFirst = !helperDailyCount[helperKey];
+          helperDailyCount[helperKey] = (helperDailyCount[helperKey] || 0) + 1;
+          
+          let cost = 0;
+          if (isFirst) {
+            cost = trip.valor1aViagemAjudante ?? trip.frete?.valor1aViagemAjudante ?? trip.route?.helperValue1 ?? 0;
+          } else {
+            cost = trip.valor2aViagemAjudante ?? trip.frete?.valor2aViagemAjudante ?? trip.route?.helperValue2 ?? 0;
+          }
+          total += cost;
+          helperTotal += cost;
+        }
+      }
+      
+      return { total, driverTotal, helperTotal };
+    };
+
     // Calculate stats
     const totalRevenue = trips.reduce((sum, trip) => sum + trip.value, 0);
     
     // Total Expenses = Sum(Expense table) + Sum(Trip driver/helper values)
-    const tripExpenses = trips.reduce((sum, trip) => {
-      return sum + 
-        (trip.valor1aViagemMotorista || 0) + 
-        (trip.valor2aViagemMotorista || 0) + 
-        (trip.valor1aViagemAjudante || 0) + 
-        (trip.valor2aViagemAjudante || 0);
-    }, 0);
+    const { total: tripExpenses } = calculateTripOperationalCosts(trips);
+    const { driverTotal: monFriDriverPayment, helperTotal: monFriHelperPayment } = calculateTripOperationalCosts(trips, true);
     
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0) + tripExpenses;
+    
+    // Mon-Fri Expenses = Sum(Expense table Mon-Fri) + Sum(Trip driver/helper values Mon-Fri)
+    const monFriGeneralExpenses = expenses.filter(e => {
+      const day = new Date(e.date).getDay();
+      return day >= 1 && day <= 5;
+    }).reduce((sum, e) => sum + e.value, 0);
+    
+    const monFriExpenses = monFriGeneralExpenses + monFriDriverPayment + monFriHelperPayment;
+    
     const profit = totalRevenue - totalExpenses;
 
     // Calculate previous month stats for comparison
@@ -62,6 +141,10 @@ export async function GET(request: Request) {
 
     const prevTrips = await prisma.trip.findMany({
       where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+      include: {
+        route: true,
+        frete: true
+      }
     });
 
     const prevExpenses = await prisma.expense.findMany({
@@ -69,14 +152,15 @@ export async function GET(request: Request) {
     });
 
     const prevRevenue = prevTrips.reduce((sum, trip) => sum + trip.value, 0);
-    const prevTripExpenses = prevTrips.reduce((sum, trip) => {
-      return sum + 
-        (trip.valor1aViagemMotorista || 0) + 
-        (trip.valor2aViagemMotorista || 0) + 
-        (trip.valor1aViagemAjudante || 0) + 
-        (trip.valor2aViagemAjudante || 0);
-    }, 0);
+    const { total: prevTripExpenses } = calculateTripOperationalCosts(prevTrips);
+    const { driverTotal: prevMonFriDriver, helperTotal: prevMonFriHelper } = calculateTripOperationalCosts(prevTrips, true);
     
+    const prevMonFriGeneralExpenses = prevExpenses.filter(e => {
+      const day = new Date(e.date).getDay();
+      return day >= 1 && day <= 5;
+    }).reduce((sum, e) => sum + e.value, 0);
+    const prevMonFriExpenses = prevMonFriGeneralExpenses + prevMonFriDriver + prevMonFriHelper;
+
     const prevExpensesVal = prevExpenses.reduce((sum, expense) => sum + expense.value, 0) + prevTripExpenses;
     const prevProfit = prevRevenue - prevExpensesVal;
 
@@ -87,20 +171,34 @@ export async function GET(request: Request) {
     };
 
     // Chart data (weekly)
-    const weeks = eachWeekOfInterval({ start: startDate, end: endDate });
-    const chartData = weeks.map((weekStart, index) => {
-      const weekEnd = endOfWeek(weekStart);
-      
-      const weekTrips = trips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
-      const weekExpenses = expenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
+    // Always use full month for chart to show context, or adjust if week is selected?
+    // User asked to filter by week, so maybe chart should reflect that or stay monthly.
+    // Let's keep chart monthly for context but stats reflect the filter.
+    const chartWeeks = eachWeekOfInterval({ 
+      start: startOfMonth(new Date(year, month - 1)), 
+      end: endOfMonth(new Date(year, month - 1)) 
+    });
 
-      const weekTripExpenses = weekTrips.reduce((sum, trip) => {
-        return sum + 
-          (trip.valor1aViagemMotorista || 0) + 
-          (trip.valor2aViagemMotorista || 0) + 
-          (trip.valor1aViagemAjudante || 0) + 
-          (trip.valor2aViagemAjudante || 0);
-      }, 0);
+    // Re-fetching full month data for chart if week is selected to keep chart consistent
+    let chartTrips = trips;
+    let chartExpenses = expenses;
+    if (weekIndex && weekIndex !== 'all') {
+      const fullMonthStart = startOfMonth(new Date(year, month - 1));
+      const fullMonthEnd = endOfMonth(fullMonthStart);
+      chartTrips = await prisma.trip.findMany({
+        where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
+        include: { route: true, frete: true }
+      });
+      chartExpenses = await prisma.expense.findMany({
+        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } }
+      });
+    }
+
+    const finalChartData = chartWeeks.map((weekStart, index) => {
+      const weekEnd = endOfWeek(weekStart);
+      const weekTrips = chartTrips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
+      const weekExpenses = chartExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
+      const { total: weekTripExpenses } = calculateTripOperationalCosts(weekTrips);
 
       return {
         name: `Semana ${index + 1}`,
@@ -123,7 +221,7 @@ export async function GET(request: Request) {
           label: 'DESPESAS TOTAIS', 
           value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses), 
           change: calculateChange(totalExpenses, prevExpensesVal), 
-          trend: totalExpenses <= prevExpensesVal ? 'down' : 'up', // down is good for expenses
+          trend: totalExpenses <= prevExpensesVal ? 'down' : 'up',
           icon: 'Receipt',
           color: 'text-rose-500'
         },
@@ -135,8 +233,32 @@ export async function GET(request: Request) {
           icon: 'Wallet',
           color: 'text-emerald-500'
         },
+        { 
+          label: 'DESPESAS (SEG-SEX)', 
+          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriExpenses), 
+          change: calculateChange(monFriExpenses, prevMonFriExpenses), 
+          trend: monFriExpenses <= prevMonFriExpenses ? 'down' : 'up',
+          icon: 'Receipt',
+          color: 'text-amber-500'
+        },
+        { 
+          label: 'PAGAMENTO MOTORISTA (SEG-SEX)', 
+          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriDriverPayment), 
+          change: calculateChange(monFriDriverPayment, prevMonFriDriver), 
+          trend: monFriDriverPayment >= prevMonFriDriver ? 'up' : 'down',
+          icon: 'Truck',
+          color: 'text-blue-500'
+        },
+        { 
+          label: 'PAGAMENTO AJUDANTE (SEG-SEX)', 
+          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriHelperPayment), 
+          change: calculateChange(monFriHelperPayment, prevMonFriHelper), 
+          trend: monFriHelperPayment >= prevMonFriHelper ? 'up' : 'down',
+          icon: 'User',
+          color: 'text-indigo-500'
+        },
       ],
-      chart: chartData,
+      chart: finalChartData,
       recentTrips: trips.slice(0, 5).map(t => ({
         route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
         plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,

@@ -21,9 +21,14 @@ interface Trip {
   id: number;
   vehicleId: number;
   scheduledAt: string;
-  frete?: { cidade: string; valor1aViagemMotorista: number; valor2aViagemMotorista: number };
-  route?: { destination: string; driverValue1: number; driverValue2: number; helperValue1: number; helperValue2: number };
+  driverId?: number;
   helperId?: number;
+  valor1aViagemMotorista?: number;
+  valor2aViagemMotorista?: number;
+  valor1aViagemAjudante?: number;
+  valor2aViagemAjudante?: number;
+  frete?: { cidade: string; valor1aViagemMotorista: number; valor2aViagemMotorista: number; valor1aViagemAjudante: number; valor2aViagemAjudante: number };
+  route?: { destination: string; driverValue1: number; driverValue2: number; helperValue1: number; helperValue2: number };
 }
 
 interface Vehicle {
@@ -41,46 +46,6 @@ export default function PaymentsPage() {
 
   // Group trips by day for the "Detalhamento Diário" table
   const dailyDetails = React.useMemo(() => {
-    const details: Record<string, { 
-      date: string, 
-      route: string, 
-      trips: number, 
-      unitValue: number, 
-      extra: number, 
-      total: number, 
-      status: string 
-    }> = {};
-
-    trips.forEach(trip => {
-      // Only consider trips for the selected vehicle
-      if (trip.vehicleId.toString() !== selectedVehicleId) return;
-      
-      const tripDate = new Date(trip.scheduledAt);
-      
-      // Only consider trips in the selected month
-      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
-
-      const dayKey = format(tripDate, 'yyyy-MM-dd');
-      
-      if (!details[dayKey]) {
-        details[dayKey] = {
-          date: format(tripDate, 'dd MMM, yyyy', { locale: ptBR }),
-          route: trip.frete?.cidade || trip.route?.destination || 'N/A',
-          trips: 0,
-          unitValue: 0,
-          extra: 0,
-          total: 0,
-          status: 'CONCLUÍDO'
-        };
-      }
-
-      details[dayKey].trips += 1;
-      
-      // Calculate values based on trip index in that day
-      // We need to know if it's the 1st or 2nd trip of the day for this vehicle
-      // This is a bit complex because we are iterating trips.
-    });
-
     // Let's refine the calculation to match the logic in weeklyPayments
     const tripsByDay: Record<string, Trip[]> = {};
     trips.forEach(trip => {
@@ -100,8 +65,8 @@ export default function PaymentsPage() {
       let val2 = 0;
 
       dayTrips.forEach((trip, index) => {
-        const v1 = trip.route?.driverValue1 || trip.frete?.valor1aViagemMotorista || 0;
-        const v2 = trip.route?.driverValue2 || trip.frete?.valor2aViagemMotorista || 0;
+        const v1 = trip.valor1aViagemMotorista ?? trip.frete?.valor1aViagemMotorista ?? trip.route?.driverValue1 ?? 0;
+        const v2 = trip.valor2aViagemMotorista ?? trip.frete?.valor2aViagemMotorista ?? trip.route?.driverValue2 ?? 0;
         
         if (index === 0) {
           val1 = v1;
@@ -109,6 +74,18 @@ export default function PaymentsPage() {
         } else {
           val2 += v2;
           totalDay += v2;
+        }
+
+        // Also add helper values if present
+        if (trip.helperId) {
+          const h1 = trip.valor1aViagemAjudante ?? trip.frete?.valor1aViagemAjudante ?? trip.route?.helperValue1 ?? 0;
+          const h2 = trip.valor2aViagemAjudante ?? trip.frete?.valor2aViagemAjudante ?? trip.route?.helperValue2 ?? 0;
+          
+          if (index === 0) {
+            totalDay += h1;
+          } else {
+            totalDay += h2;
+          }
         }
       });
 
@@ -210,25 +187,25 @@ export default function PaymentsPage() {
       
       const tripDate = parseISO(dayKey);
       const weekStart = startOfWeek(tripDate, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(tripDate, { weekStartsOn: 1 });
       const weekKey = format(weekStart, 'yyyy-MM-dd');
       
       if (!payments[weekKey]) {
+        const weekEnd = endOfWeek(tripDate, { weekStartsOn: 1 });
         payments[weekKey] = { driver: 0, helper: 0, start: weekStart, end: weekEnd };
       }
       
       dayTrips.forEach((trip, index) => {
         if (index === 0) {
           // First trip of the day uses Value1
-          payments[weekKey].driver += trip.route?.driverValue1 || 0;
+          payments[weekKey].driver += trip.valor1aViagemMotorista ?? trip.frete?.valor1aViagemMotorista ?? trip.route?.driverValue1 ?? 0;
           if (trip.helperId) {
-            payments[weekKey].helper += trip.route?.helperValue1 || 0;
+            payments[weekKey].helper += trip.valor1aViagemAjudante ?? trip.frete?.valor1aViagemAjudante ?? trip.route?.helperValue1 ?? 0;
           }
         } else {
           // Second trip onwards uses Value2
-          payments[weekKey].driver += trip.route?.driverValue2 || 0;
+          payments[weekKey].driver += trip.valor2aViagemMotorista ?? trip.frete?.valor2aViagemMotorista ?? trip.route?.driverValue2 ?? 0;
           if (trip.helperId) {
-            payments[weekKey].helper += trip.route?.helperValue2 || 0;
+            payments[weekKey].helper += trip.valor2aViagemAjudante ?? trip.frete?.valor2aViagemAjudante ?? trip.route?.helperValue2 ?? 0;
           }
         }
       });
