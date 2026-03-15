@@ -34,6 +34,7 @@ interface DashboardStat {
   trend: 'up' | 'down';
   icon: string;
   color: string;
+  percentage?: string | null;
 }
 
 interface ChartData {
@@ -188,8 +189,16 @@ export default function Dashboard() {
                 <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm relative overflow-hidden group">
                   <div className="flex justify-between items-start mb-4">
                     <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{stat.label}</p>
-                    <div className={cn("p-2 rounded-lg bg-opacity-10", stat.color.replace('text-', 'bg-'))}>
+                    <div className={cn(
+                      "p-2 rounded-lg flex flex-col items-center justify-center min-w-[52px] min-h-[52px] gap-1", 
+                      stat.color.replace('text-', 'bg-').concat('/10')
+                    )}>
                       <Icon className={cn("w-5 h-5", stat.color)} />
+                      {stat.percentage !== null && stat.percentage !== undefined && (
+                        <span className={cn("text-[10px] font-black leading-none", stat.color)}>
+                          {stat.percentage}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>

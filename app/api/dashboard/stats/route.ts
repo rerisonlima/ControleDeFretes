@@ -207,6 +207,12 @@ export async function GET(request: Request) {
       };
     });
 
+    const calculatePercentage = (value: number) => {
+      if (totalRevenue === 0) return '0%';
+      const percentage = (value / totalRevenue) * 100;
+      return `${percentage.toFixed(1)}%`;
+    };
+
     return NextResponse.json({
       stats: [
         { 
@@ -215,7 +221,8 @@ export async function GET(request: Request) {
           change: calculateChange(totalRevenue, prevRevenue), 
           trend: totalRevenue >= prevRevenue ? 'up' : 'down',
           icon: 'DollarSign',
-          color: 'text-primary'
+          color: 'text-primary',
+          percentage: null
         },
         { 
           label: 'DESPESAS TOTAIS', 
@@ -223,7 +230,8 @@ export async function GET(request: Request) {
           change: calculateChange(totalExpenses, prevExpensesVal), 
           trend: totalExpenses <= prevExpensesVal ? 'down' : 'up',
           icon: 'Receipt',
-          color: 'text-rose-500'
+          color: 'text-rose-500',
+          percentage: calculatePercentage(totalExpenses)
         },
         { 
           label: 'LUCRO FINAL', 
@@ -231,7 +239,8 @@ export async function GET(request: Request) {
           change: calculateChange(profit, prevProfit), 
           trend: profit >= prevProfit ? 'up' : 'down',
           icon: 'Wallet',
-          color: 'text-emerald-500'
+          color: 'text-emerald-500',
+          percentage: calculatePercentage(profit)
         },
         { 
           label: 'DESPESAS (SEG-SEX)', 
@@ -239,7 +248,8 @@ export async function GET(request: Request) {
           change: calculateChange(monFriExpenses, prevMonFriExpenses), 
           trend: monFriExpenses <= prevMonFriExpenses ? 'down' : 'up',
           icon: 'Receipt',
-          color: 'text-amber-500'
+          color: 'text-amber-500',
+          percentage: calculatePercentage(monFriExpenses)
         },
         { 
           label: 'PAGAMENTO MOTORISTA (SEG-SEX)', 
@@ -247,7 +257,8 @@ export async function GET(request: Request) {
           change: calculateChange(monFriDriverPayment, prevMonFriDriver), 
           trend: monFriDriverPayment >= prevMonFriDriver ? 'up' : 'down',
           icon: 'Truck',
-          color: 'text-blue-500'
+          color: 'text-blue-500',
+          percentage: calculatePercentage(monFriDriverPayment)
         },
         { 
           label: 'PAGAMENTO AJUDANTE (SEG-SEX)', 
@@ -255,7 +266,8 @@ export async function GET(request: Request) {
           change: calculateChange(monFriHelperPayment, prevMonFriHelper), 
           trend: monFriHelperPayment >= prevMonFriHelper ? 'up' : 'down',
           icon: 'User',
-          color: 'text-indigo-500'
+          color: 'text-indigo-500',
+          percentage: calculatePercentage(monFriHelperPayment)
         },
       ],
       chart: finalChartData,
