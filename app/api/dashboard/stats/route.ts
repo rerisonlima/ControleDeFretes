@@ -120,10 +120,30 @@ export async function GET(request: Request) {
     const totalRevenue = trips.reduce((sum, trip) => sum + trip.value, 0);
     
     // Total Expenses = Sum(Expense table) + Sum(Trip driver/helper values)
-    const { total: tripExpenses } = calculateTripOperationalCosts(trips);
+    const { total: tripExpenses, driverTotal: tripDriverTotal, helperTotal: tripHelperTotal } = calculateTripOperationalCosts(trips);
     const { driverTotal: monFriDriverPayment, helperTotal: monFriHelperPayment } = calculateTripOperationalCosts(trips, true);
     
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0) + tripExpenses;
+
+    // Calculate breakdown by category
+    const expenseGroups: Record<string, number> = {};
+    expenses.forEach(e => {
+      expenseGroups[e.type] = (expenseGroups[e.type] || 0) + e.value;
+    });
+    if (tripDriverTotal > 0) expenseGroups['Pagamento Motorista'] = (expenseGroups['Pagamento Motorista'] || 0) + tripDriverTotal;
+    if (tripHelperTotal > 0) expenseGroups['Pagamento Ajudante'] = (expenseGroups['Pagamento Ajudante'] || 0) + tripHelperTotal;
+
+    const expenseBreakdown = Object.entries(expenseGroups)
+      .map(([name, value]) => ({
+        name,
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value),
+        percentage: totalExpenses > 0 ? ((value / totalExpenses) * 100).toFixed(1) + '%' : '0%'
+      }))
+      .sort((a, b) => {
+        const valA = parseFloat(a.value.replace(/[^\d,]/g, '').replace(',', '.'));
+        const valB = parseFloat(b.value.replace(/[^\d,]/g, '').replace(',', '.'));
+        return valB - valA;
+      });
     
     // Mon-Fri Expenses = Sum(Expense table Mon-Fri) + Sum(Trip driver/helper values Mon-Fri)
     const monFriGeneralExpenses = expenses.filter(e => {
@@ -231,7 +251,8 @@ export async function GET(request: Request) {
           trend: totalExpenses <= prevExpensesVal ? 'down' : 'up',
           icon: 'Receipt',
           color: 'text-rose-500',
-          percentage: calculatePercentage(totalExpenses)
+          percentage: calculatePercentage(totalExpenses),
+          breakdown: expenseBreakdown
         },
         { 
           label: 'LUCRO FINAL', 
