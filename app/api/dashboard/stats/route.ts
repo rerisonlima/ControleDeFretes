@@ -207,7 +207,17 @@ export async function GET(request: Request) {
       const fullMonthEnd = endOfMonth(fullMonthStart);
       chartTrips = await prisma.trip.findMany({
         where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-        include: { route: true, frete: true }
+        include: { 
+          route: true, 
+          frete: true,
+          contratante: {
+            select: {
+              id: true,
+              ContratanteNome: true
+            }
+          },
+          vehicle: true
+        }
       });
       chartExpenses = await prisma.expense.findMany({
         where: { date: { gte: fullMonthStart, lte: fullMonthEnd } }

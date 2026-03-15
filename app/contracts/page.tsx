@@ -79,8 +79,11 @@ export default function ContractsPage() {
     let result;
     if (modalMode === 'create') {
       result = await createContract(formData);
-    } else {
+    } else if (selectedContract) {
       result = await updateContract(selectedContract.id, formData);
+    } else {
+      setIsSubmitting(false);
+      return;
     }
 
     if (result.error) {

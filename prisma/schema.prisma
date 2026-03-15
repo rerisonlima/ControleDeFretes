@@ -130,6 +130,7 @@ model Expense {
   id          Int      @id @default(autoincrement())
   date        DateTime
   type        String
+  description String?
   vehicleId   Int?
   vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
   value       Float

@@ -20,7 +20,8 @@ import {
   Loader2,
   AlertCircle,
   Edit,
-  Trash2
+  Trash2,
+  Ticket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +58,12 @@ export default function ExpensesPage() {
   });
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  // Filter State
+  const [filters, setFilters] = useState({
+    type: 'Todos',
+    vehicleId: 'Todos'
+  });
 
   const fetchData = async () => {
     try {
@@ -162,8 +169,15 @@ export default function ExpensesPage() {
     if (type.toLowerCase().includes('combustível')) return Fuel;
     if (type.toLowerCase().includes('manutenção')) return Wrench;
     if (type.toLowerCase().includes('pagamento')) return User;
+    if (type.toLowerCase().includes('pedágio')) return Ticket;
     return AlertCircle;
   };
+
+  const filteredExpenses = expenses.filter(exp => {
+    const matchesType = filters.type === 'Todos' || exp.type === filters.type;
+    const matchesVehicle = filters.vehicleId === 'Todos' || exp.vehicleId?.toString() === filters.vehicleId;
+    return matchesType && matchesVehicle;
+  });
 
   return (
     <AppLayout>
@@ -193,30 +207,47 @@ export default function ExpensesPage() {
             <div className="flex flex-col gap-1.5 min-w-[150px]">
               <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Tipo de Despesa</label>
               <div className="relative">
-                <select className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none">
-                  <option>Todos os Tipos</option>
-                  <option>Combustível</option>
-                  <option>Pagamento Motorista</option>
-                  <option>Manutenção</option>
+                <select 
+                  className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                  value={filters.type}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                >
+                  <option value="Todos">Todos os Tipos</option>
+                  <option value="Combustível">Combustível</option>
+                  <option value="Pagamento Motorista">Pagamento Motorista</option>
+                  <option value="Pagamento Ajudante">Pagamento Ajudante</option>
+                  <option value="Manutenção">Manutenção</option>
+                  <option value="Pedágio">Pedágio</option>
+                  <option value="Extra">Extra</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
             </div>
             
             <div className="flex flex-col gap-1.5 min-w-[150px]">
               <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Veículo</label>
               <div className="relative">
-                <select className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none">
-                  <option>Todos os Veículos</option>
-                  <option>KXC-1234</option>
-                  <option>RJX-9988</option>
+                <select 
+                  className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                  value={filters.vehicleId}
+                  onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
+                >
+                  <option value="Todos">Todos os Veículos</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id.toString()}>{v.plate}</option>
+                  ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
             </div>
             
             <div className="ml-auto self-end">
-              <button className="text-xs font-bold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors">Limpar Filtros</button>
+              <button 
+                onClick={() => setFilters({ type: 'Todos', vehicleId: 'Todos' })}
+                className="text-xs font-bold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
+              >
+                Limpar Filtros
+              </button>
             </div>
           </div>
 
@@ -243,13 +274,13 @@ export default function ExpensesPage() {
                       </div>
                     </td>
                   </tr>
-                ) : expenses.length === 0 ? (
+                ) : filteredExpenses.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
-                      Nenhuma despesa registrada.
+                      Nenhuma despesa encontrada com os filtros selecionados.
                     </td>
                   </tr>
-                ) : expenses.map((exp, i) => {
+                ) : filteredExpenses.map((exp, i) => {
                   const Icon = getIcon(exp.type);
                   return (
                     <tr key={exp.id || i} className="hover:bg-white/5 transition-colors">
@@ -364,11 +395,25 @@ export default function ExpensesPage() {
                     <option value="Pagamento Motorista">Pagamento Motorista</option>
                     <option value="Pagamento Ajudante">Pagamento Ajudante</option>
                     <option value="Manutenção">Manutenção</option>
+                    <option value="Pedágio">Pedágio</option>
                     <option value="Extra">Extra</option>
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
                 </div>
               </div>
+
+              {formData.type === 'Manutenção' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Manutenção</label>
+                  <input 
+                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                    placeholder="Ex: Troca de óleo, Freios, etc."
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              )}
               
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor (R$)</label>

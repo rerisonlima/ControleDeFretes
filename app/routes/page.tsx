@@ -78,6 +78,7 @@ interface Vehicle {
   plate: string;
   brand: string;
   model: string;
+  categoriaId: number;
 }
 
 interface Employee {
@@ -94,6 +95,9 @@ interface Contratante {
 interface Frete {
   id: number;
   cidade: string;
+  contratanteId: number;
+  categoriaId: number;
+  categoria?: { CategoriaNome: string };
   valorFrete: number;
   valor1aViagemMotorista: number;
   valor2aViagemMotorista: number;
