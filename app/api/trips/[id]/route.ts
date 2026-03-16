@@ -26,6 +26,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         status: body.status,
         paid: body.paid,
         contract: body.contract,
+        romaneio: body.romaneio,
         paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
       include: {

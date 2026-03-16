@@ -121,6 +121,7 @@ model Trip {
   status      String   @default("SCHEDULED")
   paid        String   @default("não")
   contract    String?
+  romaneio    String?
   paymentDate DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -130,7 +131,6 @@ model Expense {
   id          Int      @id @default(autoincrement())
   date        DateTime
   type        String
-  description String?
   vehicleId   Int?
   vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
   value       Float

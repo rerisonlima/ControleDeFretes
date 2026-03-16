@@ -20,7 +20,6 @@ export async function POST(req: Request) {
       data: {
         date: new Date(`${body.date}T12:00:00Z`),
         type: body.type,
-        description: body.description || null,
         value: parseFloat(body.value),
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
         status: body.status || 'PENDING',

@@ -54,6 +54,7 @@ interface Trip {
   status: string;
   paid: string;
   contract?: string;
+  romaneio?: string;
   paymentDate?: string;
   vehicle?: { plate: string };
   contratante?: { ContratanteNome: string };
@@ -142,6 +143,7 @@ export default function RoutesPage() {
     status: 'SCHEDULED',
     paid: 'não',
     contract: '',
+    romaneio: '',
     paymentDate: ''
   });
 
@@ -203,6 +205,7 @@ export default function RoutesPage() {
         status: trip.status,
         paid: trip.paid || 'não',
         contract: trip.contract || '',
+        romaneio: trip.romaneio || '',
         paymentDate: trip.paymentDate ? format(new Date(trip.paymentDate), 'yyyy-MM-dd') : ''
       });
     } else {
@@ -224,6 +227,7 @@ export default function RoutesPage() {
         status: 'SCHEDULED',
         paid: 'não',
         contract: '',
+        romaneio: '',
         paymentDate: ''
       });
     }
@@ -310,6 +314,7 @@ export default function RoutesPage() {
         status: trip.status || 'SCHEDULED',
         paid: 'não',
         contract: trip.contract || '',
+        romaneio: trip.romaneio || '',
         paymentDate: ''
       };
 
@@ -350,8 +355,10 @@ export default function RoutesPage() {
   const filteredTrips = trips.filter(trip => {
     const destination = trip.frete?.cidade || trip.route?.destination || '';
     const contract = trip.contratante?.ContratanteNome || trip.contract || '';
+    const romaneio = trip.romaneio || '';
     const matchesSearch = destination.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         contract.toLowerCase().includes(searchTerm.toLowerCase());
+                         contract.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         romaneio.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVehicle = vehicleFilter === '' || trip.vehicleId.toString() === vehicleFilter;
     return matchesSearch && matchesVehicle;
   });
@@ -424,7 +431,7 @@ export default function RoutesPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <input 
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                  placeholder="Buscar por cidade de destino ou contrato..." 
+                  placeholder="Busque por cidade, romaneio ou contrato" 
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -635,6 +642,17 @@ export default function RoutesPage() {
                       <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
+                  <input 
+                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                    placeholder="Número do Romaneio"
+                    type="text"
+                    value={formData.romaneio}
+                    onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+                  />
                 </div>
 
                 <div className="space-y-2">
