@@ -7,7 +7,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
-    const unpaidOnly = searchParams.get('unpaidOnly') === 'true';
+    const paymentStatus = searchParams.get('paymentStatus');
 
     const where: Prisma.TripWhereInput = {};
 
@@ -20,8 +20,10 @@ export async function GET(req: Request) {
       };
     }
 
-    if (unpaidOnly) {
+    if (paymentStatus === 'unpaid') {
       where.paid = 'não';
+    } else if (paymentStatus === 'paid') {
+      where.paid = 'sim';
     }
 
     const trips = await prisma.trip.findMany({
