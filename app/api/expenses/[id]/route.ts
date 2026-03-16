@@ -12,6 +12,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       data: {
         date: body.date ? new Date(`${body.date}T12:00:00Z`) : undefined,
         type: body.type,
+        description: body.description,
         value: body.value ? parseFloat(body.value) : undefined,
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
         status: body.status,

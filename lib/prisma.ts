@@ -10,11 +10,17 @@ declare global {
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-// Auto-migration for romaneio column
+// Auto-migration for romaneio and description columns
 if (typeof window === 'undefined') {
+  // Add romaneio to Trip
   prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "romaneio" TEXT;')
     .then(() => console.log('Database migration: romaneio column checked/added'))
-    .catch(err => console.error('Database migration error:', err));
+    .catch(err => console.error('Database migration error (romaneio):', err));
+
+  // Add description to Expense
+  prisma.$executeRawUnsafe('ALTER TABLE "Expense" ADD COLUMN IF NOT EXISTS "description" TEXT;')
+    .then(() => console.log('Database migration: description column checked/added'))
+    .catch(err => console.error('Database migration error (description):', err));
 }
 
 export default prisma;

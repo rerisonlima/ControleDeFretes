@@ -34,6 +34,7 @@ interface Expense {
   id: number;
   date: string;
   type: string;
+  description?: string | null;
   value: number;
   status: 'PAID' | 'PENDING';
   vehicleId: number | null;
@@ -51,6 +52,7 @@ export default function ExpensesPage() {
   // Form State
   const [formData, setFormData] = useState({
     type: '',
+    description: '',
     value: '',
     date: new Date().toISOString().split('T')[0],
     vehicleId: '',
@@ -100,6 +102,7 @@ export default function ExpensesPage() {
       setSelectedExpense(expense);
       setFormData({
         type: expense.type,
+        description: expense.description || '',
         value: expense.value.toString(),
         date: new Date(expense.date).toISOString().split('T')[0],
         vehicleId: expense.vehicleId?.toString() || '',
@@ -109,6 +112,7 @@ export default function ExpensesPage() {
       setSelectedExpense(null);
       setFormData({
         type: '',
+        description: '',
         value: '',
         date: new Date().toISOString().split('T')[0],
         vehicleId: '',
