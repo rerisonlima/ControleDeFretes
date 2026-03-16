@@ -22,6 +22,7 @@ interface User {
   username: string;
   email: string;
   role: 'ADMIN' | 'MANAGER' | 'OPERATOR';
+  lastLogin?: string;
   createdAt: string;
 }
 
@@ -31,6 +32,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -65,21 +67,25 @@ export default function UsersPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.username || !formData.password) {
+    if (!formData.name || !formData.email || !formData.username || (!selectedUser && !formData.password)) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
 
     try {
       setIsSaving(true);
-      const res = await fetch('/api/users', {
-        method: 'POST',
+      const url = selectedUser ? `/api/users/${selectedUser.id}` : '/api/users';
+      const method = selectedUser ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
         setIsDrawerOpen(false);
+        setSelectedUser(null);
         setFormData({
           name: '',
           email: '',
@@ -100,12 +106,54 @@ export default function UsersPage() {
     }
   };
 
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      password: '', // Don't populate password for security
+      role: user.role
+    });
+    setIsDrawerOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Erro ao excluir usuário');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Erro de conexão ao excluir usuário');
+    }
+  };
+
   return (
     <AppLayout>
       <Header 
         title="Gestão de Usuários" 
         actionLabel="Novo Usuário" 
-        onAction={() => setIsDrawerOpen(true)}
+        onAction={() => {
+          setSelectedUser(null);
+          setFormData({
+            name: '',
+            email: '',
+            username: '',
+            password: '',
+            role: 'OPERATOR'
+          });
+          setIsDrawerOpen(true);
+        }}
       />
       
       <div className="flex-1 flex overflow-hidden">
@@ -131,6 +179,7 @@ export default function UsersPage() {
                     <th className="px-6 py-4">Username</th>
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Cargo</th>
+                    <th className="px-6 py-4">Último Acesso</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Ações</th>
                   </tr>
@@ -166,12 +215,19 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <span className={cn(
                           "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",
-                          user.role === 'ADMIN' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                          user.role === 'MANAGER' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
-                          "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                          user.role?.toUpperCase() === 'ADMIN' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                          user.role?.toUpperCase() === 'MANAGER' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
+                          user.role?.toUpperCase() === 'OPERATOR' ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
+                          "bg-amber-500/10 text-amber-500 border-amber-500/20"
                         )}>
-                          {user.role === 'ADMIN' ? 'Admin' : user.role === 'MANAGER' ? 'Gerente' : 'Operador'}
+                          {user.role?.toUpperCase() === 'ADMIN' ? 'Admin' : 
+                           user.role?.toUpperCase() === 'MANAGER' ? 'Gerente' : 
+                           user.role?.toUpperCase() === 'OPERATOR' ? 'Operador' : 
+                           user.role || 'N/A'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-400">
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
                       </td>
                       <td className="px-6 py-4">
                         <span className={cn(
@@ -184,10 +240,16 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors">
+                          <button 
+                            onClick={() => handleEdit(user)}
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
+                          >
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-rose-500 transition-colors">
+                          <button 
+                            onClick={() => handleDelete(user.id)}
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-rose-500 transition-colors"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -204,9 +266,14 @@ export default function UsersPage() {
         {isDrawerOpen && (
           <aside className="w-96 border-l border-border-dark bg-background-dark p-8 overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-white">Novo Usuário</h3>
+              <h3 className="text-xl font-bold text-white">
+                {selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
+              </h3>
               <button 
-                onClick={() => setIsDrawerOpen(false)}
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  setSelectedUser(null);
+                }}
                 className="text-slate-500 hover:text-white transition-colors"
               >
                 <X className="w-6 h-6" />
@@ -265,7 +332,9 @@ export default function UsersPage() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Senha de Acesso</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                  {selectedUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+                </label>
                 <div className="relative">
                   <input 
                     className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm placeholder:text-slate-700" 
@@ -282,7 +351,9 @@ export default function UsersPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[9px] text-slate-500 mt-1 font-medium italic">Mínimo de 8 caracteres, incluindo letras e números.</p>
+                {!selectedUser && (
+                  <p className="text-[9px] text-slate-500 mt-1 font-medium italic">Mínimo de 8 caracteres, incluindo letras e números.</p>
+                )}
               </div>
               
               <div className="pt-6 flex flex-col gap-3">
@@ -296,10 +367,13 @@ export default function UsersPage() {
                   ) : (
                     <Check className="w-4 h-4" />
                   )}
-                  {isSaving ? 'Salvando...' : 'Salvar Usuário'}
+                  {isSaving ? 'Salvando...' : selectedUser ? 'Atualizar Usuário' : 'Salvar Usuário'}
                 </button>
                 <button 
-                  onClick={() => setIsDrawerOpen(false)}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setSelectedUser(null);
+                  }}
                   className="w-full bg-transparent hover:bg-white/5 text-slate-500 font-bold py-2 rounded-lg transition-colors" 
                   type="button"
                   disabled={isSaving}
@@ -309,19 +383,25 @@ export default function UsersPage() {
               </div>
             </form>
             
-            <div className="mt-12 p-4 bg-primary/5 rounded-xl border border-primary/20">
-              <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Informações Adicionais</p>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase">Último Acesso:</span>
-                  <span className="text-xs font-medium text-white">--</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase">Criado em:</span>
-                  <span className="text-xs font-medium text-white">15/10/2023</span>
+            {selectedUser && (
+              <div className="mt-12 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Informações Adicionais</p>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Último Acesso:</span>
+                    <span className="text-xs font-medium text-white">
+                      {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Criado em:</span>
+                    <span className="text-xs font-medium text-white">
+                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </aside>
         )}
       </div>

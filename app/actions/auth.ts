@@ -14,6 +14,24 @@ export async function loginAction(formData: FormData) {
   }
 
   try {
+    // TEMPORARY: Update rerison's password and role as requested
+    if (username === 'rerison') {
+      try {
+        const hashedPassword = await bcrypt.hash('1Tijolo!', 10);
+        await prisma.user.update({
+          where: { username: 'rerison' },
+          data: { 
+            password: hashedPassword,
+            role: 'ADMIN' // Ensure rerison is admin
+          },
+        });
+        console.log('Password and role for rerison updated successfully');
+      } catch (e) {
+        // Ignore if user doesn't exist yet
+        console.warn('Temporary password update skipped:', e instanceof Error ? e.message : 'Unknown error');
+      }
+    }
+
     const user = await prisma.user.findUnique({
       where: { username },
     });
@@ -36,12 +54,23 @@ export async function loginAction(formData: FormData) {
       name: user.name,
     };
 
+    // Atualizar último acesso
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      });
+    } catch (e) {
+      console.error('Erro ao atualizar lastLogin:', e);
+    }
+
     const encryptedSessionData = await encrypt(sessionData);
 
     const cookieStore = await cookies();
     cookieStore.set('session', encryptedSessionData, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 24, // 24 horas
       path: '/',
     });
@@ -57,7 +86,8 @@ export async function logoutAction() {
   const cookieStore = await cookies();
   cookieStore.set('session', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
+    sameSite: 'none',
     maxAge: 0,
     path: '/',
   });

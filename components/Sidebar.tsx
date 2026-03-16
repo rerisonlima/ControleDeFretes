@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { logoutAction } from '@/app/actions/auth';
 import { 
   LayoutDashboard, 
   Calculator, 
@@ -33,6 +34,44 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<{ name: string; role: string; lastLogin?: string } | null>(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      console.log('Sidebar: Fetching session...');
+      try {
+        const res = await fetch('/api/auth/session');
+        console.log('Sidebar: Session response status:', res.status);
+        if (res.ok) {
+          const data = await res.json();
+          console.log('Sidebar: Session data received:', data);
+          setUser(data);
+        } else {
+          console.warn('Sidebar: Session not found or invalid (Status:', res.status, ')');
+        }
+      } catch (error) {
+        console.error('Sidebar: Error fetching session:', error);
+      }
+    };
+    fetchSession();
+  }, []);
+
+  const handleLogout = async () => {
+    await logoutAction();
+    router.push('/login');
+    router.refresh();
+  };
+
+  const getRoleLabel = (role: string) => {
+    const r = role?.toUpperCase();
+    switch (r) {
+      case 'ADMIN': return 'Administrador';
+      case 'MANAGER': return 'Gerente de Operações';
+      case 'OPERATOR': return 'Operador';
+      default: return role || 'Usuário';
+    }
+  };
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen">
@@ -79,10 +118,18 @@ export function Sidebar() {
             />
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-semibold text-white truncate">Rerison Lima</p>
-            <p className="text-[10px] text-slate-500 truncate uppercase">Gerente de Operações</p>
+            <p className="text-sm font-semibold text-white truncate">{user?.name || 'Carregando...'}</p>
+            <p className="text-[10px] text-slate-500 truncate uppercase">{user ? getRoleLabel(user.role) : '...'}</p>
+            {user?.lastLogin && (
+              <p className="text-[8px] text-slate-600 truncate mt-0.5">
+                Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
-          <button className="ml-auto text-slate-500 hover:text-white transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="ml-auto text-slate-500 hover:text-white transition-colors"
+          >
             <LogOut className="w-4 h-4" />
           </button>
         </div>

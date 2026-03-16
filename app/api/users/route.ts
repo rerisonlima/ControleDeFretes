@@ -10,13 +10,18 @@ export async function GET() {
         email: true,
         username: true,
         role: true,
+        lastLogin: true,
         createdAt: true,
       },
       orderBy: { name: 'asc' }
     });
     return NextResponse.json(users);
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error in GET /api/users:', error);
+    return NextResponse.json({ 
+      error: 'Internal Server Error', 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }
 
@@ -32,9 +37,13 @@ export async function POST(req: Request) {
         role: body.role || 'OPERATOR',
       }
     });
-    const { password, ...userWithoutPassword } = user;
+    const { password: _password, ...userWithoutPassword } = user;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error in POST /api/users:', error);
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

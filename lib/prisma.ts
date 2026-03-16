@@ -21,6 +21,11 @@ if (typeof window === 'undefined') {
   prisma.$executeRawUnsafe('ALTER TABLE "Expense" ADD COLUMN IF NOT EXISTS "description" TEXT;')
     .then(() => console.log('Database migration: description column checked/added'))
     .catch(err => console.error('Database migration error (description):', err));
+
+  // Add lastLogin to User
+  prisma.$executeRawUnsafe('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP;')
+    .then(() => console.log('Database migration: lastLogin column checked/added'))
+    .catch(err => console.error('Database migration error (lastLogin):', err));
 }
 
 export default prisma;
