@@ -122,6 +122,7 @@ model Trip {
   paid        String   @default("não")
   contract    String?
   romaneio    String?
+  odometer    Float?
   paymentDate DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

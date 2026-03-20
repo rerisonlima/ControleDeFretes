@@ -16,7 +16,8 @@ import {
   DollarSign,
   Copy,
   Receipt,
-  Loader2
+  Loader2,
+  Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -55,6 +56,7 @@ interface Trip {
   status: string;
   paid: string;
   contract?: string;
+  odometer?: number;
   romaneio?: string;
   paymentDate?: string;
   vehicle?: { plate: string };
@@ -145,6 +147,7 @@ export default function RoutesPage() {
     status: 'SCHEDULED',
     paid: 'não',
     contract: '',
+    odometer: '',
     romaneio: '',
     paymentDate: ''
   });
@@ -207,6 +210,7 @@ export default function RoutesPage() {
         status: trip.status,
         paid: trip.paid || 'não',
         contract: trip.contract || '',
+        odometer: trip.odometer?.toString() || '',
         romaneio: trip.romaneio || '',
         paymentDate: trip.paymentDate ? format(new Date(trip.paymentDate), 'yyyy-MM-dd') : ''
       });
@@ -229,6 +233,7 @@ export default function RoutesPage() {
         status: 'SCHEDULED',
         paid: 'não',
         contract: '',
+        odometer: '',
         romaneio: '',
         paymentDate: ''
       });
@@ -316,6 +321,7 @@ export default function RoutesPage() {
         status: trip.status || 'SCHEDULED',
         paid: 'não',
         contract: trip.contract || '',
+        odometer: trip.odometer?.toString() || '',
         romaneio: trip.romaneio || '',
         paymentDate: ''
       };
@@ -646,6 +652,20 @@ export default function RoutesPage() {
                       <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
+                  <div className="relative">
+                    <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
+                    <input 
+                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                      placeholder="Km Inicial"
+                      type="number"
+                      value={formData.odometer}
+                      onChange={(e) => setFormData({...formData, odometer: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">

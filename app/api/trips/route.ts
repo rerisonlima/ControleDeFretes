@@ -74,6 +74,7 @@ export async function POST(req: Request) {
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
+        odometer: body.odometer ? parseFloat(body.odometer) : null,
         romaneio: body.romaneio || null,
         paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
