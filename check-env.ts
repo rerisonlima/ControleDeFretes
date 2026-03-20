@@ -1,2 +1,6 @@
-console.log("DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
-console.log("DIRECT_URL:", process.env.DIRECT_URL ? "SET" : "NOT SET");
+
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('DIRECT_URL exists:', !!process.env.DIRECT_URL);
+if (process.env.DATABASE_URL) {
+  console.log('DATABASE_URL starts with:', process.env.DATABASE_URL.substring(0, 10));
+}

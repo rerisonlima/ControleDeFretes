@@ -125,29 +125,6 @@ export async function GET(request: Request) {
     
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0) + tripExpenses;
 
-    // Calculate revenue breakdown by contractor
-    const revenueGroups: Record<string, { count: number; value: number }> = {};
-    trips.forEach(t => {
-      const contractorName = t.contratante?.ContratanteNome || 'Sem Contratante';
-      if (!revenueGroups[contractorName]) {
-        revenueGroups[contractorName] = { count: 0, value: 0 };
-      }
-      revenueGroups[contractorName].count += 1;
-      revenueGroups[contractorName].value += t.value;
-    });
-
-    const revenueBreakdown = Object.entries(revenueGroups)
-      .map(([name, data]) => ({
-        name,
-        value: `${data.count} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.value)}`,
-        percentage: totalRevenue > 0 ? ((data.value / totalRevenue) * 100).toFixed(1) + '%' : '0%'
-      }))
-      .sort((a, b) => {
-        const valA = parseInt(a.value.split(' ')[0]);
-        const valB = parseInt(b.value.split(' ')[0]);
-        return valB - valA;
-      });
-
     // Calculate breakdown by category
     const expenseGroups: Record<string, number> = {};
     expenses.forEach(e => {
@@ -275,9 +252,7 @@ export async function GET(request: Request) {
           trend: totalRevenue >= prevRevenue ? 'up' : 'down',
           icon: 'DollarSign',
           color: 'text-primary',
-          percentage: null,
-          breakdown: revenueBreakdown,
-          totalTrips: trips.length
+          percentage: null
         },
         { 
           label: 'DESPESAS TOTAIS', 

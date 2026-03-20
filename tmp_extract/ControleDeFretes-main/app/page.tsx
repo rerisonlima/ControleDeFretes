@@ -36,7 +36,6 @@ interface DashboardStat {
   color: string;
   percentage?: string | null;
   breakdown?: { name: string; value: string; percentage: string }[];
-  totalTrips?: number;
 }
 
 interface ChartData {
@@ -205,19 +204,8 @@ export default function Dashboard() {
                   </div>
                   <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>
                   
-                  {stat.totalTrips !== undefined && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-                        {stat.totalTrips} Viagens Totais
-                      </span>
-                    </div>
-                  )}
-                  
                   {stat.breakdown && stat.breakdown.length > 0 && (
                     <div className="mt-6 pt-4 border-t border-border-dark space-y-3">
-                      {stat.label === 'RECEITA TOTAL' && (
-                        <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Total Viagens</h4>
-                      )}
                       {stat.breakdown.map((item, idx) => (
                         <div key={idx} className="flex flex-col gap-1">
                           <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
@@ -226,17 +214,11 @@ export default function Dashboard() {
                           </div>
                           <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
                             <div 
-                              className={cn(
-                                "h-full rounded-full",
-                                stat.label === 'RECEITA TOTAL' ? "bg-primary" : "bg-rose-500"
-                              )}
+                              className="h-full bg-rose-500 rounded-full" 
                               style={{ width: item.percentage }}
                             />
                           </div>
-                          <p className={cn(
-                            "text-[9px] font-bold text-right",
-                            stat.label === 'RECEITA TOTAL' ? "text-primary/70" : "text-rose-500/70"
-                          )}>{item.percentage}</p>
+                          <p className="text-[9px] text-rose-500/70 font-bold text-right">{item.percentage}</p>
                         </div>
                       ))}
                     </div>
