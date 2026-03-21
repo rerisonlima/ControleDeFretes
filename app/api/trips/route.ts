@@ -4,6 +4,9 @@ import { Prisma } from '@prisma/client';
 
 export async function GET(req: Request) {
   try {
+    // Increase statement timeout for the trips query session
+    await prisma.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
+    
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
@@ -28,17 +31,72 @@ export async function GET(req: Request) {
 
     const trips = await prisma.trip.findMany({
       where,
-      include: {
-        route: true,
-        frete: {
-          include: {
-            categoria: true
+      select: {
+        id: true,
+        tripId: true,
+        routeId: true,
+        freteId: true,
+        contratanteId: true,
+        vehicleId: true,
+        driverId: true,
+        helperId: true,
+        scheduledAt: true,
+        value: true,
+        valor1aViagemMotorista: true,
+        valor2aViagemMotorista: true,
+        valor1aViagemAjudante: true,
+        valor2aViagemAjudante: true,
+        status: true,
+        paid: true,
+        contract: true,
+        romaneio: true,
+        odometer: true,
+        paymentDate: true,
+        route: {
+          select: {
+            id: true,
+            destination: true,
+            freightValue: true
           }
         },
-        contratante: true,
-        vehicle: true,
-        driver: true,
-        helper: true,
+        frete: {
+          select: {
+            id: true,
+            cidade: true,
+            valorFrete: true,
+            categoria: {
+              select: {
+                id: true,
+                CategoriaNome: true
+              }
+            }
+          }
+        },
+        contratante: {
+          select: {
+            id: true,
+            ContratanteNome: true
+          }
+        },
+        vehicle: {
+          select: {
+            id: true,
+            plate: true,
+            model: true
+          }
+        },
+        driver: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        helper: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
       },
       orderBy: { scheduledAt: 'desc' }
     });

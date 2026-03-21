@@ -38,10 +38,20 @@ export async function GET(req: Request) {
         totalDistance = Math.max(0, maxOdo - minOdo);
       }
 
+      // Find latest maintenance date from the Maintenance table
+      let lastMaintenanceDate = v.lastMaintenance;
+      if (v.maintenances.length > 0) {
+        const latestMaint = v.maintenances.reduce((latest, current) => {
+          return new Date(current.executionDate) > new Date(latest.executionDate) ? current : latest;
+        });
+        lastMaintenanceDate = latestMaint.executionDate;
+      }
+
       return {
         ...v,
         tripCount,
         totalDistance,
+        lastMaintenance: lastMaintenanceDate,
         trips: undefined // Don't send all trips to the client
       };
     });

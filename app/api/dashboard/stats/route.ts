@@ -40,6 +40,9 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Increase statement timeout for the dashboard query session
+    await prisma.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
+    
     // Always fetch full month data to simplify logic and provide chart context
     const fullMonthStart = startOfMonth(new Date(year, month - 1));
     const fullMonthEnd = endOfMonth(fullMonthStart);
@@ -51,11 +54,49 @@ export async function GET(request: Request) {
     const [allMonthTrips, allMonthExpenses, prevTrips, prevExpenses] = await Promise.all([
       prisma.trip.findMany({
         where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-        include: {
-          route: true,
-          frete: true,
-          contratante: { select: { id: true, ContratanteNome: true } },
-          vehicle: true
+        select: {
+          id: true,
+          value: true,
+          driverId: true,
+          helperId: true,
+          scheduledAt: true,
+          valor1aViagemMotorista: true,
+          valor2aViagemMotorista: true,
+          valor1aViagemAjudante: true,
+          valor2aViagemAjudante: true,
+          status: true,
+          contract: true,
+          routeId: true,
+          vehicleId: true,
+          route: {
+            select: {
+              destination: true,
+              driverValue1: true,
+              driverValue2: true,
+              helperValue1: true,
+              helperValue2: true
+            }
+          },
+          frete: {
+            select: {
+              cidade: true,
+              valor1aViagemMotorista: true,
+              valor2aViagemMotorista: true,
+              valor1aViagemAjudante: true,
+              valor2aViagemAjudante: true
+            }
+          },
+          contratante: {
+            select: {
+              id: true,
+              ContratanteNome: true
+            }
+          },
+          vehicle: {
+            select: {
+              plate: true
+            }
+          }
         }
       }),
       prisma.expense.findMany({
@@ -63,7 +104,33 @@ export async function GET(request: Request) {
       }),
       prisma.trip.findMany({
         where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-        include: { route: true, frete: true }
+        select: {
+          id: true,
+          value: true,
+          driverId: true,
+          helperId: true,
+          scheduledAt: true,
+          valor1aViagemMotorista: true,
+          valor2aViagemMotorista: true,
+          valor1aViagemAjudante: true,
+          valor2aViagemAjudante: true,
+          route: {
+            select: {
+              driverValue1: true,
+              driverValue2: true,
+              helperValue1: true,
+              helperValue2: true
+            }
+          },
+          frete: {
+            select: {
+              valor1aViagemMotorista: true,
+              valor2aViagemMotorista: true,
+              valor1aViagemAjudante: true,
+              valor2aViagemAjudante: true
+            }
+          }
+        }
       }),
       prisma.expense.findMany({
         where: { date: { gte: prevStartDate, lte: prevEndDate } },

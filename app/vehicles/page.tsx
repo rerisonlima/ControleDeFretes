@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -68,7 +68,7 @@ export default function VehiclesPage() {
     maintenances: [] as Maintenance[]
   });
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/vehicles?showInactive=${showInactive}`);
@@ -84,9 +84,9 @@ export default function VehiclesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showInactive]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/categorias');
       if (res.ok) {
@@ -96,12 +96,12 @@ export default function VehiclesPage() {
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchVehicles();
     fetchCategories();
-  }, [showInactive]);
+  }, [fetchVehicles, fetchCategories]);
 
   const handleOpenDrawer = (vehicle: Vehicle | null = null) => {
     if (vehicle) {
@@ -259,6 +259,8 @@ export default function VehiclesPage() {
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marca/Modelo</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Viagens</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">KM Viajados</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Última Manutenção</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
@@ -267,7 +269,7 @@ export default function VehiclesPage() {
               <tbody className="divide-y divide-border-dark">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center">
+                    <td colSpan={8} className="px-6 py-10 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
                         <p className="text-sm text-slate-500">Carregando veículos...</p>
@@ -276,7 +278,7 @@ export default function VehiclesPage() {
                   </tr>
                 ) : vehicles.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-10 text-center text-slate-500">
                       Nenhum veículo cadastrado.
                     </td>
                   </tr>
@@ -289,6 +291,8 @@ export default function VehiclesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-slate-300">{v.brand} {v.model}</td>
+                    <td className="px-6 py-5 text-center text-white font-medium">{v.tripCount || 0}</td>
+                    <td className="px-6 py-5 text-center text-white font-medium">{v.totalDistance?.toLocaleString('pt-BR') || 0} km</td>
                     <td className="px-6 py-5">
                       <span className={cn(
                         "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold",

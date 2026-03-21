@@ -38,7 +38,9 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
       await prisma.$queryRaw`SELECT 1`;
       console.log('Database connection test successful');
 
-      // Add columns sequentially to avoid connection pool pressure
+      // Increase statement timeout for the migration session
+      await prisma.$executeRawUnsafe('SET statement_timeout = 300000;'); // 5 minutes
+      await prisma.$executeRawUnsafe('SET lock_timeout = 60000;'); // 1 minute
       await prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "romaneio" TEXT;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Expense" ADD COLUMN IF NOT EXISTS "description" TEXT;');
       await prisma.$executeRawUnsafe('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP;');
