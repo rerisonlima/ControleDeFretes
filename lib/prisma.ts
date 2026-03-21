@@ -45,6 +45,15 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
       await prisma.$executeRawUnsafe('ALTER TABLE "Expense" ADD COLUMN IF NOT EXISTS "description" TEXT;');
       await prisma.$executeRawUnsafe('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "odometer" DOUBLE PRECISION;');
+      await prisma.$executeRawUnsafe('ALTER TABLE "Vehicle" ADD COLUMN IF NOT EXISTS "currentOdometer" DOUBLE PRECISION;');
+      await prisma.$executeRawUnsafe('ALTER TABLE "Maintenance" ADD COLUMN IF NOT EXISTS "currentOdometer" DOUBLE PRECISION;');
+      
+      // Make executionDate nullable if it exists
+      try {
+        await prisma.$executeRawUnsafe('ALTER TABLE "Maintenance" ALTER COLUMN "executionDate" DROP NOT NULL;');
+      } catch (e) {
+        console.log('Could not alter executionDate column, it might not exist yet.');
+      }
       
       // Create Maintenance table if it doesn't exist
       await prisma.$executeRawUnsafe(`
@@ -52,7 +61,8 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
           "id" SERIAL NOT NULL,
           "type" TEXT NOT NULL,
           "odometer" DOUBLE PRECISION NOT NULL,
-          "executionDate" TIMESTAMP(3) NOT NULL,
+          "currentOdometer" DOUBLE PRECISION,
+          "executionDate" TIMESTAMP(3),
           "vehicleId" INTEGER NOT NULL,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL,

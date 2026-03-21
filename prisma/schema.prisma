@@ -62,6 +62,7 @@ model Vehicle {
   capacity        Float
   status          String   @default("ACTIVE")
   lastMaintenance DateTime?
+  currentOdometer Float?
   categoriaId     Int?
   categoria       CategoriaVeiculos? @relation(fields: [categoriaId], references: [id])
   trips           Trip[]
@@ -75,7 +76,8 @@ model Maintenance {
   id              Int      @id @default(autoincrement())
   type            String
   odometer        Float
-  executionDate   DateTime
+  currentOdometer Float?
+  executionDate   DateTime?
   vehicleId       Int
   vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
   createdAt       DateTime @default(now())

@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     const vehiclesWithStats = vehicles.map(v => {
       const tripCount = v.trips.length;
       let totalDistance = 0;
+      let currentOdometer = v.currentOdometer || 0;
       
       // Filter out null odometers and sort by date (already sorted in query)
       const odometers = v.trips
@@ -36,6 +37,9 @@ export async function GET(req: Request) {
         const minOdo = odometers[0];
         const maxOdo = odometers[odometers.length - 1];
         totalDistance = Math.max(0, maxOdo - minOdo);
+        currentOdometer = maxOdo;
+      } else if (odometers.length === 1) {
+        currentOdometer = odometers[0];
       }
 
       // Find latest maintenance date from the Maintenance table
@@ -51,6 +55,7 @@ export async function GET(req: Request) {
         ...v,
         tripCount,
         totalDistance,
+        currentOdometer,
         lastMaintenance: lastMaintenanceDate,
         trips: undefined // Don't send all trips to the client
       };
@@ -67,14 +72,22 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    const parsedYear = body.year ? parseInt(body.year.toString()) : 0;
-    const finalYear = isNaN(parsedYear) ? 0 : parsedYear;
+    const safeParseFloat = (val: string | number | null | undefined) => {
+      if (val === null || val === undefined || val === '') return null;
+      const parsed = parseFloat(val.toString());
+      return isNaN(parsed) ? null : parsed;
+    };
 
-    const parsedCapacity = body.capacity ? parseFloat(body.capacity.toString()) : 0;
-    const finalCapacity = isNaN(parsedCapacity) ? 0 : parsedCapacity;
+    const safeParseInt = (val: string | number | null | undefined, fallback: number | null = 0) => {
+      if (val === null || val === undefined || val === '') return fallback;
+      const parsed = parseInt(val.toString());
+      return isNaN(parsed) ? fallback : parsed;
+    };
 
-    const parsedCatId = body.categoriaId ? parseInt(body.categoriaId.toString()) : null;
-    const finalCatId = (parsedCatId !== null && isNaN(parsedCatId)) ? null : parsedCatId;
+    const finalYear = safeParseInt(body.year, 0);
+    const finalCapacity = safeParseFloat(body.capacity) || 0;
+    const finalCatId = safeParseInt(body.categoriaId, null);
+    const finalCurrentOdometer = safeParseFloat(body.currentOdometer);
 
     const vehicle = await prisma.vehicle.create({
       data: {
@@ -86,11 +99,13 @@ export async function POST(req: Request) {
         capacity: finalCapacity,
         status: body.status || 'ACTIVE',
         categoriaId: finalCatId,
+        currentOdometer: finalCurrentOdometer,
         maintenances: body.maintenances ? {
-          create: body.maintenances.map((m: { type: string; odometer: string | number; executionDate: string }) => ({
+          create: body.maintenances.map((m: { type: string; odometer: string | number; executionDate?: string; currentOdometer?: string | number }) => ({
             type: m.type,
-            odometer: parseFloat(m.odometer.toString()) || 0,
-            executionDate: new Date(m.executionDate)
+            odometer: safeParseFloat(m.odometer) || 0,
+            currentOdometer: safeParseFloat(m.currentOdometer),
+            executionDate: (m.executionDate && m.executionDate !== '') ? new Date(m.executionDate) : null
           }))
         } : undefined
       },

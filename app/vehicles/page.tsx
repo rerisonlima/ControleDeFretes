@@ -19,7 +19,8 @@ import {
   Wrench,
   Calendar,
   Trash2,
-  Plus
+  Plus,
+  Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +28,8 @@ interface Maintenance {
   id?: number;
   type: string;
   odometer: string | number;
-  executionDate: string;
+  executionDate?: string;
+  currentOdometer?: string | number;
 }
 
 interface Vehicle {
@@ -40,6 +42,7 @@ interface Vehicle {
   capacity: number;
   status: string;
   lastMaintenance: string | null;
+  currentOdometer?: number | null;
   categoriaId: number | null;
   tripCount?: number;
   totalDistance?: number;
@@ -52,6 +55,8 @@ export default function VehiclesPage() {
   const [categories, setCategories] = useState<{id: number, CategoriaNome: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const [isMaintenanceBtnClicked, setIsMaintenanceBtnClicked] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   
@@ -65,6 +70,7 @@ export default function VehiclesPage() {
     year: new Date().getFullYear().toString(),
     capacity: '',
     status: 'ACTIVE',
+    currentOdometer: '',
     maintenances: [] as Maintenance[]
   });
 
@@ -104,6 +110,8 @@ export default function VehiclesPage() {
   }, [fetchVehicles, fetchCategories]);
 
   const handleOpenDrawer = (vehicle: Vehicle | null = null) => {
+    setShowErrors(false);
+    setIsMaintenanceBtnClicked(false);
     if (vehicle) {
       setSelectedVehicle(vehicle);
       setFormData({
@@ -115,10 +123,15 @@ export default function VehiclesPage() {
         year: vehicle.year.toString(),
         capacity: vehicle.capacity.toString(),
         status: vehicle.status,
-        maintenances: vehicle.maintenances?.map(m => ({
-          ...m,
-          executionDate: m.executionDate ? new Date(m.executionDate).toISOString().split('T')[0] : ''
-        })) || []
+        currentOdometer: vehicle.currentOdometer?.toString() || '',
+        maintenances: vehicle.maintenances?.map(m => {
+          if (!m.executionDate) return { ...m, executionDate: '' };
+          const date = new Date(m.executionDate);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          return { ...m, executionDate: `${day}/${month}/${year}` };
+        }) || []
       });
     } else {
       setSelectedVehicle(null);
@@ -138,13 +151,28 @@ export default function VehiclesPage() {
   };
 
   const handleAddMaintenance = () => {
+    setIsMaintenanceBtnClicked(true);
+    setTimeout(() => setIsMaintenanceBtnClicked(false), 300);
+
+    const newIndex = formData.maintenances.length;
     setFormData({
       ...formData,
       maintenances: [
         ...formData.maintenances,
-        { type: '', odometer: '', executionDate: new Date().toISOString().split('T')[0] }
+        { type: '', odometer: '', executionDate: '', currentOdometer: formData.currentOdometer }
       ]
     });
+
+    // Scroll to the new maintenance entry
+    setTimeout(() => {
+      const element = document.getElementById(`maintenance-${newIndex}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus the first input (Type)
+        const input = element.querySelector('input[placeholder*="Troca de Óleo"]') as HTMLInputElement;
+        if (input) input.focus();
+      }
+    }, 100);
   };
 
   const handleRemoveMaintenance = (index: number) => {
@@ -155,14 +183,68 @@ export default function VehiclesPage() {
 
   const handleMaintenanceChange = (index: number, field: keyof Maintenance, value: string) => {
     const newMaintenances = [...formData.maintenances];
-    newMaintenances[index] = { ...newMaintenances[index], [field]: value };
+    let finalValue = value;
+
+    if (field === 'executionDate') {
+      // Simple mask for DD/MM/YYYY
+      const digits = value.replace(/\D/g, '');
+      if (digits.length <= 8) {
+        let masked = '';
+        if (digits.length > 0) masked += digits.substring(0, 2);
+        if (digits.length > 2) masked += '/' + digits.substring(2, 4);
+        if (digits.length > 4) masked += '/' + digits.substring(4, 8);
+        finalValue = masked;
+      } else {
+        return; // Don't allow more than 8 digits
+      }
+    }
+
+    newMaintenances[index] = { ...newMaintenances[index], [field]: finalValue };
     setFormData({ ...formData, maintenances: newMaintenances });
   };
 
   const handleSave = async () => {
-    if (!formData.plate || !formData.brand || !formData.model || !formData.type) {
-      alert('Por favor, preencha todos os campos obrigatórios, incluindo o tipo de veículo.');
+    if (!formData.plate || !formData.brand || !formData.model || !formData.categoriaId) {
+      setShowErrors(true);
+      alert('Por favor, preencha todos os campos obrigatórios.');
       return;
+    }
+
+    // Validate and format maintenance dates
+    const formattedMaintenances = [];
+    for (const m of formData.maintenances) {
+      if (!m.type || !m.odometer) {
+        setShowErrors(true);
+        alert('Por favor, preencha o tipo e o odômetro da manutenção.');
+        return;
+      }
+
+      let formattedDate = null;
+      if (m.executionDate) {
+        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const match = m.executionDate.match(dateRegex);
+        
+        if (!match) {
+          alert(`Data de execução inválida: ${m.executionDate}. Use o formato DD/MM/AAAA.`);
+          return;
+        }
+
+        const day = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const year = parseInt(match[3]);
+        
+        const date = new Date(year, month - 1, day);
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+          alert(`Data de execução inválida: ${m.executionDate}.`);
+          return;
+        }
+        formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+
+      formattedMaintenances.push({
+        ...m,
+        executionDate: formattedDate
+      });
     }
 
     try {
@@ -170,12 +252,17 @@ export default function VehiclesPage() {
       const url = selectedVehicle ? `/api/vehicles/${selectedVehicle.id}` : '/api/vehicles';
       const method = selectedVehicle ? 'PUT' : 'POST';
 
-      console.log('Saving vehicle:', { url, method, formData });
+      const payload = {
+        ...formData,
+        maintenances: formattedMaintenances
+      };
+
+      console.log('Saving vehicle:', { url, method, payload });
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -377,7 +464,10 @@ export default function VehiclesPage() {
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa do Veículo</label>
                 <input 
-                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                  className={cn(
+                    "w-full px-4 py-3 bg-surface-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700 uppercase",
+                    showErrors && !formData.plate ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                  )}
                   placeholder="Ex: ABC-1234"
                   type="text"
                   value={formData.plate}
@@ -388,7 +478,10 @@ export default function VehiclesPage() {
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Veículo</label>
                 <select 
-                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none"
+                  className={cn(
+                    "w-full px-4 py-3 bg-surface-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none",
+                    showErrors && !formData.categoriaId ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                  )}
                   value={formData.categoriaId}
                   onChange={(e) => {
                     const selectedCat = categories.find(c => c.id.toString() === e.target.value);
@@ -410,7 +503,10 @@ export default function VehiclesPage() {
                 <div className="space-y-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marca</label>
                   <input 
-                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                    className={cn(
+                      "w-full px-4 py-3 bg-surface-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700",
+                      showErrors && !formData.brand ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                    )}
                     placeholder="Ex: Scania"
                     type="text"
                     value={formData.brand}
@@ -420,7 +516,10 @@ export default function VehiclesPage() {
                 <div className="space-y-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modelo</label>
                   <input 
-                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                    className={cn(
+                      "w-full px-4 py-3 bg-surface-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700",
+                      showErrors && !formData.model ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                    )}
                     placeholder="Ex: R450"
                     type="text"
                     value={formData.model}
@@ -476,7 +575,10 @@ export default function VehiclesPage() {
                   <button
                     type="button"
                     onClick={handleAddMaintenance}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold uppercase tracking-tight hover:bg-primary/20 transition-colors"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 bg-primary text-background-dark rounded-lg text-[10px] font-bold uppercase tracking-tight hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95",
+                      isMaintenanceBtnClicked && "animate-pulse ring-4 ring-primary/30"
+                    )}
                   >
                     <Plus className="w-3 h-3" />
                     Cadastrar Manutenção
@@ -496,7 +598,11 @@ export default function VehiclesPage() {
 
                 <div className="space-y-4">
                   {formData.maintenances.map((m, index) => (
-                    <div key={index} className="p-4 bg-surface-dark/50 border border-border-dark rounded-xl space-y-4 relative group">
+                    <div 
+                      key={index} 
+                      id={`maintenance-${index}`}
+                      className="p-4 bg-surface-dark/50 border border-border-dark rounded-xl space-y-4 relative group scroll-mt-6"
+                    >
                       <button
                         type="button"
                         onClick={() => handleRemoveMaintenance(index)}
@@ -506,11 +612,27 @@ export default function VehiclesPage() {
                       </button>
 
                       <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Odômetro Atual</label>
+                        <div className="relative">
+                          <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                          <input
+                            className="w-full pl-10 pr-4 py-2.5 bg-background-dark/30 border border-border-dark rounded-lg outline-none text-slate-400 text-sm cursor-not-allowed"
+                            type="text"
+                            value={m.currentOdometer || formData.currentOdometer || '0'}
+                            readOnly
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Manutenção</label>
                         <div className="relative">
                           <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                           <input
-                            className="w-full pl-10 pr-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
+                            className={cn(
+                              "w-full pl-10 pr-4 py-2.5 bg-background-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm",
+                              showErrors && !m.type ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                            )}
                             placeholder="Ex: Troca de Óleo"
                             type="text"
                             value={m.type}
@@ -523,7 +645,10 @@ export default function VehiclesPage() {
                         <div className="space-y-2">
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kilometragem p/ Manutenção</label>
                           <input
-                            className="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
+                            className={cn(
+                              "w-full px-4 py-2.5 bg-background-dark border rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm",
+                              showErrors && !m.odometer ? "border-rose-500 ring-1 ring-rose-500" : "border-border-dark"
+                            )}
                             placeholder="Ex: 50000"
                             type="number"
                             value={m.odometer}
@@ -536,7 +661,8 @@ export default function VehiclesPage() {
                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                               className="w-full pl-10 pr-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
-                              type="date"
+                              type="text"
+                              placeholder="DD/MM/AAAA"
                               value={m.executionDate}
                               onChange={(e) => handleMaintenanceChange(index, 'executionDate', e.target.value)}
                             />
