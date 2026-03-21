@@ -46,7 +46,9 @@ export async function GET(
     let lastMaintenanceDate = vehicle.lastMaintenance;
     if (vehicle.maintenances.length > 0) {
       const latestMaint = vehicle.maintenances.reduce((latest, current) => {
-        return new Date(current.executionDate) > new Date(latest.executionDate) ? current : latest;
+        const currentVal = current.executionDate ? new Date(current.executionDate).getTime() : 0;
+        const latestVal = latest.executionDate ? new Date(latest.executionDate).getTime() : 0;
+        return currentVal > latestVal ? current : latest;
       });
       lastMaintenanceDate = latestMaint.executionDate;
     }
