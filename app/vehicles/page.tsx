@@ -118,8 +118,8 @@ export default function VehiclesPage() {
   };
 
   const handleSave = async () => {
-    if (!formData.plate || !formData.brand || !formData.model) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+    if (!formData.plate || !formData.brand || !formData.model || !formData.type) {
+      alert('Por favor, preencha todos os campos obrigatórios, incluindo o tipo de veículo.');
       return;
     }
 
@@ -127,6 +127,8 @@ export default function VehiclesPage() {
       setIsSaving(true);
       const url = selectedVehicle ? `/api/vehicles/${selectedVehicle.id}` : '/api/vehicles';
       const method = selectedVehicle ? 'PUT' : 'POST';
+
+      console.log('Saving vehicle:', { url, method, formData });
 
       const res = await fetch(url, {
         method,
@@ -138,8 +140,8 @@ export default function VehiclesPage() {
         setIsDrawerOpen(false);
         fetchVehicles();
       } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao salvar veículo');
+        const errorData = await res.json();
+        alert(`${errorData.error || 'Erro ao salvar veículo'}${errorData.details ? ': ' + errorData.details : ''}`);
       }
     } catch (error) {
       console.error('Error saving vehicle:', error);

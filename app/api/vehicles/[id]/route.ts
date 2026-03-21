@@ -25,27 +25,48 @@ export async function PUT(
 ) {
   try {
     const { id: idStr } = await params;
+    const vehicleId = parseInt(idStr);
+    
+    if (isNaN(vehicleId)) {
+      console.error('Invalid vehicle ID received:', idStr);
+      return NextResponse.json({ error: 'ID de veículo inválido' }, { status: 400 });
+    }
+
     const body = await req.json();
+    console.log('Updating vehicle ID:', vehicleId);
+    console.log('Update body:', body);
     const { plate, type, brand, model, year, capacity, status, categoriaId } = body;
 
+    const parsedYear = year ? parseInt(year.toString()) : 0;
+    const finalYear = isNaN(parsedYear) ? 0 : parsedYear;
+
+    const parsedCapacity = capacity ? parseFloat(capacity.toString()) : 0;
+    const finalCapacity = isNaN(parsedCapacity) ? 0 : parsedCapacity;
+
+    const parsedCatId = categoriaId ? parseInt(categoriaId.toString()) : null;
+    const finalCatId = (parsedCatId !== null && isNaN(parsedCatId)) ? null : parsedCatId;
+
     const vehicle = await prisma.vehicle.update({
-      where: { id: parseInt(idStr) },
+      where: { id: vehicleId },
       data: {
         plate,
         type,
         brand,
         model,
-        year: parseInt(year),
-        capacity: parseFloat(capacity),
+        year: finalYear,
+        capacity: finalCapacity,
         status,
-        categoriaId: categoriaId ? parseInt(categoriaId) : null,
+        categoriaId: finalCatId,
       }
     });
 
     return NextResponse.json(vehicle);
   } catch (error) {
     console.error('Update vehicle error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erro ao atualizar veículo', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
 

@@ -14,7 +14,8 @@ import {
   MoreVertical,
   Calendar,
   Truck,
-  User
+  User,
+  AlertCircle
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -90,21 +91,30 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
   const [selectedWeek, setSelectedWeek] = React.useState<string>('all');
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/dashboard/stats?month=${selectedMonth}&year=${selectedYear}&week=${selectedWeek}`);
       if (!response.ok) {
         const text = await response.text();
         console.error('API error response:', text);
+        try {
+          const errorData = JSON.parse(text);
+          setError(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
+        } catch (error) {
+          setError(`Erro HTTP: ${response.status}`);
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       setDashboardData(data);
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
+      if (!error) setError('Falha ao conectar com o servidor. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
@@ -181,6 +191,21 @@ export default function Dashboard() {
           
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {error && (
+              <div className="col-span-full p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5" />
+                <div className="flex-1">
+                  <p className="font-bold text-xs uppercase tracking-wider">Erro ao carregar dados</p>
+                  <p className="text-sm opacity-80">{error}</p>
+                </div>
+                <button 
+                  onClick={() => fetchStats()}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-xs font-bold transition-all uppercase tracking-widest"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            )}
             {loading ? (
               [1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm animate-pulse h-32"></div>

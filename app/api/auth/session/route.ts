@@ -18,9 +18,17 @@ export async function GET() {
   };
 
   try {
+    // Ensure ID is a number
+    const userId = typeof session.id === 'string' ? parseInt(session.id, 10) : (session.id as number);
+    
+    if (isNaN(userId)) {
+      console.error('Invalid user ID in session:', session.id);
+      return NextResponse.json(userData);
+    }
+
     // Attempt to fetch fresh data from DB
     const user = await prisma.user.findUnique({
-      where: { id: session.id as number },
+      where: { id: userId },
       select: {
         id: true,
         name: true,
@@ -36,6 +44,13 @@ export async function GET() {
     }
   } catch (error) {
     console.error('Error fetching user session from DB:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      // @ts-expect-error - Prisma error details
+      if (error.code) console.error('Prisma Error Code:', error.code);
+      // @ts-expect-error - Prisma error details
+      if (error.meta) console.error('Prisma Error Meta:', JSON.stringify(error.meta, null, 2));
+    }
     // If DB fails, we still return the basic session data so the UI doesn't break
   }
 

@@ -11,8 +11,19 @@ interface TripWithRelations extends Trip {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const month = parseInt(searchParams.get('month') || format(new Date(), 'M'));
-  const year = parseInt(searchParams.get('year') || format(new Date(), 'yyyy'));
+  const monthParam = searchParams.get('month');
+  const yearParam = searchParams.get('year');
+  
+  let month = monthParam ? parseInt(monthParam) : parseInt(format(new Date(), 'M'));
+  let year = yearParam ? parseInt(yearParam) : parseInt(format(new Date(), 'yyyy'));
+
+  // Validate month and year
+  if (isNaN(month) || month < 1 || month > 12) {
+    month = parseInt(format(new Date(), 'M'));
+  }
+  if (isNaN(year) || year < 2000 || year > 2100) {
+    year = parseInt(format(new Date(), 'yyyy'));
+  }
   const weekIndex = searchParams.get('week');
 
   let startDate = startOfMonth(new Date(year, month - 1));
@@ -29,34 +40,49 @@ export async function GET(request: Request) {
   }
 
   try {
-    const trips = await prisma.trip.findMany({
-      where: {
-        scheduledAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      include: {
-        route: true,
-        frete: true,
-        contratante: {
-          select: {
-            id: true,
-            ContratanteNome: true
-          }
-        },
-        vehicle: true
-      }
-    });
+    // Always fetch full month data to simplify logic and provide chart context
+    const fullMonthStart = startOfMonth(new Date(year, month - 1));
+    const fullMonthEnd = endOfMonth(fullMonthStart);
 
-    const expenses = await prisma.expense.findMany({
-      where: {
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
+    // Fetch current month and previous month data in parallel
+    const prevStartDate = startOfMonth(new Date(year, month - 2));
+    const prevEndDate = endOfMonth(prevStartDate);
+
+    const [allMonthTrips, allMonthExpenses, prevTrips, prevExpenses] = await Promise.all([
+      prisma.trip.findMany({
+        where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
+        include: {
+          route: true,
+          frete: true,
+          contratante: { select: { id: true, ContratanteNome: true } },
+          vehicle: true
+        }
+      }),
+      prisma.expense.findMany({
+        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
+      }),
+      prisma.trip.findMany({
+        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+        include: { route: true, frete: true }
+      }),
+      prisma.expense.findMany({
+        where: { date: { gte: prevStartDate, lte: prevEndDate } },
+      })
+    ]);
+
+    // Filter data for the specific week if requested
+    let trips = allMonthTrips;
+    let expenses = allMonthExpenses;
+
+    if (weekIndex && weekIndex !== 'all') {
+      const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
+      const selectedWeekStart = weeks[parseInt(weekIndex) - 1];
+      if (selectedWeekStart) {
+        const selectedWeekEnd = endOfWeek(selectedWeekStart);
+        trips = allMonthTrips.filter(t => t.scheduledAt >= selectedWeekStart && t.scheduledAt <= selectedWeekEnd);
+        expenses = allMonthExpenses.filter(e => e.date >= selectedWeekStart && e.date <= selectedWeekEnd);
+      }
+    }
 
     // Helper function to calculate trip operational costs based on daily frequency
     const calculateTripOperationalCosts = (tripsList: TripWithRelations[], filterWeekdays = false) => {
@@ -177,23 +203,7 @@ export async function GET(request: Request) {
     const monFriExpenses = monFriGeneralExpenses + monFriDriverPayment + monFriHelperPayment;
     
     const profit = totalRevenue - totalExpenses;
-
-    // Calculate previous month stats for comparison
-    const prevStartDate = startOfMonth(new Date(year, month - 2));
-    const prevEndDate = endOfMonth(prevStartDate);
-
-    const prevTrips = await prisma.trip.findMany({
-      where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-      include: {
-        route: true,
-        frete: true
-      }
-    });
-
-    const prevExpenses = await prisma.expense.findMany({
-      where: { date: { gte: prevStartDate, lte: prevEndDate } },
-    });
-
+    
     const prevRevenue = prevTrips.reduce((sum, trip) => sum + trip.value, 0);
     const { total: prevTripExpenses } = calculateTripOperationalCosts(prevTrips);
     const { driverTotal: prevMonFriDriver, helperTotal: prevMonFriHelper } = calculateTripOperationalCosts(prevTrips, true);
@@ -214,43 +224,15 @@ export async function GET(request: Request) {
     };
 
     // Chart data (weekly)
-    // Always use full month for chart to show context, or adjust if week is selected?
-    // User asked to filter by week, so maybe chart should reflect that or stay monthly.
-    // Let's keep chart monthly for context but stats reflect the filter.
     const chartWeeks = eachWeekOfInterval({ 
-      start: startOfMonth(new Date(year, month - 1)), 
-      end: endOfMonth(new Date(year, month - 1)) 
+      start: fullMonthStart, 
+      end: fullMonthEnd 
     });
-
-    // Re-fetching full month data for chart if week is selected to keep chart consistent
-    let chartTrips = trips;
-    let chartExpenses = expenses;
-    if (weekIndex && weekIndex !== 'all') {
-      const fullMonthStart = startOfMonth(new Date(year, month - 1));
-      const fullMonthEnd = endOfMonth(fullMonthStart);
-      chartTrips = await prisma.trip.findMany({
-        where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-        include: { 
-          route: true, 
-          frete: true,
-          contratante: {
-            select: {
-              id: true,
-              ContratanteNome: true
-            }
-          },
-          vehicle: true
-        }
-      });
-      chartExpenses = await prisma.expense.findMany({
-        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } }
-      });
-    }
 
     const finalChartData = chartWeeks.map((weekStart, index) => {
       const weekEnd = endOfWeek(weekStart);
-      const weekTrips = chartTrips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
-      const weekExpenses = chartExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
+      const weekTrips = allMonthTrips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
+      const weekExpenses = allMonthExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
       const { total: weekTripExpenses } = calculateTripOperationalCosts(weekTrips);
 
       return {
@@ -339,6 +321,17 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      // @ts-expect-error - Prisma error details
+      if (error.code) console.error('Prisma Error Code:', error.code);
+      // @ts-expect-error - Prisma error details
+      if (error.meta) console.error('Prisma Error Meta:', JSON.stringify(error.meta, null, 2));
+    }
+    return NextResponse.json({ 
+      error: 'Internal Server Error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

@@ -19,20 +19,34 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    
+    const parsedYear = body.year ? parseInt(body.year.toString()) : 0;
+    const finalYear = isNaN(parsedYear) ? 0 : parsedYear;
+
+    const parsedCapacity = body.capacity ? parseFloat(body.capacity.toString()) : 0;
+    const finalCapacity = isNaN(parsedCapacity) ? 0 : parsedCapacity;
+
+    const parsedCatId = body.categoriaId ? parseInt(body.categoriaId.toString()) : null;
+    const finalCatId = (parsedCatId !== null && isNaN(parsedCatId)) ? null : parsedCatId;
+
     const vehicle = await prisma.vehicle.create({
       data: {
         plate: body.plate,
         type: body.type,
         brand: body.brand,
         model: body.model,
-        year: parseInt(body.year),
-        capacity: parseFloat(body.capacity),
+        year: finalYear,
+        capacity: finalCapacity,
         status: body.status || 'ACTIVE',
-        categoriaId: body.categoriaId ? parseInt(body.categoriaId) : null,
+        categoriaId: finalCatId,
       }
     });
     return NextResponse.json(vehicle);
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Create vehicle error:', error);
+    return NextResponse.json({ 
+      error: 'Erro ao criar veículo', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
