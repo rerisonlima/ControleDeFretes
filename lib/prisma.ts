@@ -44,6 +44,32 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
       await prisma.$executeRawUnsafe('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "odometer" DOUBLE PRECISION;');
       
+      // Create Maintenance table if it doesn't exist
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "Maintenance" (
+          "id" SERIAL NOT NULL,
+          "type" TEXT NOT NULL,
+          "odometer" DOUBLE PRECISION NOT NULL,
+          "executionDate" TIMESTAMP(3) NOT NULL,
+          "vehicleId" INTEGER NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL,
+          CONSTRAINT "Maintenance_pkey" PRIMARY KEY ("id")
+        );
+      `);
+
+      // Add foreign key for Maintenance if it doesn't exist
+      // We check if the constraint exists first to avoid errors
+      await prisma.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Maintenance_vehicleId_fkey') THEN
+            ALTER TABLE "Maintenance" ADD CONSTRAINT "Maintenance_vehicleId_fkey" 
+            FOREIGN KEY ("vehicleId") REFERENCES "Vehicle"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+          END IF;
+        END $$;
+      `);
+      
       // Add indexes sequentially
       await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "idx_trip_scheduled_at" ON "Trip"("scheduledAt");');
       await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "idx_expense_date" ON "Expense"("date");');

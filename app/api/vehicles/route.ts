@@ -8,10 +8,47 @@ export async function GET(req: Request) {
 
     const vehicles = await prisma.vehicle.findMany({
       where: showInactive ? {} : { status: { not: 'INACTIVE' } },
+      include: {
+        trips: {
+          select: {
+            odometer: true,
+            scheduledAt: true
+          },
+          orderBy: {
+            scheduledAt: 'asc'
+          }
+        },
+        maintenances: true
+      },
       orderBy: { updatedAt: 'desc' }
     });
-    return NextResponse.json(vehicles);
+
+    const vehiclesWithStats = vehicles.map(v => {
+      const tripCount = v.trips.length;
+      let totalDistance = 0;
+      
+      // Filter out null odometers and sort by date (already sorted in query)
+      const odometers = v.trips
+        .map(t => t.odometer)
+        .filter((o): o is number => o !== null && o !== undefined);
+      
+      if (odometers.length > 1) {
+        const minOdo = odometers[0];
+        const maxOdo = odometers[odometers.length - 1];
+        totalDistance = Math.max(0, maxOdo - minOdo);
+      }
+
+      return {
+        ...v,
+        tripCount,
+        totalDistance,
+        trips: undefined // Don't send all trips to the client
+      };
+    });
+
+    return NextResponse.json(vehiclesWithStats);
   } catch (error) {
+    console.error('Fetch vehicles error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -39,6 +76,16 @@ export async function POST(req: Request) {
         capacity: finalCapacity,
         status: body.status || 'ACTIVE',
         categoriaId: finalCatId,
+        maintenances: body.maintenances ? {
+          create: body.maintenances.map((m: { type: string; odometer: string | number; executionDate: string }) => ({
+            type: m.type,
+            odometer: parseFloat(m.odometer.toString()) || 0,
+            executionDate: new Date(m.executionDate)
+          }))
+        } : undefined
+      },
+      include: {
+        maintenances: true
       }
     });
     return NextResponse.json(vehicle);

@@ -15,9 +15,20 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  Power
+  Power,
+  Wrench,
+  Calendar,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface Maintenance {
+  id?: number;
+  type: string;
+  odometer: string | number;
+  executionDate: string;
+}
 
 interface Vehicle {
   id: number;
@@ -30,6 +41,9 @@ interface Vehicle {
   status: string;
   lastMaintenance: string | null;
   categoriaId: number | null;
+  tripCount?: number;
+  totalDistance?: number;
+  maintenances?: Maintenance[];
 }
 
 export default function VehiclesPage() {
@@ -50,7 +64,8 @@ export default function VehiclesPage() {
     model: '',
     year: new Date().getFullYear().toString(),
     capacity: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    maintenances: [] as Maintenance[]
   });
 
   const fetchVehicles = async () => {
@@ -99,7 +114,11 @@ export default function VehiclesPage() {
         model: vehicle.model,
         year: vehicle.year.toString(),
         capacity: vehicle.capacity.toString(),
-        status: vehicle.status
+        status: vehicle.status,
+        maintenances: vehicle.maintenances?.map(m => ({
+          ...m,
+          executionDate: m.executionDate ? new Date(m.executionDate).toISOString().split('T')[0] : ''
+        })) || []
       });
     } else {
       setSelectedVehicle(null);
@@ -111,10 +130,33 @@ export default function VehiclesPage() {
         model: '',
         year: new Date().getFullYear().toString(),
         capacity: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        maintenances: []
       });
     }
     setIsDrawerOpen(true);
+  };
+
+  const handleAddMaintenance = () => {
+    setFormData({
+      ...formData,
+      maintenances: [
+        ...formData.maintenances,
+        { type: '', odometer: '', executionDate: new Date().toISOString().split('T')[0] }
+      ]
+    });
+  };
+
+  const handleRemoveMaintenance = (index: number) => {
+    const newMaintenances = [...formData.maintenances];
+    newMaintenances.splice(index, 1);
+    setFormData({ ...formData, maintenances: newMaintenances });
+  };
+
+  const handleMaintenanceChange = (index: number, field: keyof Maintenance, value: string) => {
+    const newMaintenances = [...formData.maintenances];
+    newMaintenances[index] = { ...newMaintenances[index], [field]: value };
+    setFormData({ ...formData, maintenances: newMaintenances });
   };
 
   const handleSave = async () => {
@@ -419,6 +461,94 @@ export default function VehiclesPage() {
                   </select>
                 </div>
               )}
+
+              {/* Maintenance Section */}
+              <div className="pt-6 border-t border-border-dark space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-primary" />
+                    Manutenção Preventiva
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleAddMaintenance}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold uppercase tracking-tight hover:bg-primary/20 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Cadastrar Manutenção
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-surface-dark p-4 rounded-xl border border-border-dark">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Quantidade de Viagens</label>
+                    <p className="text-2xl font-bold text-white">{selectedVehicle?.tripCount || 0}</p>
+                  </div>
+                  <div className="bg-surface-dark p-4 rounded-xl border border-border-dark">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kilômetros Viajados</label>
+                    <p className="text-2xl font-bold text-white">{selectedVehicle?.totalDistance?.toLocaleString('pt-BR') || 0} km</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.maintenances.map((m, index) => (
+                    <div key={index} className="p-4 bg-surface-dark/50 border border-border-dark rounded-xl space-y-4 relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMaintenance(index)}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Manutenção</label>
+                        <div className="relative">
+                          <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                          <input
+                            className="w-full pl-10 pr-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
+                            placeholder="Ex: Troca de Óleo"
+                            type="text"
+                            value={m.type}
+                            onChange={(e) => handleMaintenanceChange(index, 'type', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kilometragem p/ Manutenção</label>
+                          <input
+                            className="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
+                            placeholder="Ex: 50000"
+                            type="number"
+                            value={m.odometer}
+                            onChange={(e) => handleMaintenanceChange(index, 'odometer', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data Execução</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                              className="w-full pl-10 pr-4 py-2.5 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white text-sm"
+                              type="date"
+                              value={m.executionDate}
+                              onChange={(e) => handleMaintenanceChange(index, 'executionDate', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {formData.maintenances.length === 0 && (
+                    <div className="text-center py-8 border-2 border-dashed border-border-dark rounded-xl">
+                      <p className="text-sm text-slate-600">Nenhuma manutenção registrada</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
