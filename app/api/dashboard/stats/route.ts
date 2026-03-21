@@ -2,11 +2,43 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { startOfMonth, endOfMonth, endOfWeek, eachWeekOfInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Trip, Route, Frete } from '@prisma/client';
+// No Prisma model imports needed as we use custom interface
 
-interface TripWithRelations extends Trip {
-  route?: Route | null;
-  frete?: Frete | null;
+interface TripWithRelations {
+  id: number;
+  value: number;
+  driverId: number | null;
+  helperId: number | null;
+  scheduledAt: Date;
+  valor1aViagemMotorista: number | null;
+  valor2aViagemMotorista: number | null;
+  valor1aViagemAjudante: number | null;
+  valor2aViagemAjudante: number | null;
+  status?: string;
+  contract?: string | null;
+  routeId?: number | null;
+  vehicleId?: number | null;
+  route?: {
+    destination?: string;
+    driverValue1: number | null;
+    driverValue2: number | null;
+    helperValue1: number | null;
+    helperValue2: number | null;
+  } | null;
+  frete?: {
+    cidade?: string;
+    valor1aViagemMotorista: number | null;
+    valor2aViagemMotorista: number | null;
+    valor1aViagemAjudante: number | null;
+    valor2aViagemAjudante: number | null;
+  } | null;
+  contratante?: {
+    id: number;
+    ContratanteNome: string;
+  } | null;
+  vehicle?: {
+    plate: string;
+  } | null;
 }
 
 export async function GET(request: Request) {
