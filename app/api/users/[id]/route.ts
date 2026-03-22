@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function PUT(
   req: Request,
@@ -24,7 +25,8 @@ export async function PUT(
     };
 
     if (body.password) {
-      updateData.password = body.password; // In a real app, hash this!
+      // Hash the password before updating
+      updateData.password = await bcrypt.hash(body.password, 10);
     }
 
     const user = await prisma.user.update({
