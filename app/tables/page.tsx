@@ -59,6 +59,8 @@ export default function TablesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = React.useState('');
   const [validityFilter, setValidityFilter] = React.useState<'valid' | 'expired' | 'all'>('valid');
+  const [contratanteFilter, setContratanteFilter] = React.useState<string>('all');
+  const [categoriaFilter, setCategoriaFilter] = React.useState<string>('all');
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -268,7 +270,10 @@ export default function TablesPage() {
       matchesValidity = isBefore(validadeDate, today);
     }
 
-    return matchesSearch && matchesValidity;
+    const matchesContratante = contratanteFilter === 'all' || frete.contratanteId.toString() === contratanteFilter;
+    const matchesCategoria = categoriaFilter === 'all' || frete.categoriaId.toString() === categoriaFilter;
+
+    return matchesSearch && matchesValidity && matchesContratante && matchesCategoria;
   });
 
   // Group by Categoria, then sort by Contratante within each group
@@ -329,6 +334,34 @@ export default function TablesPage() {
                 <option value="valid">Vigentes (Validade &gt; Hoje)</option>
                 <option value="expired">Vencidos (Validade &lt; Hoje)</option>
                 <option value="all">Todos os Registros</option>
+              </select>
+            </div>
+
+            <div className="w-full md:w-64 relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <select 
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                value={contratanteFilter}
+                onChange={(e) => setContratanteFilter(e.target.value)}
+              >
+                <option value="all">Todos os Contratantes</option>
+                {contratantes.map(c => (
+                  <option key={c.id} value={c.id.toString()}>{c.ContratanteNome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-full md:w-64 relative">
+              <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <select 
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                value={categoriaFilter}
+                onChange={(e) => setCategoriaFilter(e.target.value)}
+              >
+                <option value="all">Todos os Tipos de Veículo</option>
+                {categorias.map(c => (
+                  <option key={c.id} value={c.id.toString()}>{c.CategoriaNome}</option>
+                ))}
               </select>
             </div>
 
