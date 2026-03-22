@@ -75,7 +75,7 @@ export async function loginAction(formData: FormData) {
       path: '/',
     });
 
-    return { success: true };
+    return { success: true, role: user.role };
   } catch (error) {
     console.error('Erro no login:', error);
     return { error: 'Ocorreu um erro ao tentar fazer login.' };

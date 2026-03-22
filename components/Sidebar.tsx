@@ -86,7 +86,9 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
-        {menuItems.map((item) => {
+        {menuItems
+          .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes')
+          .map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link

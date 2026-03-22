@@ -129,6 +129,33 @@ export default function RoutesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
+  const [showSuccess, setShowSuccess] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+          if (data.role === 'OPERATOR') {
+            handleOpenDrawer();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      }
+    };
+    fetchSession();
+
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -152,6 +179,299 @@ export default function RoutesPage() {
     romaneio: '',
     paymentDate: ''
   });
+
+  const isOperator = user?.role === 'OPERATOR';
+
+  const renderFormContent = () => (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
+        <div className="relative">
+          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+          <input 
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+            type="date"
+            value={formData.scheduledAt}
+            onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
+        <select 
+          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+          value={formData.vehicleId}
+          onChange={(e) => {
+            const vehicleId = e.target.value;
+            setFormData(prev => ({
+              ...prev, 
+              vehicleId,
+              freteId: '',
+              value: '',
+              valor1aViagemMotorista: '',
+              valor2aViagemMotorista: '',
+              valor1aViagemAjudante: '',
+              valor2aViagemAjudante: ''
+            }));
+          }}
+        >
+          <option value="">Selecionar Veículo</option>
+          {vehicles.map(v => (
+            <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
+        <div className="relative">
+          <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
+          <input 
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            placeholder="Km Inicial"
+            type="number"
+            value={formData.odometer}
+            onChange={(e) => setFormData({...formData, odometer: e.target.value})}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
+        <select 
+          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+          value={formData.contratanteId}
+          onChange={(e) => {
+            setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
+          }}
+        >
+          <option value="">Selecionar Contratante</option>
+          {contratantes.map(c => (
+            <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
+        <input 
+          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+          placeholder="Número do Romaneio"
+          type="text"
+          value={formData.romaneio}
+          onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
+        <select 
+          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+          value={formData.freteId}
+          onChange={(e) => {
+            const selectedFreteId = e.target.value;
+            const frete = fretes.find(f => f.id.toString() === selectedFreteId);
+            if (frete) {
+              setFormData({
+                ...formData, 
+                freteId: selectedFreteId,
+                value: frete.valorFrete.toString(),
+                valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
+                valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
+                valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
+                valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
+              });
+            } else {
+              setFormData({
+                ...formData, 
+                freteId: selectedFreteId,
+                value: '',
+                valor1aViagemMotorista: '',
+                valor2aViagemMotorista: '',
+                valor1aViagemAjudante: '',
+                valor2aViagemAjudante: ''
+              });
+            }
+          }}
+          disabled={!formData.contratanteId || !formData.vehicleId}
+        >
+          <option value="">Selecionar Destino</option>
+          {fretes
+            .filter(f => {
+              const matchesContratante = f.contratanteId.toString() === formData.contratanteId;
+              const selectedVehicle = vehicles.find(v => v.id.toString() === formData.vehicleId);
+              const matchesCategoria = selectedVehicle ? f.categoriaId === selectedVehicle.categoriaId : false;
+              return matchesContratante && matchesCategoria;
+            })
+            .map(f => (
+            <option key={f.id} value={f.id}>{f.cidade} - {f.categoria?.CategoriaNome} (R$ {f.valorFrete})</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
+          <select 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            value={formData.driverId}
+            onChange={(e) => setFormData({...formData, driverId: e.target.value})}
+          >
+            <option value="">Selecionar</option>
+            {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante (Opcional)</label>
+          <select 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            value={formData.helperId}
+            onChange={(e) => setFormData({...formData, helperId: e.target.value})}
+          >
+            <option value="">Nenhum</option>
+            {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {!isOperator && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor do Frete</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <input 
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                  placeholder="0,00" 
+                  type="number"
+                  step="0.01"
+                  value={formData.value}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
+              <select 
+                className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+              >
+                <option value="SCHEDULED">Agendado</option>
+                <option value="IN_TRANSIT">Em Trânsito</option>
+                <option value="DELIVERED">Entregue</option>
+                <option value="CANCELLED">Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Mot.</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <input 
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                  placeholder="0,00" 
+                  type="number"
+                  step="0.01"
+                  value={formData.valor1aViagemMotorista}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Mot.</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <input 
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                  placeholder="0,00" 
+                  type="number"
+                  step="0.01"
+                  value={formData.valor2aViagemMotorista}
+                  readOnly
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Ajud.</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <input 
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                  placeholder="0,00" 
+                  type="number"
+                  step="0.01"
+                  value={formData.valor1aViagemAjudante}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Ajud.</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
+                <input 
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
+                  placeholder="0,00" 
+                  type="number"
+                  step="0.01"
+                  value={formData.valor2aViagemAjudante}
+                  readOnly
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-border-dark" />
+
+          {/* Payment Info */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-emerald-500" />
+              <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Pago</label>
+                <select 
+                  className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                  value={formData.paid}
+                  onChange={(e) => setFormData({...formData, paid: e.target.value})}
+                >
+                  <option value="não">Não</option>
+                  <option value="sim">Sim</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pagamento</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                  <input 
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                    type="date"
+                    value={formData.paymentDate}
+                    onChange={(e) => setFormData({...formData, paymentDate: e.target.value})}
+                    disabled={formData.paid === 'não'}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -255,8 +575,15 @@ export default function RoutesPage() {
       });
 
       if (response.ok) {
-        setIsDrawerOpen(false);
-        fetchData();
+        if (user?.role === 'OPERATOR') {
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 5000);
+          // Reset form for next entry
+          handleOpenDrawer();
+        } else {
+          setIsDrawerOpen(false);
+          fetchData();
+        }
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
@@ -379,13 +706,48 @@ export default function RoutesPage() {
   return (
     <AppLayout>
       <Header 
-        title="Viagens" 
-        actionLabel="Nova Viagem" 
-        onAction={() => handleOpenDrawer()}
+        title={user?.role === 'OPERATOR' 
+          ? `Cadastro Nova Viagem, Operador: ${user.name} - Função: Operador ${format(currentTime, 'dd/MM/yyyy HH:mm')}`
+          : "Viagens"
+        } 
+        actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
+        onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-8 pb-4">
+        {user?.role === 'OPERATOR' ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+            <div className="max-w-2xl mx-auto">
+              {showSuccess && (
+                <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300">
+                  VIAGEM CADASTRADA COM SUCESSO
+                </div>
+              )}
+              
+              <div className="bg-surface-dark border border-border-dark rounded-2xl p-6 md:p-8 shadow-xl space-y-8">
+                {/* Form Content for Operator */}
+                {renderFormContent()}
+                
+                <div className="pt-4 flex items-center gap-4">
+                  <button 
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-4 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 text-lg"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Check className="w-6 h-6" />
+                    )}
+                    {isSaving ? 'Salvando...' : 'Salvar Viagem'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="p-8 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black tracking-tight">Viagens</h2>
@@ -613,8 +975,10 @@ export default function RoutesPage() {
           </div>
         </div>
       </div>
+    )}
+  </div>
 
-      {/* Side Panel (Drawer) */}
+    {/* Side Panel (Drawer) */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
           <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
@@ -633,296 +997,15 @@ export default function RoutesPage() {
             
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
               {/* Main Info */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                    <input 
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                      type="date"
-                      value={formData.scheduledAt}
-                      onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
-                    />
-                  </div>
+              {renderFormContent()}
+
+              {!isOperator && (
+                <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                  <p className="text-[10px] leading-relaxed text-slate-500 italic">
+                    * Informe o status de pagamento para controle financeiro das viagens realizadas.
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.vehicleId}
-                    onChange={(e) => {
-                      const vehicleId = e.target.value;
-                      setFormData(prev => ({
-                        ...prev, 
-                        vehicleId,
-                        freteId: '',
-                        value: '',
-                        valor1aViagemMotorista: '',
-                        valor2aViagemMotorista: '',
-                        valor1aViagemAjudante: '',
-                        valor2aViagemAjudante: ''
-                      }));
-                    }}
-                  >
-                    <option value="">Selecionar Veículo</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
-                  <div className="relative">
-                    <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
-                    <input 
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                      placeholder="Km Inicial"
-                      type="number"
-                      value={formData.odometer}
-                      onChange={(e) => setFormData({...formData, odometer: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.contratanteId}
-                    onChange={(e) => {
-                      setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
-                    }}
-                  >
-                    <option value="">Selecionar Contratante</option>
-                    {contratantes.map(c => (
-                      <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
-                  <input 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    placeholder="Número do Romaneio"
-                    type="text"
-                    value={formData.romaneio}
-                    onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.freteId}
-                    onChange={(e) => {
-                      const selectedFreteId = e.target.value;
-                      const frete = fretes.find(f => f.id.toString() === selectedFreteId);
-                      if (frete) {
-                        setFormData({
-                          ...formData, 
-                          freteId: selectedFreteId,
-                          value: frete.valorFrete.toString(),
-                          valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
-                          valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
-                          valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
-                          valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
-                        });
-                      } else {
-                        setFormData({
-                          ...formData, 
-                          freteId: selectedFreteId,
-                          value: '',
-                          valor1aViagemMotorista: '',
-                          valor2aViagemMotorista: '',
-                          valor1aViagemAjudante: '',
-                          valor2aViagemAjudante: ''
-                        });
-                      }
-                    }}
-                    disabled={!formData.contratanteId || !formData.vehicleId}
-                  >
-                    <option value="">Selecionar Destino</option>
-                    {fretes
-                      .filter(f => {
-                        const matchesContratante = f.contratanteId.toString() === formData.contratanteId;
-                        const selectedVehicle = vehicles.find(v => v.id.toString() === formData.vehicleId);
-                        const matchesCategoria = selectedVehicle ? f.categoriaId === selectedVehicle.categoriaId : false;
-                        return matchesContratante && matchesCategoria;
-                      })
-                      .map(f => (
-                      <option key={f.id} value={f.id}>{f.cidade} - {f.categoria?.CategoriaNome} (R$ {f.valorFrete})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
-                    <select 
-                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                      value={formData.driverId}
-                      onChange={(e) => setFormData({...formData, driverId: e.target.value})}
-                    >
-                      <option value="">Selecionar</option>
-                      {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante (Opcional)</label>
-                    <select 
-                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                      value={formData.helperId}
-                      onChange={(e) => setFormData({...formData, helperId: e.target.value})}
-                    >
-                      <option value="">Nenhum</option>
-                      {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor do Frete</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.value}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
-                    <select 
-                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                      value={formData.status}
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    >
-                      <option value="SCHEDULED">Agendado</option>
-                      <option value="IN_TRANSIT">Em Trânsito</option>
-                      <option value="DELIVERED">Entregue</option>
-                      <option value="CANCELLED">Cancelado</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Mot.</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.valor1aViagemMotorista}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Mot.</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.valor2aViagemMotorista}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Ajud.</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.valor1aViagemAjudante}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Ajud.</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.valor2aViagemAjudante}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="border-border-dark" />
-
-                {/* Payment Info */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                    <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Pago</label>
-                      <select 
-                        className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                        value={formData.paid}
-                        onChange={(e) => setFormData({...formData, paid: e.target.value})}
-                      >
-                        <option value="não">Não</option>
-                        <option value="sim">Sim</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pagamento</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                        <input 
-                          className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                          type="date"
-                          value={formData.paymentDate}
-                          onChange={(e) => setFormData({...formData, paymentDate: e.target.value})}
-                          disabled={formData.paid === 'não'}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                <p className="text-[10px] leading-relaxed text-slate-500 italic">
-                  * Informe o status de pagamento para controle financeiro das viagens realizadas.
-                </p>
-              </div>
+              )}
             </div>
 
             <div className="p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">

@@ -32,7 +32,11 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push('/');
+      if (result.role === 'OPERATOR') {
+        router.push('/routes');
+      } else {
+        router.push('/');
+      }
       router.refresh();
     }
   };

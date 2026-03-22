@@ -21,9 +21,20 @@ export async function middleware(request: NextRequest) {
   // Se tem sessão, valida
   if (session) {
     try {
-      await decrypt(session);
+      const payload = await decrypt(session);
+      const role = payload.role as string;
+      const pathname = request.nextUrl.pathname;
+
+      // Restringir operador apenas à página de viagens
+      if (role === 'OPERATOR' && pathname !== '/routes' && !isAuthPage) {
+        return NextResponse.redirect(new URL('/routes', request.url));
+      }
+
       // Se está logado e tenta acessar o login, manda pra home
       if (isAuthPage) {
+        if (role === 'OPERATOR') {
+          return NextResponse.redirect(new URL('/routes', request.url));
+        }
         return NextResponse.redirect(new URL('/', request.url));
       }
     } catch (error) {
