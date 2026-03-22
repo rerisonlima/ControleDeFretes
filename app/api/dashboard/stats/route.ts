@@ -140,6 +140,8 @@ export async function GET(request: Request) {
       maintenances: {
         type: string;
         value: string;
+        remainingKms: number;
+        overdueKms: number;
         percentage: string;
         isOverdue: boolean;
       }[];
