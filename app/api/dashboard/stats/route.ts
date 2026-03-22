@@ -4,41 +4,10 @@ import { startOfMonth, endOfMonth, endOfWeek, eachWeekOfInterval, format } from 
 import { ptBR } from 'date-fns/locale';
 // No Prisma model imports needed as we use custom interface
 
-interface TripWithRelations {
-  id: number;
-  value: number;
-  driverId: number | null;
-  helperId: number | null;
-  scheduledAt: Date;
-  valor1aViagemMotorista: number | null;
-  valor2aViagemMotorista: number | null;
-  valor1aViagemAjudante: number | null;
-  valor2aViagemAjudante: number | null;
-  status?: string;
-  contract?: string | null;
-  routeId?: number | null;
-  vehicleId?: number | null;
-  route?: {
-    destination?: string;
-    driverValue1: number | null;
-    driverValue2: number | null;
-    helperValue1: number | null;
-    helperValue2: number | null;
-  } | null;
-  frete?: {
-    cidade?: string;
-    valor1aViagemMotorista: number | null;
-    valor2aViagemMotorista: number | null;
-    valor1aViagemAjudante: number | null;
-    valor2aViagemAjudante: number | null;
-  } | null;
-  contratante?: {
-    id: number;
-    ContratanteNome: string;
-  } | null;
-  vehicle?: {
-    plate: string;
-  } | null;
+interface MonFriStats {
+  total: number | null;
+  driver: number | null;
+  helper: number | null;
 }
 
 export async function GET(request: Request) {
@@ -73,7 +42,7 @@ export async function GET(request: Request) {
 
   try {
     // Increase statement timeout for the dashboard query session
-    await prisma.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
+    await prisma.$executeRawUnsafe('SET statement_timeout = 120000;'); // 2 minutes
     
     // Always fetch full month data to simplify logic and provide chart context
     const fullMonthStart = startOfMonth(new Date(year, month - 1));
@@ -83,199 +52,136 @@ export async function GET(request: Request) {
     const prevStartDate = startOfMonth(new Date(year, month - 2));
     const prevEndDate = endOfMonth(prevStartDate);
 
-    const [allMonthTrips, allMonthExpenses, prevTrips, prevExpenses] = await Promise.all([
+    const [
+      revenueStats,
+      expenseStats,
+      revenueByContractor,
+      expenseByType,
+      monFriStats,
+      prevRevenueStats,
+      prevExpenseStats,
+      prevMonFriStats,
+      recentTripsData
+    ] = await Promise.all([
+      // Current Month Total Revenue
+      prisma.trip.aggregate({
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        _sum: { value: true },
+        _count: { id: true }
+      }),
+      // Current Month Total Expenses
+      prisma.expense.aggregate({
+        where: { date: { gte: startDate, lte: endDate } },
+        _sum: { value: true }
+      }),
+      // Current Month Revenue by Contractor
+      prisma.trip.groupBy({
+        by: ['contratanteId'],
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        _sum: { value: true },
+        _count: { id: true }
+      }),
+      // Current Month Expense by Type
+      prisma.expense.groupBy({
+        by: ['type'],
+        where: { date: { gte: startDate, lte: endDate } },
+        _sum: { value: true }
+      }),
+      // Current Month Mon-Fri Stats (Raw query for day of week)
+      prisma.$queryRaw<MonFriStats[]>`
+        SELECT 
+          SUM(value) as total,
+          SUM(CASE WHEN type = 'Pagamento Motorista' THEN value ELSE 0 END) as driver,
+          SUM(CASE WHEN type = 'Pagamento Ajudante' THEN value ELSE 0 END) as helper
+        FROM "Expense"
+        WHERE date >= ${startDate} AND date <= ${endDate}
+        AND EXTRACT(DOW FROM date) BETWEEN 1 AND 5
+      `,
+      // Previous Month Total Revenue
+      prisma.trip.aggregate({
+        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+        _sum: { value: true }
+      }),
+      // Previous Month Total Expenses
+      prisma.expense.aggregate({
+        where: { date: { gte: prevStartDate, lte: prevEndDate } },
+        _sum: { value: true }
+      }),
+      // Previous Month Mon-Fri Stats
+      prisma.$queryRaw<MonFriStats[]>`
+        SELECT 
+          SUM(value) as total,
+          SUM(CASE WHEN type = 'Pagamento Motorista' THEN value ELSE 0 END) as driver,
+          SUM(CASE WHEN type = 'Pagamento Ajudante' THEN value ELSE 0 END) as helper
+        FROM "Expense"
+        WHERE date >= ${prevStartDate} AND date <= ${prevEndDate}
+        AND EXTRACT(DOW FROM date) BETWEEN 1 AND 5
+      `,
+      // Recent Trips
       prisma.trip.findMany({
-        where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        orderBy: { scheduledAt: 'desc' },
+        take: 5,
         select: {
           id: true,
           value: true,
-          driverId: true,
-          helperId: true,
-          scheduledAt: true,
-          valor1aViagemMotorista: true,
-          valor2aViagemMotorista: true,
-          valor1aViagemAjudante: true,
-          valor2aViagemAjudante: true,
           status: true,
           contract: true,
+          scheduledAt: true,
           routeId: true,
           vehicleId: true,
-          route: {
-            select: {
-              destination: true,
-              driverValue1: true,
-              driverValue2: true,
-              helperValue1: true,
-              helperValue2: true
-            }
-          },
-          frete: {
-            select: {
-              cidade: true,
-              valor1aViagemMotorista: true,
-              valor2aViagemMotorista: true,
-              valor1aViagemAjudante: true,
-              valor2aViagemAjudante: true
-            }
-          },
-          contratante: {
-            select: {
-              id: true,
-              ContratanteNome: true
-            }
-          },
-          vehicle: {
-            select: {
-              plate: true
-            }
-          }
+          route: { select: { destination: true } },
+          frete: { select: { cidade: true } },
+          contratante: { select: { ContratanteNome: true } },
+          vehicle: { select: { plate: true } }
         }
-      }),
-      prisma.expense.findMany({
-        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
-      }),
-      prisma.trip.findMany({
-        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-        select: {
-          id: true,
-          value: true,
-          driverId: true,
-          helperId: true,
-          scheduledAt: true,
-          valor1aViagemMotorista: true,
-          valor2aViagemMotorista: true,
-          valor1aViagemAjudante: true,
-          valor2aViagemAjudante: true,
-          route: {
-            select: {
-              driverValue1: true,
-              driverValue2: true,
-              helperValue1: true,
-              helperValue2: true
-            }
-          },
-          frete: {
-            select: {
-              valor1aViagemMotorista: true,
-              valor2aViagemMotorista: true,
-              valor1aViagemAjudante: true,
-              valor2aViagemAjudante: true
-            }
-          }
-        }
-      }),
-      prisma.expense.findMany({
-        where: { date: { gte: prevStartDate, lte: prevEndDate } },
       })
     ]);
 
-    // Filter data for the specific week if requested
-    let trips = allMonthTrips;
-    let expenses = allMonthExpenses;
-
-    if (weekIndex && weekIndex !== 'all') {
-      const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
-      const selectedWeekStart = weeks[parseInt(weekIndex) - 1];
-      if (selectedWeekStart) {
-        const selectedWeekEnd = endOfWeek(selectedWeekStart);
-        trips = allMonthTrips.filter(t => t.scheduledAt >= selectedWeekStart && t.scheduledAt <= selectedWeekEnd);
-        expenses = allMonthExpenses.filter(e => e.date >= selectedWeekStart && e.date <= selectedWeekEnd);
-      }
-    }
-
-    // Helper function to calculate trip operational costs based on daily frequency
-    // (Deprecated: User requested to use Expense table exclusively)
-    /*
-    const calculateTripOperationalCosts = (tripsList: TripWithRelations[], filterWeekdays = false) => {
-      ...
-    };
-    */
-
-    // Calculate stats
-    const totalRevenue = trips.reduce((sum, trip) => sum + trip.value, 0);
-    
-    // Total Expenses = Sum(Expense table) only
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.value, 0);
-
-    // Calculate revenue breakdown by contractor
-    const revenueGroups: Record<string, { count: number; value: number }> = {};
-    trips.forEach(t => {
-      const contractorName = t.contratante?.ContratanteNome || 'Sem Contratante';
-      if (!revenueGroups[contractorName]) {
-        revenueGroups[contractorName] = { count: 0, value: 0 };
-      }
-      revenueGroups[contractorName].count += 1;
-      revenueGroups[contractorName].value += t.value;
+    // Fetch contractor names for the breakdown
+    const contractorIds = revenueByContractor.map(r => r.contratanteId).filter((id): id is number => id !== null);
+    const contractors = await prisma.contratante.findMany({
+      where: { id: { in: contractorIds } },
+      select: { id: true, ContratanteNome: true }
     });
+    const contractorMap = new Map(contractors.map(c => [c.id, c.ContratanteNome]));
 
-    const revenueBreakdown = Object.entries(revenueGroups)
-      .map(([name, data]) => ({
-        name,
-        value: `${data.count} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.value)}`,
-        percentage: totalRevenue > 0 ? ((data.value / totalRevenue) * 100).toFixed(1) + '%' : '0%'
+    const totalRevenue = revenueStats._sum.value || 0;
+    const totalExpenses = expenseStats._sum.value || 0;
+    const totalTripsCount = revenueStats._count.id || 0;
+
+    const revenueBreakdown = revenueByContractor
+      .map(r => ({
+        name: r.contratanteId ? contractorMap.get(r.contratanteId) || 'Desconhecido' : 'Sem Contratante',
+        value: `${r._count.id} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r._sum.value || 0)}`,
+        percentage: totalRevenue > 0 ? (((r._sum.value || 0) / totalRevenue) * 100).toFixed(1) + '%' : '0%',
+        rawVal: r._sum.value || 0,
+        rawCount: r._count.id
       }))
-      .sort((a, b) => {
-        const valA = parseInt(a.value.split(' ')[0]);
-        const valB = parseInt(b.value.split(' ')[0]);
-        return valB - valA;
-      });
+      .sort((a, b) => b.rawCount - a.rawCount);
 
-    // Calculate breakdown by category
-    const expenseGroups: Record<string, number> = {};
-    expenses.forEach(e => {
-      expenseGroups[e.type] = (expenseGroups[e.type] || 0) + e.value;
-    });
-
-    const expenseBreakdown = Object.entries(expenseGroups)
-      .map(([name, value]) => ({
-        name,
-        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value),
-        percentage: totalExpenses > 0 ? ((value / totalExpenses) * 100).toFixed(1) + '%' : '0%'
+    const expenseBreakdown = expenseByType
+      .map(e => ({
+        name: e.type,
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e._sum.value || 0),
+        percentage: totalExpenses > 0 ? (((e._sum.value || 0) / totalExpenses) * 100).toFixed(1) + '%' : '0%',
+        rawVal: e._sum.value || 0
       }))
-      .sort((a, b) => {
-        const valA = parseFloat(a.value.replace(/[^\d,]/g, '').replace(',', '.'));
-        const valB = parseFloat(b.value.replace(/[^\d,]/g, '').replace(',', '.'));
-        return valB - valA;
-      });
-    
-    // Mon-Fri Expenses = Sum(Expense table Mon-Fri) only
-    const monFriExpenses = expenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5;
-    }).reduce((sum, e) => sum + e.value, 0);
+      .sort((a, b) => b.rawVal - a.rawVal);
 
-    // Driver and Helper payments from Expense table (Mon-Fri)
-    const monFriDriverPayment = expenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5 && e.type === 'Pagamento Motorista';
-    }).reduce((sum, e) => sum + e.value, 0);
+    const monFriExpenses = Number(monFriStats[0]?.total || 0);
+    const monFriDriverPayment = Number(monFriStats[0]?.driver || 0);
+    const monFriHelperPayment = Number(monFriStats[0]?.helper || 0);
 
-    const monFriHelperPayment = expenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5 && e.type === 'Pagamento Ajudante';
-    }).reduce((sum, e) => sum + e.value, 0);
-    
     const profit = totalRevenue - totalExpenses;
-    
-    const prevRevenue = prevTrips.reduce((sum, trip) => sum + trip.value, 0);
-    
-    const prevMonFriExpenses = prevExpenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5;
-    }).reduce((sum, e) => sum + e.value, 0);
 
-    const prevMonFriDriver = prevExpenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5 && e.type === 'Pagamento Motorista';
-    }).reduce((sum, e) => sum + e.value, 0);
-
-    const prevMonFriHelper = prevExpenses.filter(e => {
-      const day = new Date(e.date).getDay();
-      return day >= 1 && day <= 5 && e.type === 'Pagamento Ajudante';
-    }).reduce((sum, e) => sum + e.value, 0);
-
-    const prevExpensesVal = prevExpenses.reduce((sum, expense) => sum + expense.value, 0);
+    const prevRevenue = prevRevenueStats._sum.value || 0;
+    const prevExpensesVal = prevExpenseStats._sum.value || 0;
     const prevProfit = prevRevenue - prevExpensesVal;
+
+    const prevMonFriExpenses = Number(prevMonFriStats[0]?.total || 0);
+    const prevMonFriDriver = Number(prevMonFriStats[0]?.driver || 0);
+    const prevMonFriHelper = Number(prevMonFriStats[0]?.helper || 0);
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';
@@ -283,23 +189,36 @@ export async function GET(request: Request) {
       return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
     };
 
-    // Chart data (weekly)
+    // Chart data (weekly) - We still need some weekly data. 
+    // Let's fetch weekly aggregations.
     const chartWeeks = eachWeekOfInterval({ 
       start: fullMonthStart, 
       end: fullMonthEnd 
     });
 
-    const finalChartData = chartWeeks.map((weekStart, index) => {
+    const weeklyStats = await Promise.all(chartWeeks.map(async (weekStart) => {
       const weekEnd = endOfWeek(weekStart);
-      const weekTrips = allMonthTrips.filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd);
-      const weekExpenses = allMonthExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
-
+      const [rev, exp] = await Promise.all([
+        prisma.trip.aggregate({
+          where: { scheduledAt: { gte: weekStart, lte: weekEnd } },
+          _sum: { value: true }
+        }),
+        prisma.expense.aggregate({
+          where: { date: { gte: weekStart, lte: weekEnd } },
+          _sum: { value: true }
+        })
+      ]);
       return {
-        name: `Semana ${index + 1}`,
-        revenue: weekTrips.reduce((sum, t) => sum + t.value, 0),
-        expenses: weekExpenses.reduce((sum, e) => sum + e.value, 0),
+        revenue: rev._sum.value || 0,
+        expenses: exp._sum.value || 0
       };
-    });
+    }));
+
+    const finalChartData = chartWeeks.map((weekStart, index) => ({
+      name: `Semana ${index + 1}`,
+      revenue: weeklyStats[index].revenue,
+      expenses: weeklyStats[index].expenses,
+    }));
 
     const calculatePercentage = (value: number) => {
       if (totalRevenue === 0) return '0%';
@@ -318,7 +237,7 @@ export async function GET(request: Request) {
           color: 'text-primary',
           percentage: null,
           breakdown: revenueBreakdown,
-          totalTrips: trips.length
+          totalTrips: totalTripsCount
         },
         { 
           label: 'DESPESAS TOTAIS', 
@@ -368,7 +287,7 @@ export async function GET(request: Request) {
         },
       ],
       chart: finalChartData,
-      recentTrips: trips.slice(0, 5).map(t => ({
+      recentTrips: recentTripsData.map(t => ({
         route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
         plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
         id: t.id,

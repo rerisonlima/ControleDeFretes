@@ -98,7 +98,8 @@ export async function GET(req: Request) {
           }
         },
       },
-      orderBy: { scheduledAt: 'desc' }
+      orderBy: { scheduledAt: 'desc' },
+      take: 100
     });
     return NextResponse.json(trips);
   } catch (error) {

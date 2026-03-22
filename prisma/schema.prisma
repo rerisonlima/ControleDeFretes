@@ -140,6 +140,8 @@ model Trip {
   paymentDate DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([scheduledAt])
 }
 
 model Expense {
@@ -153,6 +155,8 @@ model Expense {
   status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([date])
 }
 
 model ValoresPagamentoMotoristaAjudante {
