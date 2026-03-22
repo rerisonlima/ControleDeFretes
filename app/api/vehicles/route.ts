@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       return isNaN(parsed) ? null : parsed;
     };
 
-    const safeParseInt = (val: string | number | null | undefined, fallback: number | null = 0) => {
+    const safeParseInt = (val: string | number | null | undefined, fallback: number = 0): number => {
       if (val === null || val === undefined || val === '') return fallback;
       const parsed = parseInt(val.toString());
       return isNaN(parsed) ? fallback : parsed;
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
 
     const finalYear = safeParseInt(body.year, 0);
     const finalCapacity = safeParseFloat(body.capacity) || 0;
-    const finalCatId = safeParseInt(body.categoriaId, null);
+    const finalCatId = safeParseInt(body.categoriaId, 0) || null;
     const finalCurrentOdometer = safeParseFloat(body.currentOdometer);
 
     const vehicle = await prisma.vehicle.create({
