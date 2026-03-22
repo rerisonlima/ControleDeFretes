@@ -88,7 +88,7 @@ export async function PUT(
       return isNaN(parsed) ? null : parsed;
     };
 
-    const safeParseInt = (val: string | number | null | undefined, fallback: number | null = 0) => {
+    const safeParseInt = (val: string | number | null | undefined, fallback: number = 0): number => {
       if (val === null || val === undefined || val === '') return fallback;
       const parsed = parseInt(val.toString());
       return isNaN(parsed) ? fallback : parsed;
@@ -96,7 +96,7 @@ export async function PUT(
 
     const finalYear = safeParseInt(year, 0);
     const finalCapacity = safeParseFloat(capacity) || 0;
-    const finalCatId = safeParseInt(categoriaId, null);
+    const finalCatId = safeParseInt(categoriaId, 0) || null;
     const finalCurrentOdometer = safeParseFloat(currentOdometer);
 
     // Use a transaction to update vehicle and its maintenances
