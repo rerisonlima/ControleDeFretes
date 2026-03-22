@@ -308,7 +308,7 @@ export default function Dashboard() {
                   <span className="text-xs font-semibold text-slate-400">Receita</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-slate-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>
                   <span className="text-xs font-semibold text-slate-400">Despesas</span>
                 </div>
               </div>
@@ -352,6 +352,7 @@ export default function Dashboard() {
                     <Area 
                       type="monotone" 
                       dataKey="revenue" 
+                      name="Receita"
                       stroke="#f48c25" 
                       strokeWidth={4}
                       fillOpacity={1} 
@@ -360,7 +361,8 @@ export default function Dashboard() {
                     <Area 
                       type="monotone" 
                       dataKey="expenses" 
-                      stroke="#94a3b8" 
+                      name="Despesas"
+                      stroke="#f43f5e" 
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       fill="transparent"
@@ -425,7 +427,10 @@ export default function Dashboard() {
                           trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
                           "bg-blue-500/10 text-blue-500 border-blue-500/20"
                         )}>
-                          {trip.status}
+                          {trip.status === 'DELIVERED' ? 'Entregue' : 
+                           trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
+                           trip.status === 'PENDING' ? 'Pendente' : 
+                           trip.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">

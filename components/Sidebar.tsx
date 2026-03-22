@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { logoutAction } from '@/app/actions/auth';
 import { 
   LayoutDashboard, 
@@ -16,7 +15,8 @@ import {
   LogOut,
   TruckIcon,
   Table,
-  FileText
+  FileText,
+  User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -108,14 +108,8 @@ export function Sidebar() {
 
       <div className="p-4 mt-auto border-t border-border-dark">
         <div className="flex items-center gap-3 p-2">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border-dark">
-            <Image
-              src="https://picsum.photos/seed/admin/100/100"
-              alt="Avatar"
-              fill
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
+          <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500">
+            <UserIcon className="w-6 h-6" />
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-semibold text-white truncate">{user?.name || 'Carregando...'}</p>
