@@ -127,6 +127,7 @@ export default function RoutesPage() {
   const [vehicleFilter, setVehicleFilter] = React.useState('');
   const [contratanteFilter, setContratanteFilter] = React.useState('');
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
+  const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
   // Form state
@@ -336,6 +337,7 @@ export default function RoutesPage() {
 
       if (response.ok) {
         console.log('Clone successful');
+        setCloneConfirmId(null);
         fetchData();
       } else {
         const contentType = response.headers.get("content-type");
@@ -348,10 +350,12 @@ export default function RoutesPage() {
           console.error('Non-JSON error response:', text);
           alert('Erro no servidor ao clonar viagem');
         }
+        setCloneConfirmId(null);
       }
     } catch (error) {
       console.error('Clone error:', error);
       alert('Erro de conexão ao clonar');
+      setCloneConfirmId(null);
     }
   };
 
@@ -562,10 +566,25 @@ export default function RoutesPage() {
                               Sair
                             </button>
                           </div>
+                        ) : cloneConfirmId === trip.id ? (
+                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                              onClick={() => handleClone(trip)}
+                              className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
+                            >
+                              Confirmar Clone
+                            </button>
+                            <button 
+                              onClick={() => setCloneConfirmId(null)}
+                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                            >
+                              Sair
+                            </button>
+                          </div>
                         ) : (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); handleClone(trip); }}
+                              onClick={(e) => { e.stopPropagation(); setCloneConfirmId(trip.id); }}
                               className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
                               title="Clonar Viagem"
                             >

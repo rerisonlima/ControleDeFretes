@@ -15,7 +15,9 @@ import {
   Calendar,
   Truck,
   User,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -93,6 +95,7 @@ export default function Dashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
+  const [showValues, setShowValues] = React.useState(false);
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
@@ -180,6 +183,14 @@ export default function Dashboard() {
                   <option value="4">Semana 4</option>
                   <option value="5">Semana 5</option>
                 </select>
+
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="ml-2 p-1.5 bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg transition-all"
+                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                >
+                  {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             
@@ -228,7 +239,9 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
-                  <p className="text-3xl font-black text-white tracking-tight">{stat.value}</p>
+                  <p className="text-3xl font-black text-white tracking-tight">
+                    {showValues ? stat.value : '******'}
+                  </p>
                   
                   {stat.totalTrips !== undefined && (
                     <div className="mt-2 flex items-center gap-2">
@@ -247,7 +260,7 @@ export default function Dashboard() {
                         <div key={idx} className="flex flex-col gap-1">
                           <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
                             <span className="text-slate-400">{item.name}</span>
-                            <span className="text-white">{item.value}</span>
+                            <span className="text-white">{showValues ? item.value : '******'}</span>
                           </div>
                           <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
                             <div 
@@ -329,11 +342,12 @@ export default function Dashboard() {
                       fontSize={12} 
                       tickLine={false} 
                       axisLine={false}
-                      tickFormatter={(value) => `R$ ${value}`}
+                      tickFormatter={(value) => showValues ? `R$ ${value}` : '******'}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#27211b', border: '1px solid #393028', borderRadius: '8px' }}
                       itemStyle={{ color: '#fff' }}
+                      formatter={(value: number | string) => showValues ? `R$ ${value}` : '******'}
                     />
                     <Area 
                       type="monotone" 
@@ -403,7 +417,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-400">{trip.contract || '-'}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-300">{trip.plate}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-white">{trip.value}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-white">{showValues ? trip.value : '******'}</td>
                       <td className="px-6 py-4">
                         <span className={cn(
                           "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",

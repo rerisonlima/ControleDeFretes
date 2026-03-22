@@ -4,13 +4,10 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
-  Search, 
   Calendar, 
   ChevronDown, 
   Fuel, 
   User, 
-  Plus, 
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
   X,
@@ -21,7 +18,9 @@ import {
   AlertCircle,
   Edit,
   Trash2,
-  Ticket
+  Ticket,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +47,7 @@ export default function ExpensesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [showValues, setShowValues] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -244,6 +244,17 @@ export default function ExpensesPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none"
+                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+              >
+                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             
             <div className="ml-auto self-end">
               <button 
@@ -301,7 +312,7 @@ export default function ExpensesPage() {
                         {exp.vehicle?.plate || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm font-bold text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value)}
+                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
                       </td>
                       <td className="px-6 py-4">
                         <span className={cn(

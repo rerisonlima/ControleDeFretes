@@ -12,7 +12,9 @@ import {
   Info,
   FileText,
   ChevronDown,
-  Truck
+  Truck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -43,6 +45,7 @@ export default function PaymentsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = React.useState<string>('');
   const [selectedMonth, setSelectedMonth] = React.useState<string>(format(new Date(), 'yyyy-MM'));
   const [loading, setLoading] = React.useState(true);
+  const [showValues, setShowValues] = React.useState(false);
 
   // Group trips by day for the "Detalhamento Diário" table
   const dailyDetails = React.useMemo(() => {
@@ -266,6 +269,17 @@ export default function PaymentsPage() {
                   <Calendar className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
                 </div>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-11 px-4 flex items-center justify-center transition-all outline-none"
+                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                >
+                  {showValues ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -277,9 +291,9 @@ export default function PaymentsPage() {
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total a Pagar</p>
               <h4 className="text-3xl font-black text-white mt-2">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                   dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
-                )}
+                ) : '******'}
               </h4>
               <div className="flex items-center gap-1 mt-2 text-emerald-500 text-[10px] font-bold uppercase tracking-tight">
                 <TrendingUp className="w-3 h-3" />
@@ -326,7 +340,7 @@ export default function PaymentsPage() {
                     <div key={idx} className="flex justify-between items-center border-b border-border-dark/50 pb-1 last:border-0">
                       <span className="text-xs text-slate-400">{format(week.start, 'dd/MM')} a {format(week.end, 'dd/MM')}</span>
                       <span className="text-sm font-bold text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.driver)}
+                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.driver) : '******'}
                       </span>
                     </div>
                   ))
@@ -347,7 +361,7 @@ export default function PaymentsPage() {
                     <div key={idx} className="flex justify-between items-center border-b border-border-dark/50 pb-1 last:border-0">
                       <span className="text-xs text-slate-400">{format(week.start, 'dd/MM')} a {format(week.end, 'dd/MM')}</span>
                       <span className="text-sm font-bold text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.helper)}
+                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(week.helper) : '******'}
                       </span>
                     </div>
                   ))
@@ -387,9 +401,9 @@ export default function PaymentsPage() {
                       <td className="px-6 py-4 font-medium text-white">{row.date}</td>
                       <td className="px-6 py-4 text-xs">{row.route}</td>
                       <td className="px-6 py-4 text-center font-mono">{row.trips.toString().padStart(2, '0')}</td>
-                      <td className="px-6 py-4 text-xs">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.unitValue)}</td>
-                      <td className="px-6 py-4 text-xs">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.extra)}</td>
-                      <td className="px-6 py-4 text-right font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.total)}</td>
+                      <td className="px-6 py-4 text-xs">{showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.unitValue) : '******'}</td>
+                      <td className="px-6 py-4 text-xs">{showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.extra) : '******'}</td>
+                      <td className="px-6 py-4 text-right font-bold text-white">{showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.total) : '******'}</td>
                       <td className="px-6 py-4 text-center">
                         <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-bold uppercase tracking-tighter border border-emerald-500/20">
                           {row.status}
@@ -411,9 +425,9 @@ export default function PaymentsPage() {
                       SUBTOTAL PERÍODO VISÍVEL:
                     </td>
                     <td className="px-6 py-6 text-right font-black text-primary text-xl">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                         dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
-                      )}
+                      ) : '******'}
                     </td>
                     <td></td>
                   </tr>

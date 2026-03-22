@@ -14,7 +14,10 @@ import {
   Truck,
   Building2,
   DollarSign,
-  Loader2
+  Loader2,
+  Copy,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
@@ -57,7 +60,9 @@ export default function TablesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [validityFilter, setValidityFilter] = React.useState<'valid' | 'expired' | 'all'>('valid');
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
+  const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [showValues, setShowValues] = React.useState(false);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -196,6 +201,48 @@ export default function TablesPage() {
     }
   };
 
+  const handleClone = async (frete: Frete) => {
+    try {
+      const cloneData = {
+        contratanteId: frete.contratanteId.toString(),
+        cidade: `${frete.cidade} (Cópia)`,
+        categoriaId: frete.categoriaId.toString(),
+        valorFrete: frete.valorFrete.toString(),
+        valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
+        valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
+        valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
+        valor2aViagemAjudante: frete.valor2aViagemAjudante.toString(),
+        validade: frete.validade ? format(new Date(frete.validade), 'yyyy-MM-dd') : ''
+      };
+
+      const response = await fetch('/api/fretes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cloneData)
+      });
+
+      if (response.ok) {
+        setCloneConfirmId(null);
+        fetchData();
+      } else {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          alert(error.error || 'Erro ao clonar frete');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao clonar frete');
+        }
+        setCloneConfirmId(null);
+      }
+    } catch (error) {
+      console.error('Clone error:', error);
+      alert('Erro de conexão ao clonar');
+      setCloneConfirmId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
@@ -284,6 +331,17 @@ export default function TablesPage() {
                 <option value="all">Todos os Registros</option>
               </select>
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-10 px-3 flex items-center justify-center transition-all outline-none"
+                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+              >
+                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -346,7 +404,7 @@ export default function TablesPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                            {formatCurrency(frete.valorFrete)}
+                            {showValues ? formatCurrency(frete.valorFrete) : '******'}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -365,8 +423,30 @@ export default function TablesPage() {
                                     Sair
                                   </button>
                                 </div>
+                              ) : cloneConfirmId === frete.id ? (
+                                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                                  <button 
+                                    onClick={() => handleClone(frete)}
+                                    className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
+                                  >
+                                    Confirmar Clone
+                                  </button>
+                                  <button 
+                                    onClick={() => setCloneConfirmId(null)}
+                                    className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                                  >
+                                    Sair
+                                  </button>
+                                </div>
                               ) : (
                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setCloneConfirmId(frete.id); }}
+                                    className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                    title="Clonar Frete"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </button>
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
                                     className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
