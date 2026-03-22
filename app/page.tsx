@@ -17,7 +17,14 @@ import {
   User,
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Wrench,
+  Droplets,
+  Disc,
+  CircleDot,
+  Zap,
+  Activity,
+  ArrowRight
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -29,6 +36,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardStat {
   label: string;
@@ -38,7 +46,23 @@ interface DashboardStat {
   icon: string;
   color: string;
   percentage?: string | null;
-  breakdown?: { name: string; value: string; percentage: string }[];
+  breakdown?: { 
+    name: string; 
+    value: string; 
+    percentage: string;
+    type?: string;
+    isOverdue?: boolean;
+    remainingKms?: number;
+    overdueKms?: number;
+    maintenances?: { 
+      type: string; 
+      value: string; 
+      percentage: string; 
+      isOverdue: boolean;
+      remainingKms?: number;
+      overdueKms?: number;
+    }[];
+  }[];
   totalTrips?: number;
 }
 
@@ -68,7 +92,8 @@ const iconMap: Record<string, React.ElementType> = {
   Receipt,
   Wallet,
   Truck,
-  User
+  User,
+  Wrench
 };
 
 const months = [
@@ -85,6 +110,53 @@ const months = [
   { id: 11, name: 'Novembro' },
   { id: 12, name: 'Dezembro' },
 ];
+
+const getMaintenanceIcon = (type: string) => {
+  const t = type.toLowerCase();
+  if (t.includes('óleo') || t.includes('filtro')) return Droplets;
+  if (t.includes('freio') || t.includes('pastilha')) return Disc;
+  if (t.includes('pneu') || t.includes('alinhamento')) return CircleDot;
+  if (t.includes('elétrica') || t.includes('bateria')) return Zap;
+  if (t.includes('motor') || t.includes('correia')) return Activity;
+  return Wrench;
+};
+
+const MileageCounter = ({ value, isOverdue }: { value: number; isOverdue: boolean }) => {
+  const [displayValue, setDisplayValue] = React.useState(value + 500); // Start slightly above for effect
+
+  React.useEffect(() => {
+    const duration = 1500; // 1.5s
+    const startTime = Date.now();
+    const startValue = value + 500;
+
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out quad
+      const easeProgress = 1 - (1 - progress) * (1 - progress);
+      const current = Math.floor(startValue - (startValue - value) * easeProgress);
+      
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return (
+    <span className={cn(
+      "font-black text-lg tracking-tighter",
+      isOverdue ? "text-rose-500" : "text-primary"
+    )}>
+      {displayValue.toLocaleString('pt-BR')}
+    </span>
+  );
+};
 
 export default function Dashboard() {
   const router = useRouter();
@@ -256,27 +328,137 @@ export default function Dashboard() {
                       {stat.label === 'RECEITA TOTAL' && (
                         <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Total Viagens</h4>
                       )}
-                      {stat.breakdown.map((item, idx) => (
-                        <div key={idx} className="flex flex-col gap-1">
-                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                            <span className="text-slate-400">{item.name}</span>
-                            <span className="text-white">{showValues ? item.value : '******'}</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
-                            <div 
-                              className={cn(
-                                "h-full rounded-full",
-                                stat.label === 'RECEITA TOTAL' ? "bg-primary" : "bg-rose-500"
-                              )}
-                              style={{ width: item.percentage }}
-                            />
-                          </div>
-                          <p className={cn(
-                            "text-[9px] font-bold text-right",
-                            stat.label === 'RECEITA TOTAL' ? "text-primary/70" : "text-rose-500/70"
-                          )}>{item.percentage}</p>
+                      {stat.label === 'PRÓXIMAS MANUTENÇÕES' ? (
+                        <div className="grid grid-cols-1 gap-4">
+                          {stat.breakdown.map((vehicle, vIdx) => (
+                            <div key={vIdx} className="bg-background-dark/20 border border-white/5 rounded-xl overflow-hidden">
+                              <div className="bg-background-dark/40 px-4 py-2 border-b border-white/5">
+                                <h4 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                  <Truck className="w-3 h-3 text-primary" />
+                                  {vehicle.name}
+                                </h4>
+                              </div>
+                              <div className="p-3 space-y-3">
+                                {vehicle.maintenances?.map((item, idx) => {
+                                  const MIcon = getMaintenanceIcon(item.type || '');
+                                  return (
+                                    <motion.div 
+                                      key={idx} 
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: idx * 0.1 }}
+                                      className="group relative bg-background-dark/30 hover:bg-background-dark/50 border border-white/5 rounded-lg p-3 transition-all duration-300"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <div className={cn(
+                                          "p-2 rounded-lg",
+                                          item.isOverdue ? "bg-rose-500/10 text-rose-500" : "bg-primary/10 text-primary"
+                                        )}>
+                                          <MIcon className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex justify-between items-start mb-1">
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                                              {item.type}
+                                            </p>
+                                            <div className={cn(
+                                              "px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
+                                              item.isOverdue ? "bg-rose-500/20 text-rose-500" : "bg-emerald-500/20 text-emerald-500"
+                                            )}>
+                                              {item.isOverdue ? "Atrasado" : "No Prazo"}
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="mt-2">
+                                            <div className="flex flex-col mb-1">
+                                              <div className="flex items-baseline gap-1">
+                                                <span className={cn(
+                                                  "text-[10px] font-bold uppercase tracking-tight",
+                                                  item.isOverdue ? "text-rose-500" : "text-slate-400"
+                                                )}>
+                                                  {item.isOverdue ? "Ultrapassado em" : "Faltam"}
+                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                  {showValues ? (
+                                                    <MileageCounter 
+                                                      value={item.isOverdue ? (item.overdueKms || 0) : (item.remainingKms || 0)} 
+                                                      isOverdue={item.isOverdue} 
+                                                    />
+                                                  ) : (
+                                                    <span className="text-lg font-black text-white">******</span>
+                                                  )}
+                                                  <span className={cn(
+                                                    "text-[10px] font-bold uppercase tracking-tight",
+                                                    item.isOverdue ? "text-rose-500" : "text-slate-400"
+                                                  )}>
+                                                    kilometros
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              
+                                              {!item.isOverdue && (item.remainingKms || 0) <= 500 && (
+                                                <motion.div 
+                                                  animate={{ opacity: [0.4, 1, 0.4] }}
+                                                  transition={{ duration: 2, repeat: Infinity }}
+                                                  className="text-[9px] text-rose-500 font-bold italic"
+                                                >
+                                                  Atenção: Manutenção próxima
+                                                </motion.div>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="h-1 w-full bg-background-dark rounded-full overflow-hidden mt-2">
+                                              <div 
+                                                className={cn(
+                                                  "h-full rounded-full transition-all duration-500",
+                                                  item.isOverdue ? "bg-rose-500" : "bg-primary"
+                                                )}
+                                                style={{ width: item.percentage }}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        stat.breakdown.map((item, idx) => (
+                          <div key={idx} className="flex flex-col gap-1">
+                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                              <span className="text-slate-400">{item.name}</span>
+                              <span className={cn(
+                                "text-white",
+                                // @ts-expect-error - Custom property from API
+                                item.isOverdue && "text-rose-500"
+                              )}>
+                                {showValues ? item.value : '******'}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
+                              <div 
+                                className={cn(
+                                  "h-full rounded-full",
+                                  stat.label === 'RECEITA TOTAL' ? "bg-primary" : 
+                                  // @ts-expect-error - Custom property from API
+                                  item.isOverdue ? "bg-rose-500" : "bg-primary"
+                                )}
+                                style={{ width: item.percentage }}
+                              />
+                            </div>
+                            <p className={cn(
+                              "text-[9px] font-bold text-right",
+                              stat.label === 'RECEITA TOTAL' ? "text-primary/70" : 
+                              // @ts-expect-error - Custom property from API
+                              item.isOverdue ? "text-rose-500/70" : "text-primary/70"
+                            )}>{item.percentage}</p>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
 

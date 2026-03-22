@@ -4,12 +4,6 @@ import { startOfMonth, endOfMonth, endOfWeek, eachWeekOfInterval, format } from 
 import { ptBR } from 'date-fns/locale';
 // No Prisma model imports needed as we use custom interface
 
-interface MonFriStats {
-  total: number | null;
-  driver: number | null;
-  helper: number | null;
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get('month');
@@ -57,11 +51,10 @@ export async function GET(request: Request) {
       expenseStats,
       revenueByContractor,
       expenseByType,
-      monFriStats,
       prevRevenueStats,
       prevExpenseStats,
-      prevMonFriStats,
-      recentTripsData
+      recentTripsData,
+      maintenanceData
     ] = await Promise.all([
       // Current Month Total Revenue
       prisma.trip.aggregate({
@@ -87,16 +80,6 @@ export async function GET(request: Request) {
         where: { date: { gte: startDate, lte: endDate } },
         _sum: { value: true }
       }),
-      // Current Month Mon-Fri Stats (Raw query for day of week)
-      prisma.$queryRaw<MonFriStats[]>`
-        SELECT 
-          SUM(value) as total,
-          SUM(CASE WHEN type = 'Pagamento Motorista' THEN value ELSE 0 END) as driver,
-          SUM(CASE WHEN type = 'Pagamento Ajudante' THEN value ELSE 0 END) as helper
-        FROM "Expense"
-        WHERE date >= ${startDate} AND date <= ${endDate}
-        AND EXTRACT(DOW FROM date) BETWEEN 1 AND 5
-      `,
       // Previous Month Total Revenue
       prisma.trip.aggregate({
         where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
@@ -107,16 +90,6 @@ export async function GET(request: Request) {
         where: { date: { gte: prevStartDate, lte: prevEndDate } },
         _sum: { value: true }
       }),
-      // Previous Month Mon-Fri Stats
-      prisma.$queryRaw<MonFriStats[]>`
-        SELECT 
-          SUM(value) as total,
-          SUM(CASE WHEN type = 'Pagamento Motorista' THEN value ELSE 0 END) as driver,
-          SUM(CASE WHEN type = 'Pagamento Ajudante' THEN value ELSE 0 END) as helper
-        FROM "Expense"
-        WHERE date >= ${prevStartDate} AND date <= ${prevEndDate}
-        AND EXTRACT(DOW FROM date) BETWEEN 1 AND 5
-      `,
       // Recent Trips
       prisma.trip.findMany({
         where: { scheduledAt: { gte: startDate, lte: endDate } },
@@ -135,6 +108,21 @@ export async function GET(request: Request) {
           contratante: { select: { ContratanteNome: true } },
           vehicle: { select: { plate: true } }
         }
+      }),
+      // Maintenance Data
+      prisma.maintenance.findMany({
+        where: { executionDate: null },
+        include: {
+          vehicle: {
+            include: {
+              trips: {
+                orderBy: { scheduledAt: 'desc' },
+                take: 1,
+                select: { odometer: true }
+              }
+            }
+          }
+        }
       })
     ]);
 
@@ -145,6 +133,61 @@ export async function GET(request: Request) {
       select: { id: true, ContratanteNome: true }
     });
     const contractorMap = new Map(contractors.map(c => [c.id, c.ContratanteNome]));
+
+    interface VehicleMaintenanceGroup {
+      name: string;
+      latestTripOdo: number;
+      maintenances: {
+        type: string;
+        value: string;
+        percentage: string;
+        isOverdue: boolean;
+      }[];
+    }
+
+    const maintenanceByVehicle = new Map<string, VehicleMaintenanceGroup>();
+    
+    maintenanceData.forEach(m => {
+      const vehicleKey = `${m.vehicle.model} (${m.vehicle.plate})`;
+      if (!maintenanceByVehicle.has(vehicleKey)) {
+        const latestTripOdo = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || 0;
+        maintenanceByVehicle.set(vehicleKey, {
+          name: vehicleKey,
+          latestTripOdo,
+          maintenances: []
+        });
+      }
+      
+      const vehicleData = maintenanceByVehicle.get(vehicleKey)!;
+      const registeredOdo = m.currentOdometer || 0;
+      const interval = m.odometer; // Kilometragem p/ Manutenção
+      
+      const diff = vehicleData.latestTripOdo - registeredOdo;
+      const remaining = interval - diff;
+      
+      let statusMsg = '';
+      let isOverdue = false;
+      if (diff > interval) {
+        isOverdue = true;
+        statusMsg = `Kilometragem já foi ultrapassada em ${(diff - interval).toLocaleString('pt-BR')} km`;
+      } else {
+        statusMsg = `Faltam ${remaining.toLocaleString('pt-BR')} kilometros`;
+      }
+      
+      vehicleData.maintenances.push({
+        type: m.type,
+        value: statusMsg,
+        remainingKms: isOverdue ? 0 : remaining,
+        overdueKms: isOverdue ? (diff - interval) : 0,
+        percentage: isOverdue ? '100%' : `${Math.max(0, Math.min(100, (diff / interval) * 100)).toFixed(1)}%`,
+        isOverdue
+      });
+    });
+
+    const maintenanceBreakdown = Array.from(maintenanceByVehicle.values()).map(v => ({
+      name: v.name,
+      maintenances: v.maintenances
+    }));
 
     const totalRevenue = revenueStats._sum.value || 0;
     const totalExpenses = expenseStats._sum.value || 0;
@@ -169,19 +212,11 @@ export async function GET(request: Request) {
       }))
       .sort((a, b) => b.rawVal - a.rawVal);
 
-    const monFriExpenses = Number(monFriStats[0]?.total || 0);
-    const monFriDriverPayment = Number(monFriStats[0]?.driver || 0);
-    const monFriHelperPayment = Number(monFriStats[0]?.helper || 0);
-
     const profit = totalRevenue - totalExpenses;
 
     const prevRevenue = prevRevenueStats._sum.value || 0;
     const prevExpensesVal = prevExpenseStats._sum.value || 0;
     const prevProfit = prevRevenue - prevExpensesVal;
-
-    const prevMonFriExpenses = Number(prevMonFriStats[0]?.total || 0);
-    const prevMonFriDriver = Number(prevMonFriStats[0]?.driver || 0);
-    const prevMonFriHelper = Number(prevMonFriStats[0]?.helper || 0);
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';
@@ -259,31 +294,14 @@ export async function GET(request: Request) {
           percentage: calculatePercentage(profit)
         },
         { 
-          label: 'DESPESAS (SEG-SEX)', 
-          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriExpenses), 
-          change: calculateChange(monFriExpenses, prevMonFriExpenses), 
-          trend: monFriExpenses <= prevMonFriExpenses ? 'down' : 'up',
-          icon: 'Receipt',
+          label: 'PRÓXIMAS MANUTENÇÕES', 
+          value: `${maintenanceData.length} Programadas`, 
+          change: '', 
+          trend: 'down',
+          icon: 'Wrench',
           color: 'text-amber-500',
-          percentage: calculatePercentage(monFriExpenses)
-        },
-        { 
-          label: 'PAGAMENTO MOTORISTA (SEG-SEX)', 
-          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriDriverPayment), 
-          change: calculateChange(monFriDriverPayment, prevMonFriDriver), 
-          trend: monFriDriverPayment >= prevMonFriDriver ? 'up' : 'down',
-          icon: 'Truck',
-          color: 'text-blue-500',
-          percentage: calculatePercentage(monFriDriverPayment)
-        },
-        { 
-          label: 'PAGAMENTO AJUDANTE (SEG-SEX)', 
-          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monFriHelperPayment), 
-          change: calculateChange(monFriHelperPayment, prevMonFriHelper), 
-          trend: monFriHelperPayment >= prevMonFriHelper ? 'up' : 'down',
-          icon: 'User',
-          color: 'text-indigo-500',
-          percentage: calculatePercentage(monFriHelperPayment)
+          percentage: null,
+          breakdown: maintenanceBreakdown
         },
       ],
       chart: finalChartData,
