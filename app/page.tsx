@@ -433,7 +433,6 @@ export default function Dashboard() {
                               <span className="text-slate-400">{item.name}</span>
                               <span className={cn(
                                 "text-white",
-                                // @ts-expect-error - Custom property from API
                                 item.isOverdue && "text-rose-500"
                               )}>
                                 {showValues ? item.value : '******'}
@@ -444,7 +443,6 @@ export default function Dashboard() {
                                 className={cn(
                                   "h-full rounded-full",
                                   stat.label === 'RECEITA TOTAL' ? "bg-primary" : 
-                                  // @ts-expect-error - Custom property from API
                                   item.isOverdue ? "bg-rose-500" : "bg-primary"
                                 )}
                                 style={{ width: item.percentage }}
@@ -453,7 +451,6 @@ export default function Dashboard() {
                             <p className={cn(
                               "text-[9px] font-bold text-right",
                               stat.label === 'RECEITA TOTAL' ? "text-primary/70" : 
-                              // @ts-expect-error - Custom property from API
                               item.isOverdue ? "text-rose-500/70" : "text-primary/70"
                             )}>{item.percentage}</p>
                           </div>
