@@ -144,6 +144,7 @@ export default function VehiclesPage() {
         year: new Date().getFullYear().toString(),
         capacity: '',
         status: 'ACTIVE',
+        currentOdometer: '',
         maintenances: []
       });
     }
