@@ -146,7 +146,9 @@ export default function RoutesPage() {
   const helperIdRef = React.useRef<HTMLSelectElement>(null);
 
   const handleNextField = (nextRef: React.RefObject<HTMLInputElement | HTMLSelectElement | null>) => {
-    nextRef.current?.focus();
+    setTimeout(() => {
+      nextRef.current?.focus();
+    }, 50);
   };
 
   React.useEffect(() => {
