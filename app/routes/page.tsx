@@ -223,11 +223,12 @@ export default function RoutesPage() {
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
             <input 
               ref={scheduledAtRef}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
               type="date"
               value={formData.scheduledAt}
               onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
               onKeyDown={(e) => e.key === 'Enter' && handleNextField(vehicleIdRef)}
+              disabled={!formData.vehicleId}
             />
           </div>
         </div>
@@ -268,12 +269,13 @@ export default function RoutesPage() {
             <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
             <input 
               ref={odometerRef}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Km Inicial"
               type="number"
               value={formData.odometer}
               onChange={(e) => setFormData({...formData, odometer: e.target.value})}
               onKeyDown={(e) => e.key === 'Enter' && handleNextField(contratanteIdRef)}
+              disabled={!formData.vehicleId}
             />
           </div>
         </div>
@@ -282,13 +284,14 @@ export default function RoutesPage() {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
           <select 
             ref={contratanteIdRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             value={formData.contratanteId}
             onChange={(e) => {
               const contratanteId = e.target.value;
               setFormData({...formData, contratanteId, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
               if (contratanteId) handleNextField(freteIdRef);
             }}
+            disabled={!formData.vehicleId}
           >
             <option value="">Selecionar Contratante</option>
             {contratantes.map(c => (
@@ -303,7 +306,7 @@ export default function RoutesPage() {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
           <select 
             ref={freteIdRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             value={formData.freteId}
             onChange={(e) => {
               const selectedFreteId = e.target.value;
@@ -353,12 +356,13 @@ export default function RoutesPage() {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio</label>
           <input 
             ref={romaneioRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Número do Romaneio"
             type="text"
             value={formData.romaneio}
             onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
             onKeyDown={(e) => e.key === 'Enter' && handleNextField(driverIdRef)}
+            disabled={!formData.vehicleId}
           />
         </div>
       </div>
@@ -368,13 +372,14 @@ export default function RoutesPage() {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
           <select 
             ref={driverIdRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             value={formData.driverId}
             onChange={(e) => {
               const driverId = e.target.value;
               setFormData({...formData, driverId});
               if (driverId) handleNextField(helperIdRef);
             }}
+            disabled={!formData.vehicleId}
           >
             <option value="">Selecionar</option>
             {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
@@ -386,9 +391,10 @@ export default function RoutesPage() {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante</label>
           <select 
             ref={helperIdRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             value={formData.helperId}
             onChange={(e) => setFormData({...formData, helperId: e.target.value})}
+            disabled={!formData.vehicleId}
           >
             <option value="">Selecionar</option>
             {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
@@ -418,9 +424,10 @@ export default function RoutesPage() {
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
               <select 
-                className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 value={formData.status}
                 onChange={(e) => setFormData({...formData, status: e.target.value})}
+                disabled={!formData.vehicleId}
               >
                 <option value="SCHEDULED">Agendado</option>
                 <option value="IN_TRANSIT">Em Trânsito</option>
@@ -648,9 +655,9 @@ export default function RoutesPage() {
           setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
           handleOpenDrawer();
-          // Focus on the first field
+          // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
-            scheduledAtRef.current?.focus();
+            vehicleIdRef.current?.focus();
           }, 100);
         } else {
           setIsDrawerOpen(false);
@@ -793,15 +800,13 @@ export default function RoutesPage() {
       />
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {user?.role === 'OPERATOR' && (
-          <button 
-            onClick={handleLogout}
-            className="absolute top-4 right-4 p-3 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all z-10 shadow-lg"
-            title="Sair do Sistema"
-          >
-            <LogOut className="w-6 h-6" />
-          </button>
-        )}
+        <button 
+          onClick={handleLogout}
+          className="absolute top-4 right-4 p-3 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all z-10 shadow-lg"
+          title="Sair do Sistema"
+        >
+          <LogOut className="w-6 h-6" />
+        </button>
 
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">

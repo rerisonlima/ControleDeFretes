@@ -24,7 +24,8 @@ import {
   CircleDot,
   Zap,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -36,7 +37,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 interface DashboardStat {
   label: string;
@@ -168,6 +169,7 @@ export default function Dashboard() {
   const [error, setError] = React.useState<string | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
   const [showValues, setShowValues] = React.useState(false);
+  const [isCheckingSession, setIsCheckingSession] = React.useState(true);
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
@@ -203,11 +205,13 @@ export default function Dashboard() {
           const data = await res.json();
           if (data.role === 'OPERATOR') {
             router.replace('/routes');
+            return;
           }
         }
       } catch (error) {
         console.error('Session check error:', error);
       }
+      setIsCheckingSession(false);
     };
     checkSession();
   }, [router]);
@@ -219,6 +223,14 @@ export default function Dashboard() {
   const stats = dashboardData?.stats || [];
   const chartData = dashboardData?.chart || [];
   const trips = dashboardData?.recentTrips || [];
+
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-[#181411] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <AppLayout>
