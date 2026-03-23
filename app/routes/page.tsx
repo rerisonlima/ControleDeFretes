@@ -17,8 +17,7 @@ import {
   Copy,
   Receipt,
   Loader2,
-  Gauge,
-  LogOut
+  Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -797,17 +796,10 @@ export default function RoutesPage() {
         title={user?.role === 'OPERATOR' ? "Cadastro Nova Viagem" : "Viagens"} 
         actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
+        onLogout={handleLogout}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <button 
-          onClick={handleLogout}
-          className="absolute top-4 right-4 p-3 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all z-10 shadow-lg"
-          title="Sair do Sistema"
-        >
-          <LogOut className="w-6 h-6" />
-        </button>
-
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">

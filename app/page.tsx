@@ -24,7 +24,6 @@ import {
   CircleDot,
   Zap,
   Activity,
-  ArrowRight,
   Loader2
 } from 'lucide-react';
 import { 
@@ -170,6 +169,16 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
   const [showValues, setShowValues] = React.useState(false);
   const [isCheckingSession, setIsCheckingSession] = React.useState(true);
+  const [user, setUser] = React.useState<{ role: string } | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
@@ -207,6 +216,7 @@ export default function Dashboard() {
             router.replace('/routes');
             return;
           }
+          setUser(data);
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -238,6 +248,7 @@ export default function Dashboard() {
         title="Visão Geral do Dashboard" 
         actionLabel="Nova Viagem" 
         onAction={() => router.push('/routes')}
+        onLogout={user?.role === 'OPERATOR' ? handleLogout : undefined}
       />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
