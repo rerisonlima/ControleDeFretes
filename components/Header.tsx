@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, LogOut, Truck } from 'lucide-react';
+import { LogOut, Truck } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -20,22 +20,17 @@ export function Header({ title, icon: Icon, actionLabel, onAction, onLogout }: H
             <Icon className="w-5 h-5 text-primary" />
           </div>
         )}
-        <h2 className="text-lg font-bold text-white tracking-tight">{title}</h2>
+        <h2 className="text-base font-bold text-white tracking-tight">{title}</h2>
       </div>
       <div className="flex items-center gap-4">
-        <button className="p-2 text-slate-400 hover:text-primary transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-background-dark"></span>
-        </button>
-        
         {onLogout && (
           <button 
             onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-600 border border-rose-500 text-white hover:bg-rose-700 rounded-lg transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-900/20"
+            className="flex items-center gap-2 px-2.5 py-1.5 bg-rose-600 border border-rose-500 text-white hover:bg-rose-700 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-rose-900/20"
             title="Sair do Sistema"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sair do Sistema</span>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sair</span>
           </button>
         )}
 

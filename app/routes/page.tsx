@@ -793,7 +793,7 @@ export default function RoutesPage() {
   return (
     <AppLayout>
       <Header 
-        title={user?.role === 'OPERATOR' ? "Cadastro Nova Viagem" : "Viagens"} 
+        title={user?.role === 'OPERATOR' ? "Nova Viagem" : "Viagens"} 
         icon={Truck}
         actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
