@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
+  LayoutDashboard,
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
@@ -246,6 +247,7 @@ export default function Dashboard() {
     <AppLayout>
       <Header 
         title="Visão Geral do Dashboard" 
+        icon={LayoutDashboard}
         actionLabel="Nova Viagem" 
         onAction={() => router.push('/routes')}
         onLogout={user?.role === 'OPERATOR' ? handleLogout : undefined}

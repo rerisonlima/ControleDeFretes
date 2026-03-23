@@ -794,6 +794,7 @@ export default function RoutesPage() {
     <AppLayout>
       <Header 
         title={user?.role === 'OPERATOR' ? "Cadastro Nova Viagem" : "Viagens"} 
+        icon={Truck}
         actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
         onLogout={handleLogout}
@@ -804,7 +805,8 @@ export default function RoutesPage() {
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
               {showSuccess && (
-                <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300">
+                <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300 flex items-center justify-center gap-3">
+                  <Truck className="w-5 h-5" />
                   VIAGEM CADASTRADA COM SUCESSO
                 </div>
               )}
