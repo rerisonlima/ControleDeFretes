@@ -285,7 +285,7 @@ export default function RoutesPage() {
             onChange={(e) => {
               const contratanteId = e.target.value;
               setFormData({...formData, contratanteId, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
-              if (contratanteId) handleNextField(romaneioRef);
+              if (contratanteId) handleNextField(freteIdRef);
             }}
           >
             <option value="">Selecionar Contratante</option>
@@ -297,19 +297,6 @@ export default function RoutesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio</label>
-          <input 
-            ref={romaneioRef}
-            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-            placeholder="Número do Romaneio"
-            type="text"
-            value={formData.romaneio}
-            onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
-            onKeyDown={(e) => e.key === 'Enter' && handleNextField(freteIdRef)}
-          />
-        </div>
-
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
           <select 
@@ -329,7 +316,7 @@ export default function RoutesPage() {
                   valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
                   valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
                 });
-                handleNextField(driverIdRef);
+                handleNextField(romaneioRef);
               } else {
                 setFormData({
                   ...formData, 
@@ -358,6 +345,19 @@ export default function RoutesPage() {
                 </option>
               ))}
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio</label>
+          <input 
+            ref={romaneioRef}
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            placeholder="Número do Romaneio"
+            type="text"
+            value={formData.romaneio}
+            onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+            onKeyDown={(e) => e.key === 'Enter' && handleNextField(driverIdRef)}
+          />
         </div>
       </div>
 
