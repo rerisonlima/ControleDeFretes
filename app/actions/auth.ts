@@ -88,6 +88,7 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
+  console.log('logoutAction called');
   const cookieStore = await cookies();
   cookieStore.set('session', '', {
     httpOnly: true,

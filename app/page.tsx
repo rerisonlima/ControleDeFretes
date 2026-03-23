@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { logoutAction } from '@/app/actions/auth';
 import { 
   LayoutDashboard,
   TrendingUp, 
@@ -174,7 +175,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await logoutAction();
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);

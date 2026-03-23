@@ -3,6 +3,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { logoutAction } from '@/app/actions/auth';
 import { 
   Search, 
   MapPin, 
@@ -206,7 +207,7 @@ export default function RoutesPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await logoutAction();
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
@@ -804,6 +805,14 @@ export default function RoutesPage() {
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
+              <div className="mb-6 flex flex-col items-center gap-1">
+                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                  Usuário: {user?.name}
+                </p>
+                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                  IP: {userIp}
+                </p>
+              </div>
               {showSuccess && (
                 <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300 flex items-center justify-center gap-3">
                   <Truck className="w-5 h-5" />
@@ -1080,9 +1089,12 @@ export default function RoutesPage() {
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
                 {isOperator && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-4 space-y-1">
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                      Usuário: {user?.name} | IP: {userIp}
+                      Usuário: {user?.name}
+                    </p>
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                      IP: {userIp}
                     </p>
                     {showSuccess && (
                       <div className="bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-1 animate-in fade-in slide-in-from-top-2 duration-300">
