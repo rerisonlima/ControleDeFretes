@@ -134,7 +134,7 @@ export default function RoutesPage() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState(new Date());
+  const [userIp, setUserIp] = React.useState('');
 
   React.useEffect(() => {
     const fetchSession = async () => {
@@ -153,11 +153,16 @@ export default function RoutesPage() {
     };
     fetchSession();
 
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
-
-    return () => clearInterval(timer);
+    const fetchIp = async () => {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        setUserIp(data.ip);
+      } catch (error) {
+        console.error('Error fetching IP:', error);
+      }
+    };
+    fetchIp();
   }, []);
 
   // Form state
@@ -744,10 +749,7 @@ export default function RoutesPage() {
   return (
     <AppLayout>
       <Header 
-        title={user?.role === 'OPERATOR' 
-          ? `Cadastro Nova Viagem, Operador: ${user.name} - Função: ${user.role === 'OPERATOR' ? 'Motorista' : user.role} ${format(currentTime, 'dd/MM/yyyy HH:mm')}`
-          : "Viagens"
-        } 
+        title={user?.role === 'OPERATOR' ? "Cadastro Nova Viagem" : "Viagens"} 
         actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
       />
@@ -1041,13 +1043,20 @@ export default function RoutesPage() {
               <div>
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Valores Operacionais da Viagem</p>
+                {isOperator && (
+                  <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-1">
+                    Usuário: {user?.name} | IP: {userIp}
+                  </p>
+                )}
               </div>
-              <button 
-                onClick={() => setIsDrawerOpen(false)}
-                className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              {!isOperator && (
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-white"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              )}
             </div>
             
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
