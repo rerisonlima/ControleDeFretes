@@ -298,7 +298,7 @@ export default function RoutesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio</label>
           <input 
             ref={romaneioRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
@@ -381,14 +381,14 @@ export default function RoutesPage() {
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante (Opcional)</label>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante</label>
           <select 
             ref={helperIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.helperId}
             onChange={(e) => setFormData({...formData, helperId: e.target.value})}
           >
-            <option value="">Nenhum</option>
+            <option value="">Selecionar</option>
             {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
               <option key={e.id} value={e.id}>{e.name}</option>
             ))}
@@ -643,7 +643,7 @@ export default function RoutesPage() {
       if (response.ok) {
         if (user?.role === 'OPERATOR') {
           setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 5000);
+          setTimeout(() => setShowSuccess(false), 10000);
           // Reset form for next entry
           handleOpenDrawer();
         } else {
@@ -821,7 +821,7 @@ export default function RoutesPage() {
                     ) : (
                       <Check className="w-6 h-6" />
                     )}
-                    {isSaving ? 'Salvando...' : 'Salvar Viagem'}
+                    {isSaving ? 'Salvando...' : 'Cadastrar Viagem'}
                   </button>
                 </div>
               </div>
@@ -1132,7 +1132,7 @@ export default function RoutesPage() {
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {isSaving ? 'Salvando...' : selectedTrip ? 'Atualizar Viagem' : 'Salvar Viagem'}
+                {isSaving ? 'Salvando...' : selectedTrip ? 'Atualizar Viagem' : 'Cadastrar Viagem'}
               </button>
             </div>
           </aside>
