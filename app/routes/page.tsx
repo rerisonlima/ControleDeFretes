@@ -145,7 +145,7 @@ export default function RoutesPage() {
   const driverIdRef = React.useRef<HTMLSelectElement>(null);
   const helperIdRef = React.useRef<HTMLSelectElement>(null);
 
-  const handleNextField = (nextRef: React.RefObject<HTMLInputElement | HTMLSelectElement>) => {
+  const handleNextField = (nextRef: React.RefObject<HTMLInputElement | HTMLSelectElement | null>) => {
     nextRef.current?.focus();
   };
 
