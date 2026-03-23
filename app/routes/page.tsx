@@ -136,6 +136,19 @@ export default function RoutesPage() {
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
 
+  const scheduledAtRef = React.useRef<HTMLInputElement>(null);
+  const vehicleIdRef = React.useRef<HTMLSelectElement>(null);
+  const odometerRef = React.useRef<HTMLInputElement>(null);
+  const contratanteIdRef = React.useRef<HTMLSelectElement>(null);
+  const romaneioRef = React.useRef<HTMLInputElement>(null);
+  const freteIdRef = React.useRef<HTMLSelectElement>(null);
+  const driverIdRef = React.useRef<HTMLSelectElement>(null);
+  const helperIdRef = React.useRef<HTMLSelectElement>(null);
+
+  const handleNextField = (nextRef: React.RefObject<HTMLInputElement | HTMLSelectElement>) => {
+    nextRef.current?.focus();
+  };
+
   React.useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -207,10 +220,12 @@ export default function RoutesPage() {
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
             <input 
+              ref={scheduledAtRef}
               className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
               type="date"
               value={formData.scheduledAt}
               onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
+              onKeyDown={(e) => e.key === 'Enter' && handleNextField(vehicleIdRef)}
             />
           </div>
         </div>
@@ -218,6 +233,7 @@ export default function RoutesPage() {
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
           <select 
+            ref={vehicleIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.vehicleId}
             onChange={(e) => {
@@ -232,6 +248,7 @@ export default function RoutesPage() {
                 valor1aViagemAjudante: '',
                 valor2aViagemAjudante: ''
               }));
+              if (vehicleId) handleNextField(odometerRef);
             }}
           >
             <option value="">Selecionar Veículo</option>
@@ -248,11 +265,13 @@ export default function RoutesPage() {
           <div className="relative">
             <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
             <input 
+              ref={odometerRef}
               className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
               placeholder="Km Inicial"
               type="number"
               value={formData.odometer}
               onChange={(e) => setFormData({...formData, odometer: e.target.value})}
+              onKeyDown={(e) => e.key === 'Enter' && handleNextField(contratanteIdRef)}
             />
           </div>
         </div>
@@ -260,10 +279,13 @@ export default function RoutesPage() {
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
           <select 
+            ref={contratanteIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.contratanteId}
             onChange={(e) => {
-              setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
+              const contratanteId = e.target.value;
+              setFormData({...formData, contratanteId, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
+              if (contratanteId) handleNextField(romaneioRef);
             }}
           >
             <option value="">Selecionar Contratante</option>
@@ -278,17 +300,20 @@ export default function RoutesPage() {
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
           <input 
+            ref={romaneioRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             placeholder="Número do Romaneio"
             type="text"
             value={formData.romaneio}
             onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+            onKeyDown={(e) => e.key === 'Enter' && handleNextField(freteIdRef)}
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
           <select 
+            ref={freteIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.freteId}
             onChange={(e) => {
@@ -304,6 +329,7 @@ export default function RoutesPage() {
                   valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
                   valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
                 });
+                handleNextField(driverIdRef);
               } else {
                 setFormData({
                   ...formData, 
@@ -339,9 +365,14 @@ export default function RoutesPage() {
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
           <select 
+            ref={driverIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.driverId}
-            onChange={(e) => setFormData({...formData, driverId: e.target.value})}
+            onChange={(e) => {
+              const driverId = e.target.value;
+              setFormData({...formData, driverId});
+              if (driverId) handleNextField(helperIdRef);
+            }}
           >
             <option value="">Selecionar</option>
             {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
@@ -352,6 +383,7 @@ export default function RoutesPage() {
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante (Opcional)</label>
           <select 
+            ref={helperIdRef}
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
             value={formData.helperId}
             onChange={(e) => setFormData({...formData, helperId: e.target.value})}
@@ -1040,13 +1072,22 @@ export default function RoutesPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
           <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Valores Operacionais da Viagem</p>
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Cadastro operacional da viagem</p>
                 {isOperator && (
-                  <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-1">
-                    Usuário: {user?.name} | IP: {userIp}
-                  </p>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                      Usuário: {user?.name} | IP: {userIp}
+                    </p>
+                    {showSuccess && (
+                      <div className="bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Viagem cadastrada com sucesso!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               {!isOperator && (
