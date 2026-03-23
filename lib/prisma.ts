@@ -45,8 +45,20 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
       await prisma.$executeRawUnsafe('ALTER TABLE "Expense" ADD COLUMN IF NOT EXISTS "description" TEXT;');
       await prisma.$executeRawUnsafe('ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "odometer" DOUBLE PRECISION;');
+      await prisma.$executeRawUnsafe('ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "createdByUserId" INTEGER;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Vehicle" ADD COLUMN IF NOT EXISTS "currentOdometer" DOUBLE PRECISION;');
       await prisma.$executeRawUnsafe('ALTER TABLE "Maintenance" ADD COLUMN IF NOT EXISTS "currentOdometer" DOUBLE PRECISION;');
+      
+      // Add foreign key for createdByUserId if it doesn't exist
+      await prisma.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Trip_createdByUserId_fkey') THEN
+            ALTER TABLE "Trip" ADD CONSTRAINT "Trip_createdByUserId_fkey" 
+            FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+          END IF;
+        END $$;
+      `);
       
       // Make executionDate nullable if it exists
       try {

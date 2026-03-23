@@ -17,7 +17,8 @@ import {
   Copy,
   Receipt,
   Loader2,
-  Gauge
+  Gauge,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -61,6 +62,8 @@ interface Trip {
   paymentDate?: string;
   vehicle?: { plate: string };
   contratante?: { ContratanteNome: string };
+  createdBy?: { name: string; username: string };
+  createdAt: string;
   frete?: { 
     cidade: string; 
     valorFrete: number; 
@@ -181,6 +184,15 @@ export default function RoutesPage() {
   });
 
   const isOperator = user?.role === 'OPERATOR';
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const renderFormContent = () => (
     <div className="space-y-6">
@@ -305,12 +317,14 @@ export default function RoutesPage() {
               return matchesContratante && matchesCategoria;
             })
             .map(f => (
-            <option key={f.id} value={f.id}>{f.cidade} - {f.categoria?.CategoriaNome} (R$ {f.valorFrete})</option>
-          ))}
+              <option key={f.id} value={f.id}>
+                {f.cidade} {isOperator ? '' : `- ${f.categoria?.CategoriaNome} (R$ ${f.valorFrete})`}
+              </option>
+            ))}
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
           <select 
@@ -341,7 +355,7 @@ export default function RoutesPage() {
 
       {!isOperator && (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor do Frete</label>
               <div className="relative">
@@ -371,7 +385,7 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Mot.</label>
               <div className="relative">
@@ -402,7 +416,7 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Ajud.</label>
               <div className="relative">
@@ -441,7 +455,7 @@ export default function RoutesPage() {
               <DollarSign className="w-4 h-4 text-emerald-500" />
               <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Pago</label>
                 <select 
@@ -707,14 +721,24 @@ export default function RoutesPage() {
     <AppLayout>
       <Header 
         title={user?.role === 'OPERATOR' 
-          ? `Cadastro Nova Viagem, Operador: ${user.name} - Função: Operador ${format(currentTime, 'dd/MM/yyyy HH:mm')}`
+          ? `Cadastro Nova Viagem, Operador: ${user.name} - Função: ${user.role === 'OPERATOR' ? 'Motorista' : user.role} ${format(currentTime, 'dd/MM/yyyy HH:mm')}`
           : "Viagens"
         } 
         actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {user?.role === 'OPERATOR' && (
+          <button 
+            onClick={handleLogout}
+            className="absolute top-4 right-4 p-3 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all z-10 shadow-lg"
+            title="Sair do Sistema"
+          >
+            <LogOut className="w-6 h-6" />
+          </button>
+        )}
+
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
@@ -858,17 +882,18 @@ export default function RoutesPage() {
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastrado por:</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-dark">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Carregando viagens...</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">Carregando viagens...</td>
                   </tr>
                 ) : filteredTrips.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem encontrada com os filtros aplicados.</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem encontrada com os filtros aplicados.</td>
                   </tr>
                 ) : filteredTrips.map((trip) => (
                   <tr 
@@ -910,6 +935,12 @@ export default function RoutesPage() {
                     </td>
                     <td className="px-6 py-4 font-mono font-medium text-slate-300">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
+                        <span className="text-[10px] text-slate-500">{format(new Date(trip.createdAt), 'dd/MM/yy HH:mm')}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -1009,12 +1040,14 @@ export default function RoutesPage() {
             </div>
 
             <div className="p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">
-              <button 
-                onClick={() => setIsDrawerOpen(false)}
-                className="px-6 py-3 rounded-lg border border-border-dark text-slate-400 font-bold hover:bg-surface-dark hover:text-white transition-colors"
-              >
-                Cancelar
-              </button>
+              {!isOperator && (
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="px-6 py-3 rounded-lg border border-border-dark text-slate-400 font-bold hover:bg-surface-dark hover:text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+              )}
               <button 
                 onClick={handleSave}
                 disabled={isSaving}

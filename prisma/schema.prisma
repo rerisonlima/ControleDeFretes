@@ -15,6 +15,7 @@ model User {
   password  String
   role      String   @default("OPERATOR")
   lastLogin DateTime?
+  trips     Trip[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -138,6 +139,8 @@ model Trip {
   romaneio    String?
   odometer    Float?
   paymentDate DateTime?
+  createdByUserId Int?
+  createdBy   User?    @relation(fields: [createdByUserId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
