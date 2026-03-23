@@ -551,7 +551,7 @@ export default function RoutesPage() {
         vehicleId: trip.vehicleId.toString(),
         driverId: trip.driverId.toString(),
         helperId: trip.helperId?.toString() || '',
-        scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : '',
+        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : '',
         value: trip.value?.toString() || '',
         valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
         valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
@@ -562,7 +562,7 @@ export default function RoutesPage() {
         contract: trip.contract || '',
         odometer: trip.odometer?.toString() || '',
         romaneio: trip.romaneio || '',
-        paymentDate: trip.paymentDate ? format(new Date(trip.paymentDate), 'yyyy-MM-dd') : ''
+        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
       });
     } else {
       setSelectedTrip(null);
@@ -669,7 +669,7 @@ export default function RoutesPage() {
         vehicleId: trip.vehicleId?.toString() || '',
         driverId: trip.driverId?.toString() || '',
         helperId: trip.helperId?.toString() || '',
-        scheduledAt: trip.scheduledAt ? format(new Date(trip.scheduledAt), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : safeFormat(new Date().toISOString(), 'yyyy-MM-dd'),
         value: trip.value?.toString() || '0',
         valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
         valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
@@ -715,9 +715,18 @@ export default function RoutesPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
+    if (!dateString) return fallback;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return fallback;
+    return format(date, formatStr);
   };
 
   const filteredTrips = trips.filter(trip => {
@@ -954,7 +963,7 @@ export default function RoutesPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
-                        <span className="text-[10px] text-slate-500">{format(new Date(trip.createdAt), 'dd/MM/yy HH:mm')}</span>
+                        <span className="text-[10px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">

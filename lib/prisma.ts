@@ -38,14 +38,20 @@ if (typeof window === 'undefined' && !globalThis.prismaMigrationsRun) {
       await prisma.$queryRaw`SELECT 1`;
       console.log('Database connection test successful');
 
-      // QUICK CHECK: See if we've already done this by checking the last added index
+      // QUICK CHECK: See if we've already done this by checking multiple markers
       // This avoids taking the advisory lock and starting a transaction in most cases
       const schemaCheck = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(`
-        SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_expense_type') as exists;
+        SELECT (
+          EXISTS (SELECT 1 FROM information_schema.columns WHERE (table_name = 'Trip' OR table_name = 'trip') AND column_name = 'romaneio') AND
+          EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_expense_type')
+        ) as exists;
       `);
       
-      if (schemaCheck[0]?.exists) {
-        console.log('Database schema is already up to date (idx_expense_type found). Skipping migrations.');
+      const alreadyUpToDate = schemaCheck[0]?.exists;
+      console.log(`Schema check result: ${alreadyUpToDate ? 'Up to date' : 'Incomplete'}`);
+
+      if (alreadyUpToDate) {
+        console.log('Database schema is already up to date. Skipping migrations.');
         return;
       }
 
