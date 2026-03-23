@@ -196,135 +196,141 @@ export default function RoutesPage() {
 
   const renderFormContent = () => (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-          <input 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-            type="date"
-            value={formData.scheduledAt}
-            onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
-          />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+            <input 
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+              type="date"
+              value={formData.scheduledAt}
+              onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
-        <select 
-          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-          value={formData.vehicleId}
-          onChange={(e) => {
-            const vehicleId = e.target.value;
-            setFormData(prev => ({
-              ...prev, 
-              vehicleId,
-              freteId: '',
-              value: '',
-              valor1aViagemMotorista: '',
-              valor2aViagemMotorista: '',
-              valor1aViagemAjudante: '',
-              valor2aViagemAjudante: ''
-            }));
-          }}
-        >
-          <option value="">Selecionar Veículo</option>
-          {vehicles.map(v => (
-            <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
-        <div className="relative">
-          <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
-          <input 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-            placeholder="Km Inicial"
-            type="number"
-            value={formData.odometer}
-            onChange={(e) => setFormData({...formData, odometer: e.target.value})}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
-        <select 
-          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-          value={formData.contratanteId}
-          onChange={(e) => {
-            setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
-          }}
-        >
-          <option value="">Selecionar Contratante</option>
-          {contratantes.map(c => (
-            <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
-        <input 
-          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-          placeholder="Número do Romaneio"
-          type="text"
-          value={formData.romaneio}
-          onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
-        <select 
-          className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-          value={formData.freteId}
-          onChange={(e) => {
-            const selectedFreteId = e.target.value;
-            const frete = fretes.find(f => f.id.toString() === selectedFreteId);
-            if (frete) {
-              setFormData({
-                ...formData, 
-                freteId: selectedFreteId,
-                value: frete.valorFrete.toString(),
-                valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
-                valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
-                valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
-                valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
-              });
-            } else {
-              setFormData({
-                ...formData, 
-                freteId: selectedFreteId,
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Veículo</label>
+          <select 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            value={formData.vehicleId}
+            onChange={(e) => {
+              const vehicleId = e.target.value;
+              setFormData(prev => ({
+                ...prev, 
+                vehicleId,
+                freteId: '',
                 value: '',
                 valor1aViagemMotorista: '',
                 valor2aViagemMotorista: '',
                 valor1aViagemAjudante: '',
                 valor2aViagemAjudante: ''
-              });
-            }
-          }}
-          disabled={!formData.contratanteId || !formData.vehicleId}
-        >
-          <option value="">Selecionar Destino</option>
-          {fretes
-            .filter(f => {
-              const matchesContratante = f.contratanteId.toString() === formData.contratanteId;
-              const selectedVehicle = vehicles.find(v => v.id.toString() === formData.vehicleId);
-              const matchesCategoria = selectedVehicle ? f.categoriaId === selectedVehicle.categoriaId : false;
-              return matchesContratante && matchesCategoria;
-            })
-            .map(f => (
-              <option key={f.id} value={f.id}>
-                {f.cidade} {isOperator ? '' : `- ${f.categoria?.CategoriaNome} (R$ ${f.valorFrete})`}
-              </option>
+              }));
+            }}
+          >
+            <option value="">Selecionar Veículo</option>
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
             ))}
-        </select>
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
+          <div className="relative">
+            <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
+            <input 
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+              placeholder="Km Inicial"
+              type="number"
+              value={formData.odometer}
+              onChange={(e) => setFormData({...formData, odometer: e.target.value})}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
+          <select 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            value={formData.contratanteId}
+            onChange={(e) => {
+              setFormData({...formData, contratanteId: e.target.value, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
+            }}
+          >
+            <option value="">Selecionar Contratante</option>
+            {contratantes.map(c => (
+              <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio (Opcional)</label>
+          <input 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            placeholder="Número do Romaneio"
+            type="text"
+            value={formData.romaneio}
+            onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
+          <select 
+            className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+            value={formData.freteId}
+            onChange={(e) => {
+              const selectedFreteId = e.target.value;
+              const frete = fretes.find(f => f.id.toString() === selectedFreteId);
+              if (frete) {
+                setFormData({
+                  ...formData, 
+                  freteId: selectedFreteId,
+                  value: frete.valorFrete.toString(),
+                  valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
+                  valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
+                  valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
+                  valor2aViagemAjudante: frete.valor2aViagemAjudante.toString()
+                });
+              } else {
+                setFormData({
+                  ...formData, 
+                  freteId: selectedFreteId,
+                  value: '',
+                  valor1aViagemMotorista: '',
+                  valor2aViagemMotorista: '',
+                  valor1aViagemAjudante: '',
+                  valor2aViagemAjudante: ''
+                });
+              }
+            }}
+            disabled={!formData.contratanteId || !formData.vehicleId}
+          >
+            <option value="">Selecionar Destino</option>
+            {fretes
+              .filter(f => {
+                const matchesContratante = f.contratanteId.toString() === formData.contratanteId;
+                const selectedVehicle = vehicles.find(v => v.id.toString() === formData.vehicleId);
+                const matchesCategoria = selectedVehicle ? f.categoriaId === selectedVehicle.categoriaId : false;
+                return matchesContratante && matchesCategoria;
+              })
+              .map(f => (
+                <option key={f.id} value={f.id}>
+                  {f.cidade} {isOperator ? '' : `- ${f.categoria?.CategoriaNome} (R$ ${f.valorFrete})`}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
           <select 
@@ -487,17 +493,26 @@ export default function RoutesPage() {
     </div>
   );
 
+  React.useEffect(() => {
+    if (user?.role === 'OPERATOR' && !formData.tripId) {
+      handleOpenDrawer();
+    }
+  }, [user, formData.tripId]);
+
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     try {
       const fetchJson = async (url: string, name: string) => {
+        console.log(`Fetching ${name} from ${url}...`);
         const res = await fetch(url);
         if (!res.ok) {
           const errorText = await res.text();
-          console.error(`${name} API error:`, errorText);
+          console.error(`${name} API error (${res.status}):`, errorText);
           return [];
         }
-        return res.json();
+        const data = await res.json();
+        console.log(`${name} data received:`, data.length, 'items');
+        return data;
       };
 
       const [tripsData, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([

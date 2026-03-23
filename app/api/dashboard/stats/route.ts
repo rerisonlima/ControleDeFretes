@@ -35,18 +35,139 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Increase statement timeout for the dashboard query session
-    await prisma.$executeRawUnsafe('SET statement_timeout = 120000;'); // 2 minutes
-    
-    // Always fetch full month data to simplify logic and provide chart context
-    const fullMonthStart = startOfMonth(new Date(year, month - 1));
-    const fullMonthEnd = endOfMonth(fullMonthStart);
+    // Use a transaction for the dashboard queries to ensure they use the same connection
+    // and respect the session settings (timeouts).
+    const dashboardData = await prisma.$transaction(async (tx) => {
+      // Increase statement timeout for the dashboard query session
+      await tx.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
+      // Set a longer lock timeout to allow brief blocking from background maintenance
+      await tx.$executeRawUnsafe('SET lock_timeout = 60000;'); // 60 seconds
+      
+      // Always fetch full month data to simplify logic and provide chart context
+      const fullMonthStart = startOfMonth(new Date(year, month - 1));
+      const fullMonthEnd = endOfMonth(fullMonthStart);
 
-    // Fetch current month and previous month data in parallel
-    const prevStartDate = startOfMonth(new Date(year, month - 2));
-    const prevEndDate = endOfMonth(prevStartDate);
+      // Fetch current month and previous month data in parallel
+      const prevStartDate = startOfMonth(new Date(year, month - 2));
+      const prevEndDate = endOfMonth(prevStartDate);
 
-    const [
+      const [
+        revenueStats,
+        expenseStats,
+        revenueByContractor,
+        expenseByType,
+        prevRevenueStats,
+        prevExpenseStats,
+        recentTripsData,
+        maintenanceData,
+        weeklyStats
+      ] = await Promise.all([
+        // Current Month Total Revenue
+        tx.trip.aggregate({
+          where: { scheduledAt: { gte: startDate, lte: endDate } },
+          _sum: { value: true },
+          _count: { id: true }
+        }),
+        // Current Month Total Expenses
+        tx.expense.aggregate({
+          where: { date: { gte: startDate, lte: endDate } },
+          _sum: { value: true }
+        }),
+        // Current Month Revenue by Contractor
+        tx.trip.groupBy({
+          by: ['contratanteId'],
+          where: { scheduledAt: { gte: startDate, lte: endDate } },
+          _sum: { value: true },
+          _count: { id: true }
+        }),
+        // Current Month Expense by Type
+        tx.expense.groupBy({
+          by: ['type'],
+          where: { date: { gte: startDate, lte: endDate } },
+          _sum: { value: true }
+        }),
+        // Previous Month Total Revenue
+        tx.trip.aggregate({
+          where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+          _sum: { value: true }
+        }),
+        // Previous Month Total Expenses
+        tx.expense.aggregate({
+          where: { date: { gte: prevStartDate, lte: prevEndDate } },
+          _sum: { value: true }
+        }),
+        // Recent Trips
+        tx.trip.findMany({
+          where: { scheduledAt: { gte: startDate, lte: endDate } },
+          orderBy: { scheduledAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            value: true,
+            status: true,
+            contract: true,
+            scheduledAt: true,
+            routeId: true,
+            vehicleId: true,
+            route: { select: { destination: true } },
+            frete: { select: { cidade: true } },
+            contratante: { select: { ContratanteNome: true } },
+            vehicle: { select: { plate: true } }
+          }
+        }),
+        // Maintenance Data
+        tx.maintenance.findMany({
+          where: { executionDate: null },
+          include: {
+            vehicle: {
+              include: {
+                trips: {
+                  orderBy: { scheduledAt: 'desc' },
+                  take: 1,
+                  select: { odometer: true }
+                }
+              }
+            }
+          }
+        }),
+        // Weekly Stats for Chart
+        Promise.all(eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd }).map(async (weekStart) => {
+          const weekEnd = endOfWeek(weekStart);
+          const [rev, exp] = await Promise.all([
+            tx.trip.aggregate({
+              where: { scheduledAt: { gte: weekStart, lte: weekEnd } },
+              _sum: { value: true }
+            }),
+            tx.expense.aggregate({
+              where: { date: { gte: weekStart, lte: weekEnd } },
+              _sum: { value: true }
+            })
+          ]);
+          return {
+            revenue: rev._sum.value || 0,
+            expenses: exp._sum.value || 0
+          };
+        }))
+      ]);
+
+      return {
+        revenueStats,
+        expenseStats,
+        revenueByContractor,
+        expenseByType,
+        prevRevenueStats,
+        prevExpenseStats,
+        recentTripsData,
+        maintenanceData,
+        weeklyStats,
+        fullMonthStart,
+        fullMonthEnd
+      };
+    }, {
+      timeout: 120000 // 2 minutes for the whole transaction
+    });
+
+    const {
       revenueStats,
       expenseStats,
       revenueByContractor,
@@ -54,77 +175,11 @@ export async function GET(request: Request) {
       prevRevenueStats,
       prevExpenseStats,
       recentTripsData,
-      maintenanceData
-    ] = await Promise.all([
-      // Current Month Total Revenue
-      prisma.trip.aggregate({
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        _sum: { value: true },
-        _count: { id: true }
-      }),
-      // Current Month Total Expenses
-      prisma.expense.aggregate({
-        where: { date: { gte: startDate, lte: endDate } },
-        _sum: { value: true }
-      }),
-      // Current Month Revenue by Contractor
-      prisma.trip.groupBy({
-        by: ['contratanteId'],
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        _sum: { value: true },
-        _count: { id: true }
-      }),
-      // Current Month Expense by Type
-      prisma.expense.groupBy({
-        by: ['type'],
-        where: { date: { gte: startDate, lte: endDate } },
-        _sum: { value: true }
-      }),
-      // Previous Month Total Revenue
-      prisma.trip.aggregate({
-        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-        _sum: { value: true }
-      }),
-      // Previous Month Total Expenses
-      prisma.expense.aggregate({
-        where: { date: { gte: prevStartDate, lte: prevEndDate } },
-        _sum: { value: true }
-      }),
-      // Recent Trips
-      prisma.trip.findMany({
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        orderBy: { scheduledAt: 'desc' },
-        take: 5,
-        select: {
-          id: true,
-          value: true,
-          status: true,
-          contract: true,
-          scheduledAt: true,
-          routeId: true,
-          vehicleId: true,
-          route: { select: { destination: true } },
-          frete: { select: { cidade: true } },
-          contratante: { select: { ContratanteNome: true } },
-          vehicle: { select: { plate: true } }
-        }
-      }),
-      // Maintenance Data
-      prisma.maintenance.findMany({
-        where: { executionDate: null },
-        include: {
-          vehicle: {
-            include: {
-              trips: {
-                orderBy: { scheduledAt: 'desc' },
-                take: 1,
-                select: { odometer: true }
-              }
-            }
-          }
-        }
-      })
-    ]);
+      maintenanceData,
+      weeklyStats,
+      fullMonthStart,
+      fullMonthEnd
+    } = dashboardData;
 
     // Fetch contractor names for the breakdown
     const contractorIds = revenueByContractor.map(r => r.contratanteId).filter((id): id is number => id !== null);
@@ -226,30 +281,11 @@ export async function GET(request: Request) {
       return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
     };
 
-    // Chart data (weekly) - We still need some weekly data. 
-    // Let's fetch weekly aggregations.
+    // Chart data (weekly)
     const chartWeeks = eachWeekOfInterval({ 
       start: fullMonthStart, 
       end: fullMonthEnd 
     });
-
-    const weeklyStats = await Promise.all(chartWeeks.map(async (weekStart) => {
-      const weekEnd = endOfWeek(weekStart);
-      const [rev, exp] = await Promise.all([
-        prisma.trip.aggregate({
-          where: { scheduledAt: { gte: weekStart, lte: weekEnd } },
-          _sum: { value: true }
-        }),
-        prisma.expense.aggregate({
-          where: { date: { gte: weekStart, lte: weekEnd } },
-          _sum: { value: true }
-        })
-      ]);
-      return {
-        revenue: rev._sum.value || 0,
-        expenses: exp._sum.value || 0
-      };
-    }));
 
     const finalChartData = chartWeeks.map((weekStart, index) => ({
       name: `Semana ${index + 1}`,
