@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, Plus, LogOut } from 'lucide-react';
+import { Bell, LogOut, Truck } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
