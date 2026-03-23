@@ -196,6 +196,23 @@ export default function Dashboard() {
   }, [selectedMonth, selectedYear, selectedWeek]);
 
   React.useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.role === 'OPERATOR') {
+            router.replace('/routes');
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      }
+    };
+    checkSession();
+  }, [router]);
+
+  React.useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 

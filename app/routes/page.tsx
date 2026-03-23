@@ -643,9 +643,13 @@ export default function RoutesPage() {
       if (response.ok) {
         if (user?.role === 'OPERATOR') {
           setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 10000);
+          setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
           handleOpenDrawer();
+          // Focus on the first field
+          setTimeout(() => {
+            scheduledAtRef.current?.focus();
+          }, 100);
         } else {
           setIsDrawerOpen(false);
           fetchData();
