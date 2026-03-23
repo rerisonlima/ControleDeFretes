@@ -1079,7 +1079,6 @@ export default function RoutesPage() {
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Cadastro operacional da viagem</p>
                 {isOperator && (
                   <div className="mt-2 space-y-1">
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
