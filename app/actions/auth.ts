@@ -15,7 +15,7 @@ export async function loginAction(formData: FormData) {
 
   try {
     // TEMPORARY: Update rerison's password and role as requested
-    if (username === 'rerison') {
+    if (username.toLowerCase() === 'rerison') {
       try {
         const hashedPassword = await bcrypt.hash('1Tijolo!', 10);
         await prisma.user.update({
@@ -32,8 +32,13 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    const user = await prisma.user.findFirst({
+      where: { 
+        username: {
+          equals: username,
+          mode: 'insensitive'
+        }
+      },
     });
 
     if (!user) {
