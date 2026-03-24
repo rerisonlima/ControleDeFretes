@@ -66,6 +66,17 @@ interface DashboardStat {
     }[];
   }[];
   totalTrips?: number;
+  totalKm?: number;
+  costPerKm?: {
+    value: string;
+    change: string;
+    trend: 'up' | 'down';
+  };
+  profitPerKm?: {
+    value: string;
+    change: string;
+    trend: 'up' | 'down';
+  };
 }
 
 interface ChartData {
@@ -359,10 +370,19 @@ export default function Dashboard() {
                   </p>
                   
                   {stat.totalTrips !== undefined && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-                        {stat.totalTrips} Viagens Totais
-                      </span>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                          {stat.totalTrips} Viagens Totais
+                        </span>
+                      </div>
+                      {stat.totalKm !== undefined && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400 bg-slate-400/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                            {stat.totalKm.toLocaleString('pt-BR')} KM Rodados
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -502,15 +522,57 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <div className="mt-4 flex items-center gap-2">
-                    <span className={cn(
-                      "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                      stat.trend === 'up' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                    )}>
-                      {stat.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                      {stat.change}
-                    </span>
-                    <span className="text-slate-500 text-[10px] font-medium uppercase">vs mês anterior</span>
+                  <div className="mt-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                        stat.trend === 'up' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                      )}>
+                        {stat.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                        {stat.change}
+                      </span>
+                      <span className="text-slate-500 text-[10px] font-medium uppercase">vs mês anterior</span>
+                    </div>
+
+                    {stat.costPerKm && (
+                      <div className="pt-3 border-t border-border-dark">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Custo Variável KM Rodado</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-lg font-black text-white tracking-tight">
+                            {showValues ? stat.costPerKm.value : '******'}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                              stat.costPerKm.trend === 'up' ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-500"
+                            )}>
+                              {stat.costPerKm.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                              {stat.costPerKm.change}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {stat.profitPerKm && (
+                      <div className="pt-3 border-t border-border-dark">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Receita Variável KM Rodado</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-lg font-black text-white tracking-tight">
+                            {showValues ? stat.profitPerKm.value : '******'}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                              stat.profitPerKm.trend === 'up' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                            )}>
+                              {stat.profitPerKm.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                              {stat.profitPerKm.change}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

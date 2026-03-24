@@ -5,14 +5,13 @@ import { getSession } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    // Use a transaction to ensure the statement timeout is applied to the session
-    const trips = await prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
-      
-      const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(req.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     const paymentStatus = searchParams.get('paymentStatus');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '30');
+    const skip = (page - 1) * limit;
 
     const where: Prisma.TripWhereInput = {};
 
@@ -31,7 +30,10 @@ export async function GET(req: Request) {
       where.paid = 'sim';
     }
 
-      return tx.trip.findMany({
+    const [trips, total] = await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
+      
+      const tripsData = await tx.trip.findMany({
         where,
         select: {
           id: true,
@@ -108,12 +110,18 @@ export async function GET(req: Request) {
           },
         },
         orderBy: { scheduledAt: 'desc' },
-        take: 100
+        skip,
+        take: limit
       });
+
+      const count = await tx.trip.count({ where });
+      
+      return [tripsData, count];
     }, {
       timeout: 60000 // 1 minute for the whole transaction
     });
-    return NextResponse.json(trips);
+
+    return NextResponse.json({ trips, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Failed to fetch trips:', error);
     return NextResponse.json({ 

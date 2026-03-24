@@ -18,7 +18,9 @@ import {
   Copy,
   Receipt,
   Loader2,
-  Gauge
+  Gauge,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -135,6 +137,9 @@ export default function RoutesPage() {
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalRecords, setTotalRecords] = React.useState(0);
 
   const scheduledAtRef = React.useRef<HTMLInputElement>(null);
   const vehicleIdRef = React.useRef<HTMLSelectElement>(null);
@@ -557,12 +562,11 @@ export default function RoutesPage() {
           return [];
         }
         const data = await res.json();
-        console.log(`${name} data received:`, data.length, 'items');
         return data;
       };
 
-      const [tripsData, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
-        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}`, 'Trips'),
+      const [tripsResponse, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
+        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`, 'Trips'),
         fetchJson('/api/routes', 'Routes'),
         fetchJson('/api/vehicles', 'Vehicles'),
         fetchJson('/api/employees', 'Employees'),
@@ -570,7 +574,14 @@ export default function RoutesPage() {
         fetchJson('/api/fretes', 'Fretes')
       ]);
 
-      setTrips(tripsData);
+      if (tripsResponse && tripsResponse.trips) {
+        setTrips(tripsResponse.trips);
+        setTotalPages(tripsResponse.totalPages);
+        setTotalRecords(tripsResponse.total);
+      } else {
+        setTrips(tripsResponse || []);
+      }
+      
       setVehicles(vehiclesData);
       setEmployees(employeesData);
       setContratantes(contratantesData);
@@ -580,7 +591,7 @@ export default function RoutesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, paymentFilter]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage]);
 
   React.useEffect(() => {
     fetchData();
@@ -863,7 +874,10 @@ export default function RoutesPage() {
                 <div className="flex items-center gap-2">
                   <select 
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      setSelectedMonth(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   >
                     {months.map(m => (
@@ -873,7 +887,10 @@ export default function RoutesPage() {
 
                   <select 
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      setSelectedYear(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   >
                     {[2024, 2025, 2026].map(y => (
@@ -891,7 +908,10 @@ export default function RoutesPage() {
                 
                 <select 
                   value={paymentFilter}
-                  onChange={(e) => setPaymentFilter(e.target.value)}
+                  onChange={(e) => {
+                    setPaymentFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                 >
                   <option value="all">Todos</option>
@@ -1075,6 +1095,62 @@ export default function RoutesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="p-6 border-t border-border-dark flex items-center justify-between bg-surface-dark/30">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              Mostrando {trips.length} de {totalRecords} registros
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={cn(
+                            "w-8 h-8 rounded-lg text-xs font-bold transition-colors",
+                            currentPage === pageNum
+                              ? "bg-primary text-background-dark"
+                              : "text-slate-400 hover:bg-surface-dark hover:text-white"
+                          )}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 ||
+                      pageNum === currentPage + 2
+                    ) {
+                      return <span key={pageNum} className="text-slate-600">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

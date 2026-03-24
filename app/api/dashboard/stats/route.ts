@@ -51,6 +51,39 @@ export async function GET(request: Request) {
       const prevStartDate = startOfMonth(new Date(year, month - 2));
       const prevEndDate = endOfMonth(prevStartDate);
 
+      // Helper to calculate total KM in a period
+      const calculateTotalKm = async (start: Date, end: Date) => {
+        const tripsInPeriod = await tx.trip.groupBy({
+          by: ['vehicleId'],
+          where: { scheduledAt: { gte: start, lte: end }, odometer: { not: null } },
+          _max: { odometer: true },
+          _min: { odometer: true }
+        });
+
+        let totalKm = 0;
+        for (const group of tripsInPeriod) {
+          const vehicleId = group.vehicleId;
+          const maxOdo = group._max.odometer || 0;
+          
+          const lastTripBefore = await tx.trip.findFirst({
+            where: { 
+              vehicleId: vehicleId, 
+              scheduledAt: { lt: start }, 
+              odometer: { not: null } 
+            },
+            orderBy: { scheduledAt: 'desc' },
+            select: { odometer: true }
+          });
+
+          if (lastTripBefore && lastTripBefore.odometer !== null) {
+            totalKm += (maxOdo - lastTripBefore.odometer);
+          } else {
+            totalKm += (maxOdo - (group._min.odometer || 0));
+          }
+        }
+        return totalKm;
+      };
+
       const [
         revenueStats,
         expenseStats,
@@ -60,7 +93,9 @@ export async function GET(request: Request) {
         prevExpenseStats,
         recentTripsData,
         maintenanceData,
-        weeklyStats
+        weeklyStats,
+        currentTotalKm,
+        prevTotalKm
       ] = await Promise.all([
         // Current Month Total Revenue
         tx.trip.aggregate({
@@ -117,7 +152,12 @@ export async function GET(request: Request) {
         }),
         // Maintenance Data
         tx.maintenance.findMany({
-          where: { executionDate: null },
+          where: { 
+            executionDate: null,
+            vehicle: {
+              status: 'ACTIVE'
+            }
+          },
           include: {
             vehicle: {
               include: {
@@ -147,7 +187,11 @@ export async function GET(request: Request) {
             revenue: rev._sum.value || 0,
             expenses: exp._sum.value || 0
           };
-        }))
+        })),
+        // Current Total KM
+        calculateTotalKm(startDate, endDate),
+        // Previous Total KM
+        calculateTotalKm(prevStartDate, prevEndDate)
       ]);
 
       return {
@@ -160,6 +204,8 @@ export async function GET(request: Request) {
         recentTripsData,
         maintenanceData,
         weeklyStats,
+        currentTotalKm,
+        prevTotalKm,
         fullMonthStart,
         fullMonthEnd
       };
@@ -177,6 +223,8 @@ export async function GET(request: Request) {
       recentTripsData,
       maintenanceData,
       weeklyStats,
+      currentTotalKm,
+      prevTotalKm,
       fullMonthStart,
       fullMonthEnd
     } = dashboardData;
@@ -249,6 +297,30 @@ export async function GET(request: Request) {
     const totalRevenue = revenueStats._sum.value || 0;
     const totalExpenses = expenseStats._sum.value || 0;
     const totalTripsCount = revenueStats._count.id || 0;
+    const profit = totalRevenue - totalExpenses;
+
+    const prevRevenue = prevRevenueStats._sum.value || 0;
+    const prevExpensesVal = prevExpenseStats._sum.value || 0;
+    const prevProfit = prevRevenue - prevExpensesVal;
+
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? '+100%' : '0%';
+      const change = ((current - previous) / previous) * 100;
+      return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+    };
+
+    // Calculate Custo Variável KM Rodado
+    const currentCostPerKm = currentTotalKm > 0 ? totalExpenses / currentTotalKm : 0;
+    const prevCostPerKm = prevTotalKm > 0 ? prevExpensesVal / prevTotalKm : 0;
+    
+    const costPerKmChange = calculateChange(currentCostPerKm, prevCostPerKm);
+    const costPerKmTrend = currentCostPerKm <= prevCostPerKm ? 'down' : 'up';
+
+    // Calculate Receita Variável KM Rodado (Profit per KM)
+    const currentProfitPerKm = currentTotalKm > 0 ? profit / currentTotalKm : 0;
+    const prevProfitPerKm = prevTotalKm > 0 ? prevProfit / prevTotalKm : 0;
+    const profitPerKmChange = calculateChange(currentProfitPerKm, prevProfitPerKm);
+    const profitPerKmTrend = currentProfitPerKm >= prevProfitPerKm ? 'up' : 'down';
 
     const revenueBreakdown = revenueByContractor
       .map(r => ({
@@ -268,18 +340,6 @@ export async function GET(request: Request) {
         rawVal: e._sum.value || 0
       }))
       .sort((a, b) => b.rawVal - a.rawVal);
-
-    const profit = totalRevenue - totalExpenses;
-
-    const prevRevenue = prevRevenueStats._sum.value || 0;
-    const prevExpensesVal = prevExpenseStats._sum.value || 0;
-    const prevProfit = prevRevenue - prevExpensesVal;
-
-    const calculateChange = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? '+100%' : '0%';
-      const change = ((current - previous) / previous) * 100;
-      return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
-    };
 
     // Chart data (weekly)
     const chartWeeks = eachWeekOfInterval({ 
@@ -310,7 +370,8 @@ export async function GET(request: Request) {
           color: 'text-primary',
           percentage: null,
           breakdown: revenueBreakdown,
-          totalTrips: totalTripsCount
+          totalTrips: totalTripsCount,
+          totalKm: currentTotalKm
         },
         { 
           label: 'DESPESAS TOTAIS', 
@@ -320,7 +381,12 @@ export async function GET(request: Request) {
           icon: 'Receipt',
           color: 'text-rose-500',
           percentage: calculatePercentage(totalExpenses),
-          breakdown: expenseBreakdown
+          breakdown: expenseBreakdown,
+          costPerKm: {
+            value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentCostPerKm),
+            change: costPerKmChange,
+            trend: costPerKmTrend
+          }
         },
         { 
           label: 'LUCRO FINAL', 
@@ -329,7 +395,12 @@ export async function GET(request: Request) {
           trend: profit >= prevProfit ? 'up' : 'down',
           icon: 'Wallet',
           color: 'text-emerald-500',
-          percentage: calculatePercentage(profit)
+          percentage: calculatePercentage(profit),
+          profitPerKm: {
+            value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentProfitPerKm),
+            change: profitPerKmChange,
+            trend: profitPerKmTrend
+          }
         },
         { 
           label: 'PRÓXIMAS MANUTENÇÕES', 

@@ -1,15 +1,44 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const expenses = await prisma.expense.findMany({
-      include: { vehicle: true },
-      orderBy: { date: 'desc' },
-      take: 100
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '30');
+    const type = searchParams.get('type');
+    const vehicleId = searchParams.get('vehicleId');
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ExpenseWhereInput = {};
+    if (type && type !== 'Todos') {
+      where.type = type;
+    }
+    if (vehicleId && vehicleId !== 'Todos') {
+      where.vehicleId = parseInt(vehicleId);
+    }
+
+    const [expenses, total] = await Promise.all([
+      prisma.expense.findMany({
+        where,
+        include: { vehicle: true },
+        orderBy: { date: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.expense.count({ where })
+    ]);
+
+    return NextResponse.json({ 
+      expenses, 
+      total, 
+      page, 
+      limit, 
+      totalPages: Math.ceil(total / limit) 
     });
-    return NextResponse.json(expenses);
   } catch (error) {
+    console.error('Failed to fetch expenses:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

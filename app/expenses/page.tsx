@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -48,6 +48,12 @@ export default function ExpensesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showValues, setShowValues] = useState(false);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [limit] = useState(30);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -67,18 +73,29 @@ export default function ExpensesPage() {
     vehicleId: 'Todos'
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: limit.toString(),
+        type: filters.type,
+        vehicleId: filters.vehicleId
+      });
+
       const [expRes, vehRes] = await Promise.all([
-        fetch('/api/expenses'),
+        fetch(`/api/expenses?${params.toString()}`),
         fetch('/api/vehicles')
       ]);
       
       if (!expRes.ok) {
         console.error('Expenses API error:', await expRes.text());
       } else {
-        setExpenses(await expRes.json());
+        const data = await expRes.json();
+        setExpenses(data.expenses);
+        setTotalPages(data.totalPages);
+        setTotalRecords(data.total);
       }
 
       if (!vehRes.ok) {
@@ -91,11 +108,11 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, limit, filters.type, filters.vehicleId]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleOpenDrawer = (expense: Expense | null = null) => {
     if (expense) {
@@ -177,12 +194,6 @@ export default function ExpensesPage() {
     return AlertCircle;
   };
 
-  const filteredExpenses = expenses.filter(exp => {
-    const matchesType = filters.type === 'Todos' || exp.type === filters.type;
-    const matchesVehicle = filters.vehicleId === 'Todos' || exp.vehicleId?.toString() === filters.vehicleId;
-    return matchesType && matchesVehicle;
-  });
-
   return (
     <AppLayout>
       <Header 
@@ -214,7 +225,10 @@ export default function ExpensesPage() {
                 <select 
                   className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
                   value={filters.type}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                  onChange={(e) => {
+                    setFilters({ ...filters, type: e.target.value });
+                    setCurrentPage(1);
+                  }}
                 >
                   <option value="Todos">Todos os Tipos</option>
                   <option value="Combustível">Combustível</option>
@@ -234,7 +248,10 @@ export default function ExpensesPage() {
                 <select 
                   className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
                   value={filters.vehicleId}
-                  onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
+                  onChange={(e) => {
+                    setFilters({ ...filters, vehicleId: e.target.value });
+                    setCurrentPage(1);
+                  }}
                 >
                   <option value="Todos">Todos os Veículos</option>
                   {vehicles.map(v => (
@@ -258,7 +275,10 @@ export default function ExpensesPage() {
             
             <div className="ml-auto self-end">
               <button 
-                onClick={() => setFilters({ type: 'Todos', vehicleId: 'Todos' })}
+                onClick={() => {
+                  setFilters({ type: 'Todos', vehicleId: 'Todos' });
+                  setCurrentPage(1);
+                }}
                 className="text-xs font-bold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
               >
                 Limpar Filtros
@@ -289,13 +309,13 @@ export default function ExpensesPage() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredExpenses.length === 0 ? (
+                ) : expenses.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
                       Nenhuma despesa encontrada com os filtros selecionados.
                     </td>
                   </tr>
-                ) : filteredExpenses.map((exp, i) => {
+                ) : expenses.map((exp, i) => {
                   const Icon = getIcon(exp.type);
                   return (
                     <tr key={exp.id || i} className="hover:bg-white/5 transition-colors">
@@ -364,13 +384,25 @@ export default function ExpensesPage() {
             </table>
             
             <div className="px-6 py-4 bg-background-dark/30 flex items-center justify-between">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mostrando 4 de 24 registros</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                Mostrando {expenses.length} de {totalRecords} registros
+              </p>
               <div className="flex items-center gap-2">
-                <button className="p-1.5 rounded bg-surface-dark border border-border-dark text-slate-500 hover:text-primary transition-colors">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded bg-surface-dark border border-border-dark text-slate-500 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-bold text-primary px-2">1</span>
-                <button className="p-1.5 rounded bg-surface-dark border border-border-dark text-slate-500 hover:text-primary transition-colors">
+                <span className="text-xs font-bold text-primary px-2">
+                  Página {currentPage} de {totalPages || 1}
+                </span>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded bg-surface-dark border border-border-dark text-slate-500 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
