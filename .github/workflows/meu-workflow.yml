@@ -14,7 +14,7 @@ jobs:
 
     - name: Install PostgreSQL Client 17
         run: |
-          # 1. Instalar dependências básicas
+          # 1. Instalar dependências básicas.
           sudo apt-get update
           sudo apt-get install -y curl ca-certificates gnupg
           
