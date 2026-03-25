@@ -12,12 +12,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL Client 17
+    - name: Install PostgreSQL Client 17
         run: |
+          # 1. Instalar dependências básicas
           sudo apt-get update
-          sudo apt-get install -y wget lsb-release
-          sudo sh -c 'echo "deb http://apt.postgresql.org $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget --quiet -O - https://www.postgresql.org | sudo apt-key add -
+          sudo apt-get install -y curl ca-certificates gnupg
+          
+          # 2. Adicionar a chave GPG do PostgreSQL no formato moderno (.gpg)
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg --fail https://www.postgresql.org
+          
+          # 3. Adicionar o repositório apontando para a chave baixada
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] http://apt.postgresql.org $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          
+          # 4. Atualizar e instalar a versão 17
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
 
