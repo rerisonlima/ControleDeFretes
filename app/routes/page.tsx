@@ -3,7 +3,6 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
 import { logoutAction } from '@/app/actions/auth';
 import { 
   Search, 
@@ -18,7 +17,6 @@ import {
   DollarSign,
   Copy,
   Receipt,
-  Fuel,
   Loader2,
   Gauge,
   ChevronLeft,
@@ -79,6 +77,11 @@ interface Trip {
   route?: { destination: string };
 }
 
+interface Route {
+  id: number;
+  destination: string;
+}
+
 interface Vehicle {
   id: number;
   plate: string;
@@ -118,6 +121,7 @@ export default function RoutesPage() {
   const [paymentFilter, setPaymentFilter] = React.useState('all');
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [trips, setTrips] = React.useState<Trip[]>([]);
+  const [routes, setRoutes] = React.useState<Route[]>([]);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
@@ -131,7 +135,7 @@ export default function RoutesPage() {
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
-  const { toast, showToast, hideToast } = useToast();
+  const [showSuccess, setShowSuccess] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -152,57 +156,6 @@ export default function RoutesPage() {
     }, 50);
   };
 
-  const handleOpenDrawer = React.useCallback((trip: Trip | null = null, shouldOpen = true) => {
-    if (trip) {
-      setSelectedTrip(trip);
-      setFormData({
-        tripId: trip.tripId,
-        routeId: trip.routeId?.toString() || '',
-        freteId: trip.freteId?.toString() || '',
-        contratanteId: trip.contratanteId?.toString() || '',
-        vehicleId: trip.vehicleId.toString(),
-        driverId: trip.driverId.toString(),
-        helperId: trip.helperId?.toString() || '',
-        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : '',
-        value: trip.value?.toString() || '',
-        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
-        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
-        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
-        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
-        status: trip.status,
-        paid: trip.paid || 'não',
-        contract: trip.contract || '',
-        odometer: trip.odometer?.toString() || '',
-        romaneio: trip.romaneio || '',
-        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
-      });
-    } else {
-      setSelectedTrip(null);
-      setFormData({
-        tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
-        routeId: '',
-        freteId: '',
-        contratanteId: '',
-        vehicleId: '',
-        driverId: '',
-        helperId: '',
-        scheduledAt: format(new Date(), 'yyyy-MM-dd'),
-        value: '',
-        valor1aViagemMotorista: '',
-        valor2aViagemMotorista: '',
-        valor1aViagemAjudante: '',
-        valor2aViagemAjudante: '',
-        status: 'SCHEDULED',
-        paid: 'não',
-        contract: '',
-        odometer: '',
-        romaneio: '',
-        paymentDate: ''
-      });
-    }
-    if (shouldOpen) setIsDrawerOpen(true);
-  }, []);
-
   React.useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -211,7 +164,7 @@ export default function RoutesPage() {
           const data = await res.json();
           setUser(data);
           if (data.role === 'OPERATOR') {
-            handleOpenDrawer(null, false);
+            handleOpenDrawer();
           }
         }
       } catch (error) {
@@ -230,7 +183,7 @@ export default function RoutesPage() {
       }
     };
     fetchIp();
-  }, [handleOpenDrawer]);
+  }, []);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -268,20 +221,6 @@ export default function RoutesPage() {
 
   const renderFormContent = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-center p-4 mb-4">
-        <button 
-          onClick={() => window.location.href = '/expenses?type=COMBUSTIVEL'}
-          className="flex flex-col items-center gap-1 group transition-all hover:scale-105"
-        >
-          <div className="p-3 bg-orange-500/10 rounded-xl border border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/40 transition-all">
-            <Fuel className="w-8 h-8 text-orange-500" />
-          </div>
-          <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest text-center">
-            informar<br />despesas
-          </span>
-        </button>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
@@ -607,9 +546,9 @@ export default function RoutesPage() {
 
   React.useEffect(() => {
     if (user?.role === 'OPERATOR' && !formData.tripId) {
-      handleOpenDrawer(null, false);
+      handleOpenDrawer();
     }
-  }, [user, formData.tripId, handleOpenDrawer]);
+  }, [user, formData.tripId]);
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -658,6 +597,57 @@ export default function RoutesPage() {
     fetchData();
   }, [fetchData]);
 
+  const handleOpenDrawer = (trip: Trip | null = null) => {
+    if (trip) {
+      setSelectedTrip(trip);
+      setFormData({
+        tripId: trip.tripId,
+        routeId: trip.routeId?.toString() || '',
+        freteId: trip.freteId?.toString() || '',
+        contratanteId: trip.contratanteId?.toString() || '',
+        vehicleId: trip.vehicleId.toString(),
+        driverId: trip.driverId.toString(),
+        helperId: trip.helperId?.toString() || '',
+        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : '',
+        value: trip.value?.toString() || '',
+        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
+        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
+        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
+        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
+        status: trip.status,
+        paid: trip.paid || 'não',
+        contract: trip.contract || '',
+        odometer: trip.odometer?.toString() || '',
+        romaneio: trip.romaneio || '',
+        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
+      });
+    } else {
+      setSelectedTrip(null);
+      setFormData({
+        tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
+        routeId: '',
+        freteId: '',
+        contratanteId: '',
+        vehicleId: '',
+        driverId: '',
+        helperId: '',
+        scheduledAt: format(new Date(), 'yyyy-MM-dd'),
+        value: '',
+        valor1aViagemMotorista: '',
+        valor2aViagemMotorista: '',
+        valor1aViagemAjudante: '',
+        valor2aViagemAjudante: '',
+        status: 'SCHEDULED',
+        paid: 'não',
+        contract: '',
+        odometer: '',
+        romaneio: '',
+        paymentDate: ''
+      });
+    }
+    setIsDrawerOpen(true);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -672,30 +662,32 @@ export default function RoutesPage() {
 
       if (response.ok) {
         if (user?.role === 'OPERATOR') {
-          showToast('Viagem cadastrada com sucesso!', 'success');
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
-          handleOpenDrawer(null, false);
+          handleOpenDrawer();
           // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
             vehicleIdRef.current?.focus();
           }, 100);
         } else {
           setIsDrawerOpen(false);
-          showToast(selectedTrip ? 'Viagem atualizada!' : 'Viagem cadastrada!', 'success');
           fetchData();
         }
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const error = await response.json();
-          showToast(error.error || 'Erro ao salvar viagem', 'error');
+          alert(error.error || 'Erro ao salvar viagem');
         } else {
-          showToast('Erro no servidor ao salvar viagem', 'error');
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao salvar viagem');
         }
       }
     } catch (error) {
       console.error('Save error:', error);
-      showToast('Erro de conexão ao salvar', 'error');
+      alert('Erro de conexão ao salvar');
     } finally {
       setIsSaving(false);
     }
@@ -708,20 +700,21 @@ export default function RoutesPage() {
       const contentType = response.headers.get("content-type");
       if (response.ok) {
         setDeleteConfirmId(null);
-        showToast('Viagem excluída com sucesso!', 'success');
         fetchData();
       } else {
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const data = await response.json();
-          showToast(data.error || 'Erro ao excluir viagem', 'error');
+          alert(data.error || 'Erro ao excluir viagem');
         } else {
-          showToast('Erro no servidor ao excluir viagem', 'error');
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao excluir viagem');
         }
         setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      showToast('Erro de conexão ao excluir', 'error');
+      alert('Erro de conexão ao excluir');
     }
   };
 
@@ -762,21 +755,23 @@ export default function RoutesPage() {
       if (response.ok) {
         console.log('Clone successful');
         setCloneConfirmId(null);
-        showToast('Viagem clonada com sucesso!', 'success');
         fetchData();
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const error = await response.json();
-          showToast(error.details || error.error || 'Erro ao clonar viagem', 'error');
+          console.error('Clone failed:', error);
+          alert(error.details || error.error || 'Erro ao clonar viagem');
         } else {
-          showToast('Erro no servidor ao clonar viagem', 'error');
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          alert('Erro no servidor ao clonar viagem');
         }
         setCloneConfirmId(null);
       }
     } catch (error) {
       console.error('Clone error:', error);
-      showToast('Erro de conexão ao clonar', 'error');
+      alert('Erro de conexão ao clonar');
       setCloneConfirmId(null);
     }
   };
@@ -821,6 +816,21 @@ export default function RoutesPage() {
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
+              <div className="mb-6 flex flex-col items-center gap-1">
+                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                  Usuário: {user?.name}
+                </p>
+                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                  IP: {userIp}
+                </p>
+              </div>
+              {showSuccess && (
+                <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300 flex items-center justify-center gap-3">
+                  <Truck className="w-5 h-5" />
+                  VIAGEM CADASTRADA COM SUCESSO
+                </div>
+              )}
+              
               <div className="bg-surface-dark border border-border-dark rounded-2xl p-6 md:p-8 shadow-xl space-y-8">
                 {/* Form Content for Operator */}
                 {renderFormContent()}
@@ -1154,6 +1164,23 @@ export default function RoutesPage() {
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
+                {isOperator && (
+                  <div className="mt-4 space-y-1">
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                      Usuário: {user?.name}
+                    </p>
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                      IP: {userIp}
+                    </p>
+                    {showSuccess && (
+                      <div className="bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Viagem cadastrada com sucesso!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {!isOperator && (
                 <button 
@@ -1203,12 +1230,6 @@ export default function RoutesPage() {
           </aside>
         </div>
       )}
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

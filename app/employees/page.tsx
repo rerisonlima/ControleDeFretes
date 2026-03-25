@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
 import { 
+  Search, 
   Download, 
   Edit, 
   ChevronLeft, 
@@ -36,7 +36,6 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
   
   // Form State
   const [formData, setFormData] = useState({
@@ -116,7 +115,7 @@ export default function EmployeesPage() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.role) {
-      showToast('Por favor, preencha o nome e a função.', 'error');
+      alert('Por favor, preencha o nome e a função.');
       return;
     }
 
@@ -134,15 +133,14 @@ export default function EmployeesPage() {
 
       if (res.ok) {
         setIsDrawerOpen(false);
-        showToast(formData.id ? 'Funcionário atualizado!' : 'Funcionário cadastrado!', 'success');
         fetchEmployees();
       } else {
         const error = await res.json();
-        showToast(error.error || 'Erro ao salvar funcionário', 'error');
+        alert(error.error || 'Erro ao salvar funcionário');
       }
     } catch (error) {
       console.error('Error saving employee:', error);
-      showToast('Erro de conexão ao salvar funcionário', 'error');
+      alert('Erro de conexão ao salvar funcionário');
     } finally {
       setIsSaving(false);
     }
@@ -390,12 +388,6 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

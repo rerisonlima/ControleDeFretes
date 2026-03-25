@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
 import { 
   Search, 
+  Filter, 
   Truck, 
   Edit, 
   ChevronLeft, 
@@ -59,7 +59,6 @@ export default function VehiclesPage() {
   const [isMaintenanceBtnClicked, setIsMaintenanceBtnClicked] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showInactive, setShowInactive] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
   
   // Form State
   const [formData, setFormData] = useState({
@@ -208,7 +207,7 @@ export default function VehiclesPage() {
   const handleSave = async () => {
     if (!formData.plate || !formData.brand || !formData.model || !formData.categoriaId) {
       setShowErrors(true);
-      showToast('Por favor, preencha todos os campos obrigatórios.', 'error');
+      alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
@@ -217,7 +216,7 @@ export default function VehiclesPage() {
     for (const m of formData.maintenances) {
       if (!m.type || !m.odometer) {
         setShowErrors(true);
-        showToast('Por favor, preencha o tipo e o odômetro da manutenção.', 'error');
+        alert('Por favor, preencha o tipo e o odômetro da manutenção.');
         return;
       }
 
@@ -227,7 +226,7 @@ export default function VehiclesPage() {
         const match = m.executionDate.match(dateRegex);
         
         if (!match) {
-          showToast(`Data de execução inválida: ${m.executionDate}. Use o formato DD/MM/AAAA.`, 'error');
+          alert(`Data de execução inválida: ${m.executionDate}. Use o formato DD/MM/AAAA.`);
           return;
         }
 
@@ -237,7 +236,7 @@ export default function VehiclesPage() {
         
         const date = new Date(year, month - 1, day);
         if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-          showToast(`Data de execução inválida: ${m.executionDate}.`, 'error');
+          alert(`Data de execução inválida: ${m.executionDate}.`);
           return;
         }
         formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -269,15 +268,14 @@ export default function VehiclesPage() {
 
       if (res.ok) {
         setIsDrawerOpen(false);
-        showToast(selectedVehicle ? 'Veículo atualizado!' : 'Veículo cadastrado!', 'success');
         fetchVehicles();
       } else {
         const errorData = await res.json();
-        showToast(`${errorData.error || 'Erro ao salvar veículo'}${errorData.details ? ': ' + errorData.details : ''}`, 'error');
+        alert(`${errorData.error || 'Erro ao salvar veículo'}${errorData.details ? ': ' + errorData.details : ''}`);
       }
     } catch (error) {
       console.error('Error saving vehicle:', error);
-      showToast('Erro de conexão ao salvar veículo', 'error');
+      alert('Erro de conexão ao salvar veículo');
     } finally {
       setIsSaving(false);
     }
@@ -708,12 +706,6 @@ export default function VehiclesPage() {
           </div>
         </div>
       )}
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

@@ -9,15 +9,9 @@ interface HeaderProps {
   actionLabel?: string;
   onAction?: () => void;
   onLogout?: () => void;
-  secondaryAction?: {
-    label: string;
-    icon: React.ElementType;
-    onClick: () => void;
-    className?: string;
-  };
 }
 
-export function Header({ title, icon: Icon, actionLabel, onAction, onLogout, secondaryAction }: HeaderProps) {
+export function Header({ title, icon: Icon, actionLabel, onAction, onLogout }: HeaderProps) {
   return (
     <header className="h-16 border-b border-border-dark bg-[#1c1814] px-8 flex items-center justify-between z-[999] sticky top-0 shadow-xl">
       <div className="flex items-center gap-3">
@@ -29,16 +23,6 @@ export function Header({ title, icon: Icon, actionLabel, onAction, onLogout, sec
         <h2 className="text-base font-bold text-white tracking-tight">{title}</h2>
       </div>
       <div className="flex items-center gap-4">
-        {secondaryAction && (
-          <button 
-            onClick={secondaryAction.onClick}
-            className={secondaryAction.className || "flex items-center gap-2 px-3 py-2 bg-orange-500/10 border border-orange-500/20 text-orange-500 hover:bg-orange-500/20 rounded-lg transition-all text-xs font-bold uppercase tracking-wider"}
-          >
-            <secondaryAction.icon className="w-4 h-4" />
-            <span>{secondaryAction.label}</span>
-          </button>
-        )}
-
         {onLogout && (
           <button 
             onClick={onLogout}

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -27,10 +29,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json(frete);
   } catch (error) {
     console.error('Failed to update frete:', error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Frete não encontrado' }, { status: 404 });
-    }
     return NextResponse.json({ error: 'Failed to update frete' }, { status: 500 });
   }
 }
@@ -58,10 +56,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Failed to delete frete:', error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Frete não encontrado' }, { status: 404 });
-    }
     return NextResponse.json({ 
       error: 'Erro ao excluir frete',
       details: error instanceof Error ? error.message : 'Unknown error'

@@ -23,10 +23,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json(expense);
   } catch (error) {
     console.error('Failed to update expense:', error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Despesa não encontrada' }, { status: 404 });
-    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -47,10 +43,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete expense:', error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Despesa não encontrada' }, { status: 404 });
-    }
-    return NextResponse.json({ error: 'Erro ao excluir despesa' }, { status: 500 });
+    // If the record doesn't exist, Prisma might throw an error.
+    // We can handle it gracefully.
+    return NextResponse.json({ error: 'Erro ao excluir despesa ou registro não encontrado' }, { status: 500 });
   }
 }

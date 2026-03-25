@@ -49,10 +49,8 @@ export default function PaymentsPage() {
 
   // Group trips by day for the "Detalhamento Diário" table
   const dailyDetails = React.useMemo(() => {
+    // Let's refine the calculation to match the logic in weeklyPayments
     const tripsByDay: Record<string, Trip[]> = {};
-    
-    if (!Array.isArray(trips)) return [];
-
     trips.forEach(trip => {
       if (trip.vehicleId.toString() !== selectedVehicleId) return;
       const tripDate = new Date(trip.scheduledAt);
@@ -109,43 +107,34 @@ export default function PaymentsPage() {
     return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [trips, selectedVehicleId, selectedMonth]);
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const [year, month] = selectedMonth.split('-');
-      const [tripsRes, vehiclesRes] = await Promise.all([
-        fetch(`/api/trips?month=${month}&year=${year}&limit=1000`),
-        fetch('/api/vehicles')
-      ]);
-      const tripsData = await tripsRes.json();
-      const vehiclesData = await vehiclesRes.json();
-      
-      const tripsArray = Array.isArray(tripsData) ? tripsData : (Array.isArray(tripsData?.trips) ? tripsData.trips : []);
-      const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : (Array.isArray(vehiclesData?.vehicles) ? vehiclesData.vehicles : []);
-      
-      setTrips(tripsArray);
-      setVehicles(vehiclesArray);
-      
-      if (vehiclesArray.length > 0 && !selectedVehicleId) {
-        setSelectedVehicleId(vehiclesArray[0].id.toString());
-      }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth, selectedVehicleId]);
-
   React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tripsRes, vehiclesRes] = await Promise.all([
+          fetch('/api/trips'),
+          fetch('/api/vehicles')
+        ]);
+        const tripsData = await tripsRes.json();
+        const vehiclesData = await vehiclesRes.json();
+        
+        setTrips(tripsData);
+        setVehicles(vehiclesData);
+        if (vehiclesData.length > 0) {
+          setSelectedVehicleId(vehiclesData[0].id.toString());
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
-  }, [fetchData]);
+  }, []);
 
   // Calculate weekly payments for the selected vehicle
   const weeklyPayments = React.useMemo(() => {
     const payments: Record<string, { driver: number, helper: number, start: Date, end: Date }> = {};
     
-    if (!Array.isArray(trips)) return [];
-
     // Initialize payments with all weeks of the selected month
     if (selectedMonth) {
       const monthDate = parse(selectedMonth, 'yyyy-MM', new Date());

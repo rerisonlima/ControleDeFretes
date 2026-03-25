@@ -60,67 +60,29 @@ export async function GET(request: Request) {
           _min: { odometer: true }
         });
 
-        if (tripsInPeriod.length === 0) return 0;
-
-        const vehicleIds = tripsInPeriod.map(g => g.vehicleId);
-        
-        // Fetch last odometer before start for all vehicles in parallel
-        const lastTripsBefore = await Promise.all(vehicleIds.map(vId => 
-          tx.trip.findFirst({
+        let totalKm = 0;
+        for (const group of tripsInPeriod) {
+          const vehicleId = group.vehicleId;
+          const maxOdo = group._max.odometer || 0;
+          
+          const lastTripBefore = await tx.trip.findFirst({
             where: { 
-              vehicleId: vId, 
+              vehicleId: vehicleId, 
               scheduledAt: { lt: start }, 
               odometer: { not: null } 
             },
             orderBy: { scheduledAt: 'desc' },
-            select: { vehicleId: true, odometer: true }
-          })
-        ));
+            select: { odometer: true }
+          });
 
-        const lastTripMap = new Map();
-        lastTripsBefore.forEach(t => {
-          if (t && t.odometer !== null) {
-            lastTripMap.set(t.vehicleId, t.odometer);
-          }
-        });
-
-        let totalKm = 0;
-        for (const group of tripsInPeriod) {
-          const maxOdo = group._max.odometer || 0;
-          const lastOdo = lastTripMap.get(group.vehicleId);
-
-          if (lastOdo !== undefined) {
-            totalKm += (maxOdo - lastOdo);
+          if (lastTripBefore && lastTripBefore.odometer !== null) {
+            totalKm += (maxOdo - lastTripBefore.odometer);
           } else {
             totalKm += (maxOdo - (group._min.odometer || 0));
           }
         }
         return totalKm;
       };
-
-      // Fetch all trips and expenses for the month to calculate weekly stats in memory
-      const [allMonthTrips, allMonthExpenses] = await Promise.all([
-        tx.trip.findMany({
-          where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-          select: { value: true, scheduledAt: true }
-        }),
-        tx.expense.findMany({
-          where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
-          select: { value: true, date: true }
-        })
-      ]);
-
-      const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
-      const weeklyStats = weeks.map(weekStart => {
-        const weekEnd = endOfWeek(weekStart);
-        const revenue = allMonthTrips
-          .filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
-          .reduce((sum, t) => sum + (t.value || 0), 0);
-        const expenses = allMonthExpenses
-          .filter(e => e.date >= weekStart && e.date <= weekEnd)
-          .reduce((sum, e) => sum + (e.value || 0), 0);
-        return { revenue, expenses };
-      });
 
       const [
         revenueStats,
@@ -131,6 +93,7 @@ export async function GET(request: Request) {
         prevExpenseStats,
         recentTripsData,
         maintenanceData,
+        weeklyStats,
         currentTotalKm,
         prevTotalKm
       ] = await Promise.all([
@@ -207,6 +170,24 @@ export async function GET(request: Request) {
             }
           }
         }),
+        // Weekly Stats for Chart
+        Promise.all(eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd }).map(async (weekStart) => {
+          const weekEnd = endOfWeek(weekStart);
+          const [rev, exp] = await Promise.all([
+            tx.trip.aggregate({
+              where: { scheduledAt: { gte: weekStart, lte: weekEnd } },
+              _sum: { value: true }
+            }),
+            tx.expense.aggregate({
+              where: { date: { gte: weekStart, lte: weekEnd } },
+              _sum: { value: true }
+            })
+          ]);
+          return {
+            revenue: rev._sum.value || 0,
+            expenses: exp._sum.value || 0
+          };
+        })),
         // Current Total KM
         calculateTotalKm(startDate, endDate),
         // Previous Total KM
