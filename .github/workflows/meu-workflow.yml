@@ -1,3 +1,17 @@
+name: Daily Supabase Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Permite rodar manualmente
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install PostgreSQL Client 17
         run: |
           sudo apt-get update
@@ -5,36 +19,19 @@
 
       - name: Run backup
         run: |
-          # Use o pg_dump 17 especificamente
-          /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.SUPABASE_DB_URL }}" -F c -f backup.dump
-
-
-name: Daily Supabase Backup
-
-on:
-  schedule:
-    # Executa todo dia às 03:00 UTC
-    - cron: '0 3 * * *'
-  workflow_dispatch: # Permite execução manual.
-
-jobs:
-  backup:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install PostgreSQL Client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      - name: Run pg_dump
-        run: |
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" -F c -f backup.dump
+          # Remove parâmetros como ?pgbouncer=true da URL antes de rodar
+          CLEAN_URL=$(echo "${{ secrets.SUPABASE_DB_URL }}" | cut -d'?' -f1)
+          /usr/lib/postgresql/17/bin/pg_dump "$CLEAN_URL" -F c -f backup.dump
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }} # Caso sua URL não tenha a senha embutida
 
       - name: Upload Backup Artifact
+        uses: actions/setup-node@v4 # Exemplo de passo extra para salvar o arquivo
+        with:
+          node-version: '20'
+      
+      - name: Save file
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-backup-${{ github.run_id }}
+          name: supabase-backup
           path: backup.dump
-          retention-days: 7 # Mantém o backup por 7 dias
