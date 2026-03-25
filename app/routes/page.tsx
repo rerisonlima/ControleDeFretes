@@ -18,6 +18,7 @@ import {
   DollarSign,
   Copy,
   Receipt,
+  Fuel,
   Loader2,
   Gauge,
   ChevronLeft,
@@ -151,7 +152,7 @@ export default function RoutesPage() {
     }, 50);
   };
 
-  const handleOpenDrawer = React.useCallback((trip: Trip | null = null) => {
+  const handleOpenDrawer = React.useCallback((trip: Trip | null = null, shouldOpen = true) => {
     if (trip) {
       setSelectedTrip(trip);
       setFormData({
@@ -199,7 +200,7 @@ export default function RoutesPage() {
         paymentDate: ''
       });
     }
-    setIsDrawerOpen(true);
+    if (shouldOpen) setIsDrawerOpen(true);
   }, []);
 
   React.useEffect(() => {
@@ -210,7 +211,7 @@ export default function RoutesPage() {
           const data = await res.json();
           setUser(data);
           if (data.role === 'OPERATOR') {
-            handleOpenDrawer();
+            handleOpenDrawer(null, false);
           }
         }
       } catch (error) {
@@ -267,6 +268,20 @@ export default function RoutesPage() {
 
   const renderFormContent = () => (
     <div className="space-y-6">
+      <div className="flex items-center justify-center p-4 mb-4">
+        <button 
+          onClick={() => window.location.href = '/expenses?type=COMBUSTIVEL'}
+          className="flex flex-col items-center gap-1 group transition-all hover:scale-105"
+        >
+          <div className="p-3 bg-orange-500/10 rounded-xl border border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/40 transition-all">
+            <Fuel className="w-8 h-8 text-orange-500" />
+          </div>
+          <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest text-center">
+            informar<br />despesas
+          </span>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
@@ -592,7 +607,7 @@ export default function RoutesPage() {
 
   React.useEffect(() => {
     if (user?.role === 'OPERATOR' && !formData.tripId) {
-      handleOpenDrawer();
+      handleOpenDrawer(null, false);
     }
   }, [user, formData.tripId, handleOpenDrawer]);
 
@@ -659,7 +674,7 @@ export default function RoutesPage() {
         if (user?.role === 'OPERATOR') {
           showToast('Viagem cadastrada com sucesso!', 'success');
           // Reset form for next entry
-          handleOpenDrawer();
+          handleOpenDrawer(null, false);
           // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
             vehicleIdRef.current?.focus();
@@ -806,15 +821,6 @@ export default function RoutesPage() {
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
-              <div className="mb-6 flex flex-col items-center gap-1">
-                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                  Usuário: {user?.name}
-                </p>
-                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                  IP: {userIp}
-                </p>
-              </div>
-              
               <div className="bg-surface-dark border border-border-dark rounded-2xl p-6 md:p-8 shadow-xl space-y-8">
                 {/* Form Content for Operator */}
                 {renderFormContent()}
@@ -1148,16 +1154,6 @@ export default function RoutesPage() {
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
-                {isOperator && (
-                  <div className="mt-4 space-y-1">
-                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                      Usuário: {user?.name}
-                    </p>
-                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                      IP: {userIp}
-                    </p>
-                  </div>
-                )}
               </div>
               {!isOperator && (
                 <button 

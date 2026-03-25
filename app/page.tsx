@@ -13,6 +13,7 @@ import {
   Receipt, 
   Wallet,
   Navigation,
+  Fuel,
   MoreVertical,
   Calendar,
   Truck,
@@ -213,7 +214,7 @@ export default function Dashboard() {
       setDashboardData(data);
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
-      if (!error) setError('Falha ao conectar com o servidor. Verifique sua conexão.');
+      setError(error instanceof Error ? error.message : 'Falha ao conectar com o servidor. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
