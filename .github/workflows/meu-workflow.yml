@@ -1,3 +1,14 @@
+      - name: Install PostgreSQL Client 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+
+      - name: Run backup
+        run: |
+          # Use o pg_dump 17 especificamente
+          /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.SUPABASE_DB_URL }}" -F c -f backup.dump
+
+
 name: Daily Supabase Backup
 
 on:
