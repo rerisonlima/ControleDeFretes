@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { Toast, useToast } from '@/components/Toast';
 import { 
   Search, 
   Edit, 
@@ -33,6 +34,7 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { toast, showToast, hideToast } = useToast();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -68,7 +70,7 @@ export default function UsersPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.username || (!selectedUser && !formData.password)) {
-      alert('Por favor, preencha todos os campos.');
+      showToast('Por favor, preencha todos os campos.', 'error');
       return;
     }
 
@@ -93,14 +95,15 @@ export default function UsersPage() {
           password: '',
           role: 'OPERATOR'
         });
+        showToast(selectedUser ? 'Usuário atualizado!' : 'Usuário cadastrado!', 'success');
         fetchUsers();
       } else {
         const error = await res.json();
-        alert(error.error || 'Erro ao salvar usuário');
+        showToast(error.error || 'Erro ao salvar usuário', 'error');
       }
     } catch (error) {
       console.error('Error saving user:', error);
-      alert('Erro de conexão ao salvar usuário');
+      showToast('Erro de conexão ao salvar usuário', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -127,14 +130,15 @@ export default function UsersPage() {
       });
 
       if (res.ok) {
+        showToast('Usuário excluído com sucesso!', 'success');
         fetchUsers();
       } else {
         const error = await res.json();
-        alert(error.error || 'Erro ao excluir usuário');
+        showToast(error.error || 'Erro ao excluir usuário', 'error');
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Erro de conexão ao excluir usuário');
+      showToast('Erro de conexão ao excluir usuário', 'error');
     }
   };
 
@@ -405,6 +409,12 @@ export default function UsersPage() {
           </aside>
         )}
       </div>
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
+      />
     </AppLayout>
   );
 }

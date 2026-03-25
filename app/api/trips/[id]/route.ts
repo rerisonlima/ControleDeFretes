@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -7,6 +8,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     console.log('Updating trip with body:', body);
     const id = parseInt(idStr);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
+
     const trip = await prisma.trip.update({
       where: { id },
       data: {
@@ -41,6 +47,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
     return NextResponse.json(trip);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Viagem não encontrada' }, { status: 404 });
+      }
+    }
     console.error('Failed to update trip:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -50,6 +61,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   try {
     const { id: idStr } = await params;
     const id = parseInt(idStr);
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
     
     await prisma.trip.delete({
       where: { id }
@@ -57,6 +72,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Viagem não encontrada ou já excluída' }, { status: 404 });
+      }
+    }
     console.error('Failed to delete trip:', error);
     return NextResponse.json({ 
       error: 'Erro ao excluir viagem', 

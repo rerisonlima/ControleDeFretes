@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import Link from 'next/link';
 import { 
   Calendar, 
   ChevronDown, 
@@ -20,7 +21,8 @@ import {
   Trash2,
   Ticket,
   Eye,
-  EyeOff
+  EyeOff,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -73,6 +75,8 @@ export default function ExpensesPage() {
     vehicleId: 'Todos'
   });
 
+  const [user, setUser] = useState<{ name: string; role: string; username: string } | null>(null);
+
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -113,6 +117,26 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+          if (data.role === 'OPERATOR') {
+            handleOpenDrawer();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      }
+    };
+    fetchSession();
+  }, []);
+
+  const isOperator = user?.role === 'OPERATOR';
 
   const handleOpenDrawer = (expense: Expense | null = null) => {
     if (expense) {
@@ -429,6 +453,20 @@ export default function ExpensesPage() {
             </div>
             
             <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">
+              {isOperator && (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-primary">Precisa lançar uma viagem?</span>
+                  </div>
+                  <Link 
+                    href="/routes" 
+                    className="text-xs font-bold bg-primary text-background-dark px-3 py-1.5 rounded hover:bg-primary/90 transition-all"
+                  >
+                    Ir para Viagens
+                  </Link>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Despesa</label>
                 <div className="relative">

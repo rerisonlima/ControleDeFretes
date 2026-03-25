@@ -4,6 +4,7 @@ import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { logoutAction } from '@/app/actions/auth';
+import Link from 'next/link';
 import { 
   Search, 
   MapPin, 
@@ -221,6 +222,20 @@ export default function RoutesPage() {
 
   const renderFormContent = () => (
     <div className="space-y-6">
+      {isOperator && (
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-primary" />
+            <span className="text-sm font-bold text-primary">Precisa lançar uma despesa?</span>
+          </div>
+          <Link 
+            href="/expenses" 
+            className="text-xs font-bold bg-primary text-background-dark px-3 py-1.5 rounded hover:bg-primary/90 transition-all"
+          >
+            Ir para Despesas
+          </Link>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
