@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { Toast, useToast } from '@/components/Toast';
 import { 
   Calendar, 
   ChevronDown, 
@@ -48,6 +49,7 @@ export default function ExpensesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showValues, setShowValues] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,10 +159,15 @@ export default function ExpensesPage() {
 
       if (res.ok) {
         setIsDrawerOpen(false);
+        showToast(selectedExpense ? 'Despesa atualizada!' : 'Despesa cadastrada!', 'success');
         fetchData();
+      } else {
+        const error = await res.json();
+        showToast(error.error || 'Erro ao salvar despesa', 'error');
       }
     } catch (error) {
       console.error('Error saving expense:', error);
+      showToast('Erro de conexão ao salvar', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -174,15 +181,17 @@ export default function ExpensesPage() {
 
       if (res.ok) {
         setDeleteConfirmId(null);
+        showToast('Despesa excluída com sucesso!', 'success');
         fetchData();
       } else {
         const data = await res.json();
-        alert(data.error || 'Erro ao excluir despesa');
+        showToast(data.error || 'Erro ao excluir despesa', 'error');
         setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Error deleting expense:', error);
-      alert('Erro de conexão ao excluir');
+      showToast('Erro de conexão ao excluir', 'error');
+      setDeleteConfirmId(null);
     }
   };
 
@@ -560,12 +569,18 @@ export default function ExpensesPage() {
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {isSaving ? 'Salvando...' : selectedExpense ? 'Atualizar Despesa' : 'Salvar Despesa'}
+                {isSaving ? 'Salvando...' : selectedExpense ? 'Atualizar Despesa' : 'Cadastrar Nova Despesa'}
               </button>
             </div>
           </div>
         </div>
       )}
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
+      />
     </AppLayout>
   );
 }

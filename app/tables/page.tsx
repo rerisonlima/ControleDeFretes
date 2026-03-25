@@ -3,6 +3,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { Toast, useToast } from '@/components/Toast';
 import { 
   Search, 
   MapPin, 
@@ -64,6 +65,7 @@ export default function TablesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const { toast, showToast, hideToast } = useToast();
   const [showValues, setShowValues] = React.useState(false);
 
   // Form state
@@ -157,21 +159,22 @@ export default function TablesPage() {
 
       if (response.ok) {
         setIsDrawerOpen(false);
+        showToast(selectedFrete ? 'Frete atualizado!' : 'Frete cadastrado!', 'success');
         fetchData();
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const error = await response.json();
-          alert(error.error || 'Erro ao salvar frete');
+          showToast(error.error || 'Erro ao salvar frete', 'error');
         } else {
           const text = await response.text();
           console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao salvar frete');
+          showToast('Erro no servidor ao salvar frete', 'error');
         }
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert('Erro de conexão ao salvar');
+      showToast('Erro de conexão ao salvar', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -183,22 +186,23 @@ export default function TablesPage() {
       
       if (response.ok) {
         setDeleteConfirmId(null);
+        showToast('Frete excluído com sucesso!', 'success');
         fetchData();
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const data = await response.json();
-          alert(data.error || 'Erro ao excluir frete');
+          showToast(data.error || 'Erro ao excluir frete', 'error');
         } else {
           const text = await response.text();
           console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao excluir frete');
+          showToast('Erro no servidor ao excluir frete', 'error');
         }
         setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Erro de conexão ao excluir');
+      showToast('Erro de conexão ao excluir', 'error');
       setDeleteConfirmId(null);
     }
   };
@@ -225,22 +229,23 @@ export default function TablesPage() {
 
       if (response.ok) {
         setCloneConfirmId(null);
+        showToast('Frete clonado com sucesso!', 'success');
         fetchData();
       } else {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const error = await response.json();
-          alert(error.error || 'Erro ao clonar frete');
+          showToast(error.error || 'Erro ao clonar frete', 'error');
         } else {
           const text = await response.text();
           console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao clonar frete');
+          showToast('Erro no servidor ao clonar frete', 'error');
         }
         setCloneConfirmId(null);
       }
     } catch (error) {
       console.error('Clone error:', error);
-      alert('Erro de conexão ao clonar');
+      showToast('Erro de conexão ao clonar', 'error');
       setCloneConfirmId(null);
     }
   };
@@ -693,6 +698,12 @@ export default function TablesPage() {
         </div>
       )}
 
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
+      />
     </AppLayout>
   );
 }

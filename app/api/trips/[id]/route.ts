@@ -42,6 +42,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json(trip);
   } catch (error) {
     console.error('Failed to update trip:', error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Viagem não encontrada' }, { status: 404 });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -58,6 +62,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete trip:', error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Viagem não encontrada' }, { status: 404 });
+    }
     return NextResponse.json({ 
       error: 'Erro ao excluir viagem', 
       details: error instanceof Error ? error.message : 'Unknown error' 

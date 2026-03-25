@@ -140,7 +140,7 @@ export async function PUT(
 
       return updatedVehicle;
     });
-
+    
     // Fetch the updated vehicle with its maintenances to return to the client
     const finalVehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
@@ -187,6 +187,10 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Update vehicle error:', error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 });
+    }
     return NextResponse.json({ 
       error: 'Erro ao atualizar veículo', 
       details: error instanceof Error ? error.message : 'Unknown error' 

@@ -204,7 +204,7 @@ export default function Dashboard() {
         try {
           const errorData = JSON.parse(text);
           setError(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
-        } catch (error) {
+        } catch {
           setError(`Erro HTTP: ${response.status}`);
         }
         throw new Error(`HTTP error! status: ${response.status}`);
