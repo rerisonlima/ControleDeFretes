@@ -700,7 +700,12 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      <Toast toast={toast} onHide={hideToast} />
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
+      />
     </AppLayout>
   );
 }
