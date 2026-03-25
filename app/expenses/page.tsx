@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
@@ -44,7 +44,7 @@ interface Expense {
   vehicle: Vehicle | null;
 }
 
-export default function ExpensesPage() {
+function ExpensesContent() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -707,5 +707,19 @@ export default function ExpensesPage() {
         onClose={hideToast} 
       />
     </AppLayout>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={
+      <AppLayout>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </AppLayout>
+    }>
+      <ExpensesContent />
+    </Suspense>
   );
 }
