@@ -15,7 +15,7 @@ on:
   schedule:
     # Executa todo dia às 03:00 UTC
     - cron: '0 3 * * *'
-  workflow_dispatch: # Permite execução manual
+  workflow_dispatch: # Permite execução manual.
 
 jobs:
   backup:
