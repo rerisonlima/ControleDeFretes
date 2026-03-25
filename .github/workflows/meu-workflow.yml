@@ -24,7 +24,7 @@ jobs:
 
       - name: Run backup
         run: |
-          # Remove parâmetros como ?pgbouncer=true da URL antes de rodar
+          # Remove parâmetros como ?pgbouncer=true da URL antes de rodar.
           CLEAN_URL=$(echo "${{ secrets.SUPABASE_DB_URL }}" | cut -d'?' -f1)
           /usr/lib/postgresql/17/bin/pg_dump "$CLEAN_URL" -F c -f backup.dump
         env:
