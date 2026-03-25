@@ -9,8 +9,7 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    env:
-    steps:
+       steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
