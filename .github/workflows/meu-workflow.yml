@@ -14,11 +14,11 @@ jobs:
 
       - name: Install PostgreSQL Client 17
         run: |
+          # Adiciona o repositório e a chave de forma silenciosa e não interativa
           sudo apt-get update
-          sudo apt-get install -y curl ca-certificates gnupg lsb-release
-          sudo install -d /usr/share/postgresql-common/pgdg
-          curl -fsSL https://www.postgresql.org | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] http://apt.postgresql.org $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get install -y curl ca-certificates
+          curl -sS https://www.postgresql.org | gpg --dearmor | sudo tee /usr/share/keyrings/pgdg.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
 
