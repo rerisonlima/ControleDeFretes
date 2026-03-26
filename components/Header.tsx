@@ -37,7 +37,7 @@ export function Header({ title, icon: Icon, actionLabel, actionIcon: ActionIcon,
             <Icon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
           </div>
         )}
-        <h2 className="text-sm md:text-base font-bold text-white tracking-tight truncate max-w-[120px] sm:max-w-none">{title}</h2>
+        <h2 className="text-sm md:text-base font-bold text-white tracking-tight">{title}</h2>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
         {secondaryAction && (
