@@ -8,6 +8,7 @@ interface HeaderProps {
   title: string;
   icon?: React.ElementType;
   actionLabel?: string;
+  actionIcon?: React.ElementType;
   onAction?: () => void;
   onLogout?: () => void;
   onMenuClick?: () => void;
@@ -19,7 +20,7 @@ interface HeaderProps {
   };
 }
 
-export function Header({ title, icon: Icon, actionLabel, onAction, onLogout, onMenuClick, secondaryAction }: HeaderProps) {
+export function Header({ title, icon: Icon, actionLabel, actionIcon: ActionIcon, onAction, onLogout, onMenuClick, secondaryAction }: HeaderProps) {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -66,7 +67,7 @@ export function Header({ title, icon: Icon, actionLabel, onAction, onLogout, onM
             onClick={onAction}
             className="bg-primary hover:bg-primary/90 text-background-dark px-3 md:px-5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-primary/20"
           >
-            <Truck className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            {ActionIcon ? <ActionIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Truck className="w-3.5 h-3.5 md:w-4 md:h-4" />}
             <span>{actionLabel}</span>
           </button>
         )}

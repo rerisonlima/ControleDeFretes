@@ -10,6 +10,7 @@ import {
   ChevronDown, 
   Fuel, 
   User, 
+  DollarSign,
   ChevronLeft,
   ChevronRight,
   X,
@@ -223,7 +224,9 @@ export default function ExpensesPage() {
     <AppLayout>
       <Header 
         title="Cadastro de Despesas" 
+        icon={DollarSign}
         actionLabel="Nova Despesa" 
+        actionIcon={DollarSign}
         onAction={() => handleOpenDrawer()}
       />
       
