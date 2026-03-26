@@ -25,8 +25,8 @@ export async function middleware(request: NextRequest) {
       const role = payload.role as string;
       const pathname = request.nextUrl.pathname;
 
-      // Restringir operador apenas à página de viagens
-      if (role === 'OPERATOR' && pathname !== '/routes' && !isAuthPage) {
+      // Restringir operador apenas à página de viagens e despesas
+      if (role === 'OPERATOR' && pathname !== '/routes' && pathname !== '/expenses' && !isAuthPage) {
         return NextResponse.redirect(new URL('/routes', request.url));
       }
 

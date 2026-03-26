@@ -97,7 +97,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
         {menuItems
-          .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes')
+          .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes' || item.href === '/expenses')
           .map((item) => {
           const isActive = pathname === item.href;
           return (
