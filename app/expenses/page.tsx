@@ -225,9 +225,6 @@ export default function ExpensesPage() {
       <Header 
         title="Cadastro de Despesas" 
         icon={DollarSign}
-        actionLabel="Nova Despesa" 
-        actionIcon={DollarSign}
-        onAction={() => handleOpenDrawer()}
       />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
