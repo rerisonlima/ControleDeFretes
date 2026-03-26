@@ -223,9 +223,16 @@ export default function RoutesPage() {
     }
   };
 
-  const handleGoToExpenses = () => {
+  const handleGoToExpenses = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsNavigatingToExpenses(true);
-    router.push('/expenses');
+    
+    // Using window.location.href for more reliable navigation in the iframe environment
+    // while still keeping the loading state visible for feedback
+    setTimeout(() => {
+      window.location.href = '/expenses';
+    }, 100);
   };
 
   const renderFormContent = () => (
@@ -238,8 +245,8 @@ export default function RoutesPage() {
           </div>
           <motion.button 
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGoToExpenses}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => handleGoToExpenses(e)}
             disabled={isNavigatingToExpenses}
             className="text-xs font-bold bg-primary text-background-dark px-4 py-2 rounded-lg hover:bg-primary/90 transition-all flex items-center gap-2 disabled:opacity-70 shadow-lg shadow-primary/20"
           >
