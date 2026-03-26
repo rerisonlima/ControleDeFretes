@@ -32,7 +32,7 @@ const menuItems = [
   { icon: UserCog, label: 'Usuários', href: '/users' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string; lastLogin?: string } | null>(null);
@@ -75,14 +75,24 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen">
-      <div className="p-6 flex items-center gap-3">
-        <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
-          <TruckIcon className="w-6 h-6 text-background-dark" />
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
+            <TruckIcon className="w-6 h-6 text-background-dark" />
+          </div>
+          <div>
+            <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
+            <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
-          <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
-        </div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 lg:hidden"
+          >
+            <LogOut className="w-4 h-4 rotate-180" />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
@@ -94,6 +104,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group",
                 isActive 

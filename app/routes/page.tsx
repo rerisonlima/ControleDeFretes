@@ -165,7 +165,7 @@ export default function RoutesPage() {
           const data = await res.json();
           setUser(data);
           if (data.role === 'OPERATOR') {
-            handleOpenDrawer();
+            handleOpenDrawer(null, false);
           }
         }
       } catch (error) {
@@ -612,7 +612,7 @@ export default function RoutesPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleOpenDrawer = (trip: Trip | null = null) => {
+  const handleOpenDrawer = (trip: Trip | null = null, shouldOpen: boolean = true) => {
     if (trip) {
       setSelectedTrip(trip);
       setFormData({
@@ -660,7 +660,9 @@ export default function RoutesPage() {
         paymentDate: ''
       });
     }
-    setIsDrawerOpen(true);
+    if (shouldOpen) {
+      setIsDrawerOpen(true);
+    }
   };
 
   const handleSave = async () => {
@@ -680,7 +682,7 @@ export default function RoutesPage() {
           setShowSuccess(true);
           setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
-          handleOpenDrawer();
+          handleOpenDrawer(null, false);
           // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
             vehicleIdRef.current?.focus();
@@ -831,13 +833,15 @@ export default function RoutesPage() {
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-2xl mx-auto">
-              <div className="mb-6 flex flex-col items-center gap-1">
-                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                  Usuário: {user?.name}
-                </p>
-                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                  IP: {userIp}
-                </p>
+              <div className="mb-8 flex flex-col items-center gap-2">
+                <div className="flex flex-wrap justify-center gap-4">
+                  <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
+                    Usuário: {user?.name}
+                  </p>
+                  <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
+                    IP: {userIp}
+                  </p>
+                </div>
               </div>
               {showSuccess && (
                 <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300 flex items-center justify-center gap-3">
@@ -872,7 +876,6 @@ export default function RoutesPage() {
             <div className="p-8 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-black tracking-tight">Viagens</h2>
               <p className="text-slate-500 mt-1">Gerencie os valores de frete, motoristas e ajudantes por viagem.</p>
             </div>
           </div>
