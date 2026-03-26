@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { Toast, useToast } from '@/components/Toast';
+import { motion } from 'motion/react';
 import { 
   Search, 
   Truck, 
@@ -692,7 +693,9 @@ export default function VehiclesPage() {
               >
                 Cancelar
               </button>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
                 disabled={isSaving}
                 className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -703,7 +706,7 @@ export default function VehiclesPage() {
                   <Check className="w-4 h-4" />
                 )}
                 {isSaving ? 'Salvando...' : selectedVehicle ? 'Atualizar Veículo' : 'Salvar Veículo'}
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>

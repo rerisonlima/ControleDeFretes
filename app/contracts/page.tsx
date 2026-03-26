@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { motion } from 'motion/react';
 import { 
   Search, 
   Edit2, 
@@ -292,7 +293,9 @@ export default function ContractsPage() {
                 >
                   Cancelar
                 </button>
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isSubmitting}
                   className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
@@ -305,7 +308,7 @@ export default function ContractsPage() {
                   ) : (
                     modalMode === 'create' ? 'Criar Contrato' : 'Salvar Alterações'
                   )}
-                </button>
+                </motion.button>
               </div>
             </form>
           </div>

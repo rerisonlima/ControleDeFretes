@@ -5,6 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { logoutAction } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
+import { motion } from 'motion/react';
 import { 
   Search, 
   MapPin, 
@@ -136,6 +137,7 @@ export default function RoutesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isNavigatingToExpenses, setIsNavigatingToExpenses] = React.useState(false);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
@@ -221,6 +223,11 @@ export default function RoutesPage() {
     }
   };
 
+  const handleGoToExpenses = () => {
+    setIsNavigatingToExpenses(true);
+    router.push('/expenses');
+  };
+
   const renderFormContent = () => (
     <div className="space-y-6">
       {isOperator && (
@@ -229,12 +236,20 @@ export default function RoutesPage() {
             <Receipt className="w-4 h-4 text-primary" />
             <span className="text-sm font-bold text-primary">Precisa lançar uma despesa?</span>
           </div>
-          <button 
-            onClick={() => router.push('/expenses')}
-            className="text-xs font-bold bg-primary text-background-dark px-3 py-1.5 rounded hover:bg-primary/90 transition-all"
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleGoToExpenses}
+            disabled={isNavigatingToExpenses}
+            className="text-xs font-bold bg-primary text-background-dark px-4 py-2 rounded-lg hover:bg-primary/90 transition-all flex items-center gap-2 disabled:opacity-70 shadow-lg shadow-primary/20"
           >
-            Ir para Despesas
-          </button>
+            {isNavigatingToExpenses ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" />
+            )}
+            {isNavigatingToExpenses ? 'Encaminhando...' : 'Ir para Despesas'}
+          </motion.button>
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -856,7 +871,9 @@ export default function RoutesPage() {
                 {renderFormContent()}
                 
                 <div className="pt-4 flex items-center gap-4">
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={handleSave}
                     disabled={isSaving}
                     className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-4 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 text-lg"
@@ -867,7 +884,7 @@ export default function RoutesPage() {
                       <Check className="w-6 h-6" />
                     )}
                     {isSaving ? 'Salvando...' : 'Cadastrar Viagem'}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
