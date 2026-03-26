@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { LogOut, Truck, Menu } from 'lucide-react';
+import { useSidebar } from './AppLayout';
 
 interface HeaderProps {
   title: string;
@@ -19,17 +20,17 @@ interface HeaderProps {
 }
 
 export function Header({ title, icon: Icon, actionLabel, onAction, onLogout, onMenuClick, secondaryAction }: HeaderProps) {
+  const { toggleSidebar } = useSidebar();
+
   return (
     <header className="h-16 border-b border-border-dark bg-[#1c1814] px-4 md:px-8 flex items-center justify-between z-[999] sticky top-0 shadow-xl">
       <div className="flex items-center gap-2 md:gap-3">
-        {onMenuClick && (
-          <button 
-            onClick={onMenuClick}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
+        <button 
+          onClick={onMenuClick || toggleSidebar}
+          className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 lg:hidden"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         {Icon && (
           <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg shrink-0">
             <Icon className="w-4 h-4 md:w-5 md:h-5 text-primary" />

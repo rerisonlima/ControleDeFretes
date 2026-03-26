@@ -4,7 +4,7 @@ import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { logoutAction } from '@/app/actions/auth';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Search, 
   MapPin, 
@@ -117,6 +117,7 @@ interface Frete {
 
 export default function RoutesPage() {
   const now = new Date();
+  const router = useRouter();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
   const [paymentFilter, setPaymentFilter] = React.useState('all');
@@ -228,12 +229,12 @@ export default function RoutesPage() {
             <Receipt className="w-4 h-4 text-primary" />
             <span className="text-sm font-bold text-primary">Precisa lançar uma despesa?</span>
           </div>
-          <Link 
-            href="/expenses" 
+          <button 
+            onClick={() => router.push('/expenses')}
             className="text-xs font-bold bg-primary text-background-dark px-3 py-1.5 rounded hover:bg-primary/90 transition-all"
           >
             Ir para Despesas
-          </Link>
+          </button>
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -561,7 +562,7 @@ export default function RoutesPage() {
 
   React.useEffect(() => {
     if (user?.role === 'OPERATOR' && !formData.tripId) {
-      handleOpenDrawer();
+      handleOpenDrawer(null, false);
     }
   }, [user, formData.tripId]);
 
