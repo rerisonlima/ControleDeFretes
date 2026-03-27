@@ -279,15 +279,15 @@ export default function ExpensesPage() {
         onLogout={handleLogout}
       />
       
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-6">
           
           {/* Filters Bar */}
-          <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-wrap items-center gap-4">
-            <div className="flex flex-wrap items-center gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+          <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col lg:flex-row lg:items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+              <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
                 <Calendar className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
               </div>
               
               <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export default function ExpensesPage() {
                     setSelectedMonth(parseInt(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-surface-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                 >
                   {months.map(m => (
                     <option key={m.id} value={m.id}>{m.name}</option>
@@ -310,7 +310,7 @@ export default function ExpensesPage() {
                     setSelectedYear(parseInt(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-surface-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                 >
                   {[2024, 2025, 2026].map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -319,76 +319,80 @@ export default function ExpensesPage() {
               </div>
             </div>
             
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
-              <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Tipo de Despesa</label>
-              <div className="relative">
-                <select 
-                  className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                  value={filters.type}
-                  onChange={(e) => {
-                    setFilters({ ...filters, type: e.target.value });
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="Todos">Todos os Tipos</option>
-                  <option value="Combustível">Combustível</option>
-                  <option value="Pagamento Motorista">Pagamento Motorista</option>
-                  <option value="Pagamento Ajudante">Pagamento Ajudante</option>
-                  <option value="Manutenção">Manutenção</option>
-                  <option value="Pedágio">Pedágio</option>
-                  <option value="Extra">Extra</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-1 gap-4">
+              <div className="flex flex-col gap-1.5 min-w-[150px]">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Tipo de Despesa</label>
+                <div className="relative">
+                  <select 
+                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                    value={filters.type}
+                    onChange={(e) => {
+                      setFilters({ ...filters, type: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="Todos">Todos os Tipos</option>
+                    <option value="Combustível">Combustível</option>
+                    <option value="Pagamento Motorista">Pagamento Motorista</option>
+                    <option value="Pagamento Ajudante">Pagamento Ajudante</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Pedágio">Pedágio</option>
+                    <option value="Extra">Extra</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+                </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
-              <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Veículo</label>
-              <div className="relative">
-                <select 
-                  className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                  value={filters.vehicleId}
-                  onChange={(e) => {
-                    setFilters({ ...filters, vehicleId: e.target.value });
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="Todos">Todos os Veículos</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id.toString()}>{v.plate}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+              
+              <div className="flex flex-col gap-1.5 min-w-[150px]">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Veículo</label>
+                <div className="relative">
+                  <select 
+                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                    value={filters.vehicleId}
+                    onChange={(e) => {
+                      setFilters({ ...filters, vehicleId: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="Todos">Todos os Veículos</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id.toString()}>{v.plate}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none"
-                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-              >
-                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            
-            <div className="ml-auto self-end">
-              <button 
-                onClick={() => {
-                  setFilters({ type: 'Todos', vehicleId: 'Todos' });
-                  setCurrentPage(1);
-                }}
-                className="text-xs font-bold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
-              >
-                Limpar Filtros
-              </button>
+              <div className="flex items-end gap-2">
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
+                  <button
+                    onClick={() => setShowValues(!showValues)}
+                    className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none w-full"
+                    title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                  >
+                    {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                    <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    setFilters({ type: 'Todos', vehicleId: 'Todos' });
+                    setCurrentPage(1);
+                  }}
+                  className="text-[10px] font-bold text-primary border border-primary/30 px-4 h-9 rounded-lg hover:bg-primary/10 transition-colors uppercase tracking-widest"
+                >
+                  Limpar
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Expense Table */}
+          {/* Expense Table Container */}
           <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
+            {/* Desktop Table */}
+            <table className="hidden md:table w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border-dark bg-background-dark/30">
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
@@ -418,7 +422,7 @@ export default function ExpensesPage() {
                 ) : expenses.map((exp, i) => {
                   const Icon = getIcon(exp.type);
                   return (
-                    <tr key={exp.id || i} className="hover:bg-white/5 transition-colors">
+                    <tr key={exp.id || i} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4 text-sm text-slate-400">
                         {new Date(exp.date).toLocaleDateString('pt-BR')}
                       </td>
@@ -460,7 +464,7 @@ export default function ExpensesPage() {
                               </button>
                             </div>
                           ) : (
-                            <>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                               <button 
                                 onClick={() => handleOpenDrawer(exp)}
                                 className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
@@ -473,7 +477,7 @@ export default function ExpensesPage() {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                            </>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -482,9 +486,88 @@ export default function ExpensesPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {isLoading ? (
+                <div className="p-10 text-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+                  <p className="text-sm text-slate-500 mt-2">Carregando despesas...</p>
+                </div>
+              ) : expenses.length === 0 ? (
+                <div className="p-10 text-center text-slate-500">Nenhuma despesa encontrada.</div>
+              ) : expenses.map((exp, i) => {
+                const Icon = getIcon(exp.type);
+                return (
+                  <div key={exp.id || i} className="p-4 space-y-3" onClick={() => handleOpenDrawer(exp)}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{exp.type}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">{new Date(exp.date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border",
+                        exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                      )}>
+                        {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>{exp.vehicle?.plate || '-'}</span>
+                      </div>
+                      <p className="font-bold text-white">
+                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                      {deleteConfirmId === exp.id ? (
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleDelete(exp.id)}
+                            className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
+                          >
+                            Confirmar
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleOpenDrawer(exp)}
+                            className="p-2 bg-primary/10 text-primary rounded-lg"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirmId(exp.id)}
+                            className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             
-            <div className="px-6 py-4 bg-background-dark/30 flex items-center justify-between">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            <div className="px-6 py-4 bg-background-dark/30 flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center md:text-left">
                 Mostrando {expenses.length} de {totalRecords} registros
               </p>
               <div className="flex items-center gap-2">
@@ -496,7 +579,7 @@ export default function ExpensesPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="text-xs font-bold text-primary px-2">
-                  Página {currentPage} de {totalPages || 1}
+                  {currentPage} / {totalPages || 1}
                 </span>
                 <button 
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

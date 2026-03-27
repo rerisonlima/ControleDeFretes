@@ -906,12 +906,12 @@ export default function RoutesPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="mt-8 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+          <div className="mt-4 md:mt-8 space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -921,7 +921,7 @@ export default function RoutesPage() {
                       setSelectedMonth(parseInt(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   >
                     {months.map(m => (
                       <option key={m.id} value={m.id}>{m.name}</option>
@@ -934,7 +934,7 @@ export default function RoutesPage() {
                       setSelectedYear(parseInt(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   >
                     {[2024, 2025, 2026].map(y => (
                       <option key={y} value={y}>{y}</option>
@@ -943,10 +943,10 @@ export default function RoutesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
+                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
                   <Receipt className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Pagamento:</span>
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Pagamento:</span>
                 </div>
                 
                 <select 
@@ -955,7 +955,7 @@ export default function RoutesPage() {
                     setPaymentFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                 >
                   <option value="all">Todos</option>
                   <option value="paid">Pagos</option>
@@ -964,8 +964,8 @@ export default function RoutesPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex-1 min-w-[300px] relative">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <input 
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
@@ -975,7 +975,7 @@ export default function RoutesPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="w-full md:w-64 relative">
+              <div className="relative">
                 <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <select 
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
@@ -988,7 +988,7 @@ export default function RoutesPage() {
                   ))}
                 </select>
               </div>
-              <div className="w-full md:w-64 relative">
+              <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
                 <select 
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
@@ -1006,8 +1006,9 @@ export default function RoutesPage() {
         </div>
 
         {/* Table Container */}
-        <div className="flex-1 overflow-auto px-8 pb-8 custom-scrollbar">
-          <div className="border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
+        <div className="flex-1 overflow-auto px-4 md:px-8 pb-8 custom-scrollbar">
+          {/* Desktop Table */}
+          <div className="hidden md:block border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead className="bg-background-dark/50 border-b border-border-dark">
                 <tr>
@@ -1140,17 +1141,118 @@ export default function RoutesPage() {
             </table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {loading ? (
+              <div className="p-12 text-center text-slate-500">Carregando viagens...</div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="p-12 text-center text-slate-500">Nenhuma viagem encontrada.</div>
+            ) : filteredTrips.map((trip) => (
+              <div 
+                key={trip.id}
+                className={cn(
+                  "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
+                  (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+                )}
+                onClick={() => handleOpenDrawer(trip)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                    </div>
+                    <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      {trip.frete?.cidade || trip.route?.destination || 'N/A'}
+                    </h4>
+                    <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
+                  </div>
+                  <span className={cn(
+                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
+                    trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-background-dark text-slate-500 border border-border-dark"
+                  )}>
+                    {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <Truck className="w-3.5 h-3.5" />
+                      {trip.vehicle?.plate || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
+                    <p className="text-sm font-bold text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por</span>
+                    <span className="text-xs text-white">{trip.createdBy?.name || 'Sistema'}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    {deleteConfirmId === trip.id ? (
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleDelete(trip.id)}
+                          className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
+                        >
+                          Confirmar
+                        </button>
+                        <button 
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                        >
+                          X
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => { setCloneConfirmId(trip.id); }}
+                          className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleOpenDrawer(trip)}
+                          className="p-2.5 bg-primary/10 text-primary rounded-xl"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => setDeleteConfirmId(trip.id)}
+                          className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Pagination */}
-          <div className="p-6 border-t border-border-dark flex items-center justify-between bg-surface-dark/30">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+          <div className="p-4 md:p-6 border-t border-border-dark flex flex-col md:flex-row items-center justify-between bg-surface-dark/30 gap-4">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center md:text-left">
               Mostrando {trips.length} de {totalRecords} registros
             </p>
             {totalPages > 1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-2 md:pb-0">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -1167,7 +1269,7 @@ export default function RoutesPage() {
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
                           className={cn(
-                            "w-8 h-8 rounded-lg text-xs font-bold transition-colors",
+                            "w-8 h-8 rounded-lg text-xs font-bold transition-colors shrink-0",
                             currentPage === pageNum
                               ? "bg-primary text-background-dark"
                               : "text-slate-400 hover:bg-surface-dark hover:text-white"
@@ -1180,7 +1282,7 @@ export default function RoutesPage() {
                       pageNum === currentPage - 2 ||
                       pageNum === currentPage + 2
                     ) {
-                      return <span key={pageNum} className="text-slate-600">...</span>;
+                      return <span key={pageNum} className="text-slate-600 shrink-0">...</span>;
                     }
                     return null;
                   })}
@@ -1188,7 +1290,7 @@ export default function RoutesPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

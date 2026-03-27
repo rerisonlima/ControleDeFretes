@@ -160,11 +160,11 @@ export default function UsersPage() {
         }}
       />
       
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Table Section */}
-        <section className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+        <section className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+          <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                 <input 
@@ -175,7 +175,8 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
@@ -191,7 +192,7 @@ export default function UsersPage() {
                 <tbody className="divide-y divide-border-dark">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center">
+                      <td colSpan={7} className="px-6 py-10 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-8 h-8 text-primary animate-spin" />
                           <p className="text-sm text-slate-500">Carregando usuários...</p>
@@ -200,7 +201,7 @@ export default function UsersPage() {
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
                         Nenhum usuário cadastrado.
                       </td>
                     </tr>
@@ -263,26 +264,116 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  <p className="text-sm text-slate-500">Carregando usuários...</p>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="bg-surface-dark border border-border-dark rounded-xl p-8 text-center text-slate-500">
+                  Nenhum usuário cadastrado.
+                </div>
+              ) : (
+                users.map((user, i) => (
+                  <div key={user.id || i} className="bg-surface-dark border border-border-dark rounded-xl p-4 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-background-dark flex items-center justify-center text-slate-500 text-xs font-bold border border-border-dark uppercase">
+                          {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{user.name}</h4>
+                          <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">{user.username}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => handleEdit(user)}
+                          className="p-2 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(user.id)}
+                          className="p-2 hover:bg-white/10 rounded-lg text-slate-500 hover:text-rose-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo</p>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border inline-block",
+                          user.role?.toUpperCase() === 'ADMIN' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                          user.role?.toUpperCase() === 'MANAGER' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
+                          user.role?.toUpperCase() === 'OPERATOR' ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
+                          "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        )}>
+                          {user.role?.toUpperCase() === 'ADMIN' ? 'Admin' : 
+                           user.role?.toUpperCase() === 'MANAGER' ? 'Gerente' : 
+                           user.role?.toUpperCase() === 'OPERATOR' ? 'Operador' : 
+                           user.role || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status</p>
+                        <span className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-500">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Ativo
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Email:</span>
+                        <span className="text-xs text-slate-300 font-medium">{user.email}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Último Acesso:</span>
+                        <span className="text-xs text-slate-300 font-medium">
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </section>
 
-        {/* Side Form Panel */}
+        {/* Side Form Panel / Drawer */}
         {isDrawerOpen && (
-          <aside className="w-96 border-l border-border-dark bg-background-dark p-8 overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-white">
-                {selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
-              </h3>
-              <button 
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  setSelectedUser(null);
-                }}
-                className="text-slate-500 hover:text-white transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+          <div className="fixed inset-0 z-50 md:relative md:inset-auto md:z-0 flex justify-end">
+            <div 
+              className="absolute inset-0 bg-background-dark/80 backdrop-blur-sm md:hidden"
+              onClick={() => {
+                setIsDrawerOpen(false);
+                setSelectedUser(null);
+              }}
+            />
+            <aside className="relative w-full max-w-md md:w-96 border-l border-border-dark bg-background-dark p-6 md:p-8 overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-300 shadow-2xl md:shadow-none">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold text-white">
+                  {selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
+                </h3>
+                <button 
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setSelectedUser(null);
+                  }}
+                  className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             
             <form className="space-y-6" onSubmit={handleSave}>
               <div className="space-y-2">
@@ -407,8 +498,9 @@ export default function UsersPage() {
               </div>
             )}
           </aside>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
       <Toast 
         message={toast.message} 
         type={toast.type} 

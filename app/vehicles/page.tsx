@@ -313,8 +313,8 @@ export default function VehiclesPage() {
         onAction={() => handleOpenDrawer()}
       />
       
-      <div className="flex-1 overflow-auto p-8 custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* Filters and Search */}
           <div className="flex flex-col md:flex-row gap-4">
@@ -330,7 +330,7 @@ export default function VehiclesPage() {
               <button 
                 onClick={() => setShowInactive(!showInactive)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all",
                   showInactive 
                     ? "bg-primary text-background-dark" 
                     : "bg-surface-dark border border-border-dark text-slate-300 hover:border-primary"
@@ -342,97 +342,177 @@ export default function VehiclesPage() {
             </div>
           </div>
 
-          {/* Vehicles Table */}
+          {/* Vehicles Table / Mobile Cards */}
           <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-background-dark/50">
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marca/Modelo</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Viagens</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">KM Viajados</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Última Manutenção</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-dark">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-sm text-slate-500">Carregando veículos...</p>
-                      </div>
-                    </td>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-background-dark/50">
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marca/Modelo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Viagens</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">KM Viajados</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Última Manutenção</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
                   </tr>
-                ) : vehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-slate-500">
-                      Nenhum veículo cadastrado.
-                    </td>
-                  </tr>
-                ) : vehicles.map((v, i) => (
-                  <tr key={v.id || i} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-5 font-bold text-white">{v.plate}</td>
-                    <td className="px-6 py-5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background-dark text-slate-300 text-[10px] font-bold uppercase tracking-tight border border-border-dark">
-                        <Truck className="w-3 h-3" /> {v.type}
+                </thead>
+                <tbody className="divide-y divide-border-dark">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-10 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                          <p className="text-sm text-slate-500">Carregando veículos...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : vehicles.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-10 text-center text-slate-500">
+                        Nenhum veículo cadastrado.
+                      </td>
+                    </tr>
+                  ) : vehicles.map((v, i) => (
+                    <tr key={v.id || i} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-5 font-bold text-white">{v.plate}</td>
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background-dark text-slate-300 text-[10px] font-bold uppercase tracking-tight border border-border-dark">
+                          <Truck className="w-3 h-3" /> {v.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-slate-300">{v.brand} {v.model}</td>
+                      <td className="px-6 py-5 text-center text-white font-medium">{v.tripCount || 0}</td>
+                      <td className="px-6 py-5 text-center text-white font-medium">{v.totalDistance?.toLocaleString('pt-BR') || 0} km</td>
+                      <td className="px-6 py-5">
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold",
+                          v.status === 'ACTIVE' || v.status === 'Ativo' ? "bg-emerald-500/10 text-emerald-500" :
+                          v.status === 'MAINTENANCE' || v.status === 'Manutenção' ? "bg-amber-500/10 text-amber-500" :
+                          "bg-slate-500/10 text-slate-500"
+                        )}>
+                          <div className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            v.status === 'ACTIVE' || v.status === 'Ativo' ? "bg-emerald-500" :
+                            v.status === 'MAINTENANCE' || v.status === 'Manutenção' ? "bg-amber-500" :
+                            "bg-slate-500"
+                          )} />
+                          {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : v.status === 'INACTIVE' ? 'Inativo' : v.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-slate-500 text-sm">
+                        {v.lastMaintenance ? new Date(v.lastMaintenance).toLocaleDateString('pt-BR') : 'Sem registro'}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleOpenDrawer(v)}
+                            className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleToggleStatus(v)}
+                            className={cn(
+                              "p-2 rounded-lg transition-colors",
+                              v.status === 'INACTIVE' 
+                                ? "text-emerald-500 hover:bg-emerald-500/10" 
+                                : "text-rose-500 hover:bg-rose-500/10"
+                            )}
+                            title={v.status === 'INACTIVE' ? "Ativar" : "Desativar"}
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {isLoading ? (
+                <div className="px-6 py-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <p className="text-sm text-slate-500">Carregando veículos...</p>
+                  </div>
+                </div>
+              ) : vehicles.length === 0 ? (
+                <div className="px-6 py-10 text-center text-slate-500">
+                  Nenhum veículo cadastrado.
+                </div>
+              ) : vehicles.map((v, i) => (
+                <div key={v.id || i} className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-lg font-bold text-white tracking-tight">{v.plate}</span>
+                      <span className="text-xs text-slate-400">{v.brand} {v.model}</span>
+                    </div>
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold",
+                      v.status === 'ACTIVE' || v.status === 'Ativo' ? "bg-emerald-500/10 text-emerald-500" :
+                      v.status === 'MAINTENANCE' || v.status === 'Manutenção' ? "bg-amber-500/10 text-amber-500" :
+                      "bg-slate-500/10 text-slate-500"
+                    )}>
+                      {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : v.status === 'INACTIVE' ? 'Inativo' : v.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-background-dark/50 p-3 rounded-lg border border-border-dark">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tipo</span>
+                      <span className="text-xs text-white font-medium flex items-center gap-1.5">
+                        <Truck className="w-3 h-3 text-primary" /> {v.type}
                       </span>
-                    </td>
-                    <td className="px-6 py-5 text-slate-300">{v.brand} {v.model}</td>
-                    <td className="px-6 py-5 text-center text-white font-medium">{v.tripCount || 0}</td>
-                    <td className="px-6 py-5 text-center text-white font-medium">{v.totalDistance?.toLocaleString('pt-BR') || 0} km</td>
-                    <td className="px-6 py-5">
-                      <span className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold",
-                        v.status === 'ACTIVE' || v.status === 'Ativo' ? "bg-emerald-500/10 text-emerald-500" :
-                        v.status === 'MAINTENANCE' || v.status === 'Manutenção' ? "bg-amber-500/10 text-amber-500" :
-                        "bg-slate-500/10 text-slate-500"
-                      )}>
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          v.status === 'ACTIVE' || v.status === 'Ativo' ? "bg-emerald-500" :
-                          v.status === 'MAINTENANCE' || v.status === 'Manutenção' ? "bg-amber-500" :
-                          "bg-slate-500"
-                        )} />
-                        {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : v.status === 'INACTIVE' ? 'Inativo' : v.status}
+                    </div>
+                    <div className="bg-background-dark/50 p-3 rounded-lg border border-border-dark">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Viagens</span>
+                      <span className="text-xs text-white font-medium">{v.tripCount || 0}</span>
+                    </div>
+                    <div className="bg-background-dark/50 p-3 rounded-lg border border-border-dark">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">KM Viajados</span>
+                      <span className="text-xs text-white font-medium">{v.totalDistance?.toLocaleString('pt-BR') || 0} km</span>
+                    </div>
+                    <div className="bg-background-dark/50 p-3 rounded-lg border border-border-dark">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Manutenção</span>
+                      <span className="text-xs text-white font-medium">
+                        {v.lastMaintenance ? new Date(v.lastMaintenance).toLocaleDateString('pt-BR') : 'Sem registro'}
                       </span>
-                    </td>
-                    <td className="px-6 py-5 text-slate-500 text-sm">
-                      {v.lastMaintenance ? new Date(v.lastMaintenance).toLocaleDateString('pt-BR') : 'Sem registro'}
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleOpenDrawer(v)}
-                          className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleToggleStatus(v)}
-                          className={cn(
-                            "p-2 rounded-lg transition-colors",
-                            v.status === 'INACTIVE' 
-                              ? "text-emerald-500 hover:bg-emerald-500/10" 
-                              : "text-rose-500 hover:bg-rose-500/10"
-                          )}
-                          title={v.status === 'INACTIVE' ? "Ativar" : "Desativar"}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button 
+                      onClick={() => handleOpenDrawer(v)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-bold transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button 
+                      onClick={() => handleToggleStatus(v)}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors",
+                        v.status === 'INACTIVE' 
+                          ? "bg-emerald-500/10 text-emerald-500" 
+                          : "bg-rose-500/10 text-rose-500"
+                      )}
+                    >
+                      <Power className="w-4 h-4" />
+                      {v.status === 'INACTIVE' ? 'Ativar' : 'Desativar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
             
             {/* Pagination */}
-            <div className="px-6 py-4 bg-background-dark/30 border-t border-border-dark flex items-center justify-between">
+            <div className="px-6 py-4 bg-background-dark/30 border-t border-border-dark flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-xs text-slate-500 font-medium">Mostrando 1-4 de 24 veículos</p>
               <div className="flex gap-2">
                 <button className="p-2 border border-border-dark rounded-lg bg-surface-dark hover:border-primary transition-colors disabled:opacity-50" disabled>

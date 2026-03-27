@@ -309,17 +309,17 @@ export default function TablesPage() {
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-8 pb-4">
+        <div className="p-4 md:p-8 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-black tracking-tight">Tabelas de Frete</h2>
-              <p className="text-slate-500 mt-1">Gerencie os valores de frete por contratante, cidade e categoria.</p>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight">Tabelas de Frete</h2>
+              <p className="text-slate-500 mt-1 text-sm md:text-base">Gerencie os valores de frete por contratante, cidade e categoria.</p>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[300px] relative">
+          <div className="mt-6 md:mt-8 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-3 md:gap-4">
+            <div className="flex-1 min-w-0 md:min-w-[300px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
               <input 
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
@@ -329,62 +329,65 @@ export default function TablesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="w-full md:w-64 relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <select 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                value={validityFilter}
-                onChange={(e) => setValidityFilter(e.target.value as 'valid' | 'expired' | 'all')}
-              >
-                <option value="valid">Vigentes (Validade &gt; Hoje)</option>
-                <option value="expired">Vencidos (Validade &lt; Hoje)</option>
-                <option value="all">Todos os Registros</option>
-              </select>
-            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row gap-3 md:gap-4">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  value={validityFilter}
+                  onChange={(e) => setValidityFilter(e.target.value as 'valid' | 'expired' | 'all')}
+                >
+                  <option value="valid">Vigentes (Validade &gt; Hoje)</option>
+                  <option value="expired">Vencidos (Validade &lt; Hoje)</option>
+                  <option value="all">Todos os Registros</option>
+                </select>
+              </div>
 
-            <div className="w-full md:w-64 relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <select 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                value={contratanteFilter}
-                onChange={(e) => setContratanteFilter(e.target.value)}
-              >
-                <option value="all">Todos os Contratantes</option>
-                {contratantes.map(c => (
-                  <option key={c.id} value={c.id.toString()}>{c.ContratanteNome}</option>
-                ))}
-              </select>
-            </div>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  value={contratanteFilter}
+                  onChange={(e) => setContratanteFilter(e.target.value)}
+                >
+                  <option value="all">Todos os Contratantes</option>
+                  {contratantes.map(c => (
+                    <option key={c.id} value={c.id.toString()}>{c.ContratanteNome}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="w-full md:w-64 relative">
-              <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <select 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                value={categoriaFilter}
-                onChange={(e) => setCategoriaFilter(e.target.value)}
-              >
-                <option value="all">Todos os Tipos de Veículo</option>
-                {categorias.map(c => (
-                  <option key={c.id} value={c.id.toString()}>{c.CategoriaNome}</option>
-                ))}
-              </select>
-            </div>
+              <div className="relative">
+                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  value={categoriaFilter}
+                  onChange={(e) => setCategoriaFilter(e.target.value)}
+                >
+                  <option value="all">Todos os Tipos de Veículo</option>
+                  {categorias.map(c => (
+                    <option key={c.id} value={c.id.toString()}>{c.CategoriaNome}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-10 px-3 flex items-center justify-center transition-all outline-none"
-                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-              >
-                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="flex-1 lg:flex-none bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-10 px-4 flex items-center justify-center gap-2 transition-all outline-none text-sm font-bold"
+                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                >
+                  {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <span className="lg:hidden">{showValues ? "Ocultar Valores" : "Mostrar Valores"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Table Container */}
-        <div className="flex-1 overflow-auto px-8 pb-8 custom-scrollbar">
+        <div className="flex-1 overflow-auto px-4 md:px-8 pb-8 custom-scrollbar">
           {loading ? (
             <div className="text-center py-12 text-slate-500">Carregando tabelas...</div>
           ) : Object.keys(groupedFretes).length === 0 ? (
@@ -392,119 +395,212 @@ export default function TablesPage() {
               Nenhum registro encontrado com os filtros aplicados.
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {Object.entries(groupedFretes).map(([categoria, fretesList]) => (
                 <div key={categoria} className="border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
-                  <div className="bg-primary/10 px-6 py-4 border-b border-border-dark flex items-center gap-3">
-                    <Truck className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-bold text-white tracking-tight">{categoria}</h3>
-                    <span className="ml-auto bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded-md">
+                  <div className="bg-primary/10 px-4 md:px-6 py-3 md:py-4 border-b border-border-dark flex items-center gap-3">
+                    <Truck className="w-5 h-5 text-primary shrink-0" />
+                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight truncate">{categoria}</h3>
+                    <span className="ml-auto bg-primary/20 text-primary text-[10px] md:text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap">
                       {fretesList.length} registros
                     </span>
                   </div>
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-background-dark/50 border-b border-border-dark">
-                      <tr>
-                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contratante</th>
-                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cidade</th>
-                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Validade</th>
-                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
-                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-dark">
-                      {fretesList.map((frete) => (
-                        <tr 
-                          key={frete.id} 
-                          className="hover:bg-white/5 transition-colors group cursor-pointer"
-                          onClick={() => handleOpenDrawer(frete)}
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <Building2 className="w-4 h-4 text-slate-500" />
-                              <span className="font-semibold text-white">{frete.contratante?.ContratanteNome || 'N/A'}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-primary" />
-                              <span className="text-slate-300">{frete.cidade}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={cn(
-                              "text-sm font-mono px-2 py-1 rounded-md",
-                              isBefore(startOfDay(new Date(frete.validade)), today) 
-                                ? "bg-rose-500/10 text-rose-500" 
-                                : "bg-emerald-500/10 text-emerald-500"
-                            )}>
-                              {formatDate(frete.validade)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                            {showValues ? formatCurrency(frete.valorFrete) : '******'}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {deleteConfirmId === frete.id ? (
-                                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                                  <button 
-                                    onClick={() => handleDelete(frete.id)}
-                                    className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
-                                  >
-                                    Confirmar
-                                  </button>
-                                  <button 
-                                    onClick={() => setDeleteConfirmId(null)}
-                                    className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                                  >
-                                    Sair
-                                  </button>
-                                </div>
-                              ) : cloneConfirmId === frete.id ? (
-                                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                                  <button 
-                                    onClick={() => handleClone(frete)}
-                                    className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
-                                  >
-                                    Confirmar Clone
-                                  </button>
-                                  <button 
-                                    onClick={() => setCloneConfirmId(null)}
-                                    className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                                  >
-                                    Sair
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setCloneConfirmId(frete.id); }}
-                                    className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
-                                    title="Clonar Frete"
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
-                                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(frete.id); }}
-                                    className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </td>
+                  
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-background-dark/50 border-b border-border-dark">
+                        <tr>
+                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contratante</th>
+                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cidade</th>
+                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Validade</th>
+                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
+                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-border-dark">
+                        {fretesList.map((frete) => (
+                          <tr 
+                            key={frete.id} 
+                            className="hover:bg-white/5 transition-colors group cursor-pointer"
+                            onClick={() => handleOpenDrawer(frete)}
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <Building2 className="w-4 h-4 text-slate-500" />
+                                <span className="font-semibold text-white">{frete.contratante?.ContratanteNome || 'N/A'}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <MapPin className="w-4 h-4 text-primary" />
+                                <span className="text-slate-300">{frete.cidade}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={cn(
+                                "text-sm font-mono px-2 py-1 rounded-md",
+                                isBefore(startOfDay(new Date(frete.validade)), today) 
+                                  ? "bg-rose-500/10 text-rose-500" 
+                                  : "bg-emerald-500/10 text-emerald-500"
+                              )}>
+                                {formatDate(frete.validade)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-mono font-medium text-slate-300">
+                              {showValues ? formatCurrency(frete.valorFrete) : '******'}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {deleteConfirmId === frete.id ? (
+                                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                                    <button 
+                                      onClick={() => handleDelete(frete.id)}
+                                      className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
+                                    >
+                                      Confirmar
+                                    </button>
+                                    <button 
+                                      onClick={() => setDeleteConfirmId(null)}
+                                      className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                                    >
+                                      Sair
+                                    </button>
+                                  </div>
+                                ) : cloneConfirmId === frete.id ? (
+                                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                                    <button 
+                                      onClick={() => handleClone(frete)}
+                                      className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
+                                    >
+                                      Confirmar Clone
+                                    </button>
+                                    <button 
+                                      onClick={() => setCloneConfirmId(null)}
+                                      className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                                    >
+                                      Sair
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setCloneConfirmId(frete.id); }}
+                                      className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                      title="Clonar Frete"
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
+                                      className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(frete.id); }}
+                                      className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden divide-y divide-border-dark">
+                    {fretesList.map((frete) => (
+                      <div 
+                        key={frete.id} 
+                        className="p-4 space-y-4 hover:bg-white/5 transition-colors"
+                        onClick={() => handleOpenDrawer(frete)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="text-xs font-bold text-white truncate max-w-[150px]">
+                              {frete.contratante?.ContratanteNome || 'N/A'}
+                            </span>
+                          </div>
+                          <span className={cn(
+                            "text-[10px] font-mono px-2 py-0.5 rounded-md font-bold uppercase",
+                            isBefore(startOfDay(new Date(frete.validade)), today) 
+                              ? "bg-rose-500/10 text-rose-500" 
+                              : "bg-emerald-500/10 text-emerald-500"
+                          )}>
+                            {formatDate(frete.validade)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <MapPin className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block">Cidade</span>
+                            <span className="text-base font-bold text-white truncate block">{frete.cidade}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block">Valor</span>
+                            <span className="text-lg font-mono font-bold text-primary">
+                              {showValues ? formatCurrency(frete.valorFrete) : '******'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => handleOpenDrawer(frete)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Editar
+                          </button>
+                          <button 
+                            onClick={() => setCloneConfirmId(frete.id)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-amber-500/10 text-amber-500 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <Copy className="w-4 h-4" />
+                            Clonar
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirmId(frete.id)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-rose-500/10 text-rose-500 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Excluir
+                          </button>
+                        </div>
+
+                        {/* Mobile Confirmation Overlays */}
+                        {deleteConfirmId === frete.id && (
+                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-xs font-bold text-rose-500">Excluir este registro?</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleDelete(frete.id)} className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded">Sim</button>
+                              <button onClick={() => setDeleteConfirmId(null)} className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded">Não</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {cloneConfirmId === frete.id && (
+                          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-xs font-bold text-amber-500">Clonar este registro?</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleClone(frete)} className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded">Sim</button>
+                              <button onClick={() => setCloneConfirmId(null)} className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded">Não</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
