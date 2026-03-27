@@ -9,6 +9,8 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get('limit') || '30');
     const type = searchParams.get('type');
     const vehicleId = searchParams.get('vehicleId');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
     const skip = (page - 1) * limit;
 
     const where: Prisma.ExpenseWhereInput = {};
@@ -17,6 +19,15 @@ export async function GET(req: Request) {
     }
     if (vehicleId && vehicleId !== 'Todos') {
       where.vehicleId = parseInt(vehicleId);
+    }
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      where.date = {
+        gte: startDate,
+        lte: endDate
+      };
     }
 
     const [expenses, total] = await Promise.all([

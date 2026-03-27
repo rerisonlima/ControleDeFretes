@@ -43,6 +43,13 @@ const months = [
   { id: 12, name: 'Dezembro' },
 ];
 
+const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
+  if (!dateString) return fallback;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return fallback;
+  return format(date, formatStr);
+};
+
 interface Trip {
   id: number;
   tripId: string;
@@ -118,13 +125,11 @@ interface Frete {
 
 export default function RoutesPage() {
   const now = new Date();
-  const router = useRouter();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
   const [paymentFilter, setPaymentFilter] = React.useState('all');
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [trips, setTrips] = React.useState<Trip[]>([]);
-  const [routes, setRoutes] = React.useState<Route[]>([]);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
@@ -144,6 +149,82 @@ export default function RoutesPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalRecords, setTotalRecords] = React.useState(0);
+
+  // Form state
+  const [formData, setFormData] = React.useState({
+    tripId: '',
+    routeId: '',
+    freteId: '',
+    contratanteId: '',
+    vehicleId: '',
+    driverId: '',
+    helperId: '',
+    scheduledAt: '',
+    value: '',
+    valor1aViagemMotorista: '',
+    valor2aViagemMotorista: '',
+    valor1aViagemAjudante: '',
+    valor2aViagemAjudante: '',
+    status: 'SCHEDULED',
+    paid: 'não',
+    contract: '',
+    odometer: '',
+    romaneio: '',
+    paymentDate: ''
+  });
+
+  const handleOpenDrawer = React.useCallback((trip: Trip | null = null, shouldOpen: boolean = true) => {
+    if (trip) {
+      setSelectedTrip(trip);
+      setFormData({
+        tripId: trip.tripId,
+        routeId: trip.routeId?.toString() || '',
+        freteId: trip.freteId?.toString() || '',
+        contratanteId: trip.contratanteId?.toString() || '',
+        vehicleId: trip.vehicleId.toString(),
+        driverId: trip.driverId.toString(),
+        helperId: trip.helperId?.toString() || '',
+        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : '',
+        value: trip.value?.toString() || '',
+        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
+        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
+        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
+        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
+        status: trip.status,
+        paid: trip.paid || 'não',
+        contract: trip.contract || '',
+        odometer: trip.odometer?.toString() || '',
+        romaneio: trip.romaneio || '',
+        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
+      });
+    } else {
+      setSelectedTrip(null);
+      setFormData({
+        tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
+        routeId: '',
+        freteId: '',
+        contratanteId: '',
+        vehicleId: '',
+        driverId: '',
+        helperId: '',
+        scheduledAt: format(new Date(), 'yyyy-MM-dd'),
+        value: '',
+        valor1aViagemMotorista: '',
+        valor2aViagemMotorista: '',
+        valor1aViagemAjudante: '',
+        valor2aViagemAjudante: '',
+        status: 'SCHEDULED',
+        paid: 'não',
+        contract: '',
+        odometer: '',
+        romaneio: '',
+        paymentDate: ''
+      });
+    }
+    if (shouldOpen) {
+      setIsDrawerOpen(true);
+    }
+  }, []);
 
   const scheduledAtRef = React.useRef<HTMLInputElement>(null);
   const vehicleIdRef = React.useRef<HTMLSelectElement>(null);
@@ -187,30 +268,9 @@ export default function RoutesPage() {
       }
     };
     fetchIp();
-  }, []);
+  }, [handleOpenDrawer]);
 
   // Form state
-  const [formData, setFormData] = React.useState({
-    tripId: '',
-    routeId: '',
-    freteId: '',
-    contratanteId: '',
-    vehicleId: '',
-    driverId: '',
-    helperId: '',
-    scheduledAt: '',
-    value: '',
-    valor1aViagemMotorista: '',
-    valor2aViagemMotorista: '',
-    valor1aViagemAjudante: '',
-    valor2aViagemAjudante: '',
-    status: 'SCHEDULED',
-    paid: 'não',
-    contract: '',
-    odometer: '',
-    romaneio: '',
-    paymentDate: ''
-  });
 
   const isOperator = user?.role === 'OPERATOR';
 
@@ -231,7 +291,7 @@ export default function RoutesPage() {
     // Using window.location.href for more reliable navigation in the iframe environment
     // while still keeping the loading state visible for feedback
     setTimeout(() => {
-      window.location.href = '/expenses';
+      window.location.href = '/expenses?new=true';
     }, 100);
   };
 
@@ -586,7 +646,7 @@ export default function RoutesPage() {
     if (user?.role === 'OPERATOR' && !formData.tripId) {
       handleOpenDrawer(null, false);
     }
-  }, [user, formData.tripId]);
+  }, [user, formData.tripId, handleOpenDrawer]);
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -634,59 +694,6 @@ export default function RoutesPage() {
   React.useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleOpenDrawer = (trip: Trip | null = null, shouldOpen: boolean = true) => {
-    if (trip) {
-      setSelectedTrip(trip);
-      setFormData({
-        tripId: trip.tripId,
-        routeId: trip.routeId?.toString() || '',
-        freteId: trip.freteId?.toString() || '',
-        contratanteId: trip.contratanteId?.toString() || '',
-        vehicleId: trip.vehicleId.toString(),
-        driverId: trip.driverId.toString(),
-        helperId: trip.helperId?.toString() || '',
-        scheduledAt: trip.scheduledAt ? safeFormat(trip.scheduledAt, 'yyyy-MM-dd') : '',
-        value: trip.value?.toString() || '',
-        valor1aViagemMotorista: trip.valor1aViagemMotorista?.toString() || '',
-        valor2aViagemMotorista: trip.valor2aViagemMotorista?.toString() || '',
-        valor1aViagemAjudante: trip.valor1aViagemAjudante?.toString() || '',
-        valor2aViagemAjudante: trip.valor2aViagemAjudante?.toString() || '',
-        status: trip.status,
-        paid: trip.paid || 'não',
-        contract: trip.contract || '',
-        odometer: trip.odometer?.toString() || '',
-        romaneio: trip.romaneio || '',
-        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
-      });
-    } else {
-      setSelectedTrip(null);
-      setFormData({
-        tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
-        routeId: '',
-        freteId: '',
-        contratanteId: '',
-        vehicleId: '',
-        driverId: '',
-        helperId: '',
-        scheduledAt: format(new Date(), 'yyyy-MM-dd'),
-        value: '',
-        valor1aViagemMotorista: '',
-        valor2aViagemMotorista: '',
-        valor1aViagemAjudante: '',
-        valor2aViagemAjudante: '',
-        status: 'SCHEDULED',
-        paid: 'não',
-        contract: '',
-        odometer: '',
-        romaneio: '',
-        paymentDate: ''
-      });
-    }
-    if (shouldOpen) {
-      setIsDrawerOpen(true);
-    }
-  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -821,13 +828,6 @@ export default function RoutesPage() {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '-';
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
-  };
-
-  const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
-    if (!dateString) return fallback;
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return fallback;
-    return format(date, formatStr);
   };
 
   const filteredTrips = trips.filter(trip => {

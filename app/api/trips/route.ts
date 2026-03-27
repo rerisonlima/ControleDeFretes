@@ -30,10 +30,8 @@ export async function GET(req: Request) {
       where.paid = 'sim';
     }
 
-    const [trips, total] = await prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
-      
-      const tripsData = await tx.trip.findMany({
+    const [tripsData, total] = await Promise.all([
+      prisma.trip.findMany({
         where,
         select: {
           id: true,
@@ -112,16 +110,11 @@ export async function GET(req: Request) {
         orderBy: { scheduledAt: 'desc' },
         skip,
         take: limit
-      });
+      }),
+      prisma.trip.count({ where })
+    ]);
 
-      const count = await tx.trip.count({ where });
-      
-      return [tripsData, count];
-    }, {
-      timeout: 60000 // 1 minute for the whole transaction
-    });
-
-    return NextResponse.json({ trips, total, page, limit, totalPages: Math.ceil(total / limit) });
+    return NextResponse.json({ trips: tripsData, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Failed to fetch trips:', error);
     return NextResponse.json({ 

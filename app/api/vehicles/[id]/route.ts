@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export async function GET(
   req: Request,
@@ -187,12 +186,11 @@ export async function PUT(
       trips: undefined
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 });
-      }
+    console.error(`Update vehicle error for ID ${vehicleId}:`, error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 });
     }
-    console.error('Update vehicle error:', error);
     return NextResponse.json({ 
       error: 'Erro ao atualizar veículo', 
       details: error instanceof Error ? error.message : 'Unknown error' 

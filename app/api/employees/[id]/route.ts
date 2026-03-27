@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -27,10 +26,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     
     return NextResponse.json(employee);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Funcionário não encontrado' }, { status: 404 });
-      }
+    console.error(`Error updating employee with ID ${id}:`, error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Funcionário não encontrado' }, { status: 404 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -51,10 +50,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Funcionário não encontrado ou já excluído' }, { status: 404 });
-      }
+    console.error(`Error deleting employee with ID ${id}:`, error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Funcionário não encontrado ou já excluído' }, { status: 404 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -121,25 +121,28 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div className="p-4 mt-auto border-t border-border-dark">
         <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500">
+          <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500 shrink-0">
             <UserIcon className="w-6 h-6" />
           </div>
-          <div className="overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             <p className="text-sm font-semibold text-white truncate">{user?.name || 'Carregando...'}</p>
             <p className="text-[10px] text-slate-500 truncate uppercase">{user ? getRoleLabel(user.role) : '...'}</p>
-            {user?.lastLogin && (
-              <p className="text-[8px] text-slate-600 truncate mt-0.5">
-                Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-              </p>
-            )}
           </div>
           <button 
             onClick={handleLogout}
-            className="ml-auto text-slate-500 hover:text-white transition-colors"
+            className="w-10 h-10 flex items-center justify-center bg-rose-600 border border-rose-500 text-white hover:bg-rose-700 rounded-lg transition-all shadow-lg shadow-rose-900/20 shrink-0"
+            title="Sair do Sistema"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
+        {user?.lastLogin && (
+          <div className="px-2 pb-1">
+            <p className="text-[8px] text-slate-600 truncate">
+              Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+        )}
       </div>
     </aside>
   );

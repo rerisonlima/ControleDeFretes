@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { logoutAction } from '@/app/actions/auth';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { 
@@ -44,7 +45,25 @@ interface Expense {
   vehicle: Vehicle | null;
 }
 
+const months = [
+  { id: 1, name: 'Janeiro' },
+  { id: 2, name: 'Fevereiro' },
+  { id: 3, name: 'Março' },
+  { id: 4, name: 'Abril' },
+  { id: 5, name: 'Maio' },
+  { id: 6, name: 'Junho' },
+  { id: 7, name: 'Julho' },
+  { id: 8, name: 'Agosto' },
+  { id: 9, name: 'Setembro' },
+  { id: 10, name: 'Outubro' },
+  { id: 11, name: 'Novembro' },
+  { id: 12, name: 'Dezembro' },
+];
+
 export default function ExpensesPage() {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -78,6 +97,32 @@ export default function ExpensesPage() {
   });
 
   const [user, setUser] = useState<{ name: string; role: string; username: string } | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleOpenDrawer = useCallback((expense: Expense | null = null) => {
+    if (expense) {
+      setSelectedExpense(expense);
+      setFormData({
+        type: expense.type,
+        description: expense.description || '',
+        value: expense.value.toString(),
+        date: new Date(expense.date).toISOString().split('T')[0],
+        vehicleId: expense.vehicleId?.toString() || '',
+        status: expense.status
+      });
+    } else {
+      setSelectedExpense(null);
+      setFormData({
+        type: '',
+        description: '',
+        value: '',
+        date: new Date().toISOString().split('T')[0],
+        vehicleId: '',
+        status: 'PAID'
+      });
+    }
+    setIsDrawerOpen(true);
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -87,7 +132,9 @@ export default function ExpensesPage() {
         page: currentPage.toString(),
         limit: limit.toString(),
         type: filters.type,
-        vehicleId: filters.vehicleId
+        vehicleId: filters.vehicleId,
+        month: selectedMonth.toString(),
+        year: selectedYear.toString()
       });
 
       const [expRes, vehRes] = await Promise.all([
@@ -114,7 +161,7 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, limit, filters.type, filters.vehicleId]);
+  }, [currentPage, limit, filters.type, filters.vehicleId, selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchData();
@@ -127,7 +174,12 @@ export default function ExpensesPage() {
         if (res.ok) {
           const data = await res.json();
           setUser(data);
-          if (data.role === 'OPERATOR') {
+          
+          // Check for query param or OPERATOR role
+          const urlParams = new URLSearchParams(window.location.search);
+          const isNew = urlParams.get('new') === 'true';
+          
+          if (data.role === 'OPERATOR' || isNew) {
             handleOpenDrawer();
           }
         }
@@ -136,33 +188,17 @@ export default function ExpensesPage() {
       }
     };
     fetchSession();
-  }, []);
+  }, [handleOpenDrawer]);
 
   const isOperator = user?.role === 'OPERATOR';
 
-  const handleOpenDrawer = (expense: Expense | null = null) => {
-    if (expense) {
-      setSelectedExpense(expense);
-      setFormData({
-        type: expense.type,
-        description: expense.description || '',
-        value: expense.value.toString(),
-        date: new Date(expense.date).toISOString().split('T')[0],
-        vehicleId: expense.vehicleId?.toString() || '',
-        status: expense.status
-      });
-    } else {
-      setSelectedExpense(null);
-      setFormData({
-        type: '',
-        description: '',
-        value: '',
-        date: new Date().toISOString().split('T')[0],
-        vehicleId: '',
-        status: 'PAID'
-      });
+  const handleLogout = async () => {
+    try {
+      await logoutAction();
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-    setIsDrawerOpen(true);
   };
 
   const handleSave = async () => {
@@ -182,7 +218,20 @@ export default function ExpensesPage() {
       });
 
       if (res.ok) {
-        setIsDrawerOpen(false);
+        if (user?.role === 'OPERATOR') {
+          setShowSuccess(true);
+          setFormData({
+            type: '',
+            description: '',
+            value: '',
+            date: new Date().toISOString().split('T')[0],
+            vehicleId: '',
+            status: 'PAID'
+          });
+          setTimeout(() => setShowSuccess(false), 15000);
+        } else {
+          setIsDrawerOpen(false);
+        }
         fetchData();
       }
     } catch (error) {
@@ -223,8 +272,11 @@ export default function ExpensesPage() {
   return (
     <AppLayout>
       <Header 
-        title="Cadastro de Despesas" 
+        title={user?.role === 'OPERATOR' ? "Nova Despesa" : "Cadastro de Despesas"} 
         icon={DollarSign}
+        actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Despesa"}
+        onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
+        onLogout={handleLogout}
       />
       
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -232,15 +284,38 @@ export default function ExpensesPage() {
           
           {/* Filters Bar */}
           <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-wrap items-center gap-4">
-            <div className="flex flex-col gap-1.5 min-w-[180px]">
-              <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Período</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                <input 
-                  className="bg-background-dark border border-border-dark rounded-lg pl-10 pr-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary outline-none" 
-                  type="text" 
-                  defaultValue="Out 01 - Out 31, 2023"
-                />
+            <div className="flex flex-wrap items-center gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+                <Calendar className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    setSelectedMonth(parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-surface-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {months.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+
+                <select 
+                  value={selectedYear}
+                  onChange={(e) => {
+                    setSelectedYear(parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-surface-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {[2024, 2025, 2026].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
               </div>
             </div>
             
@@ -444,13 +519,22 @@ export default function ExpensesPage() {
               <div>
                 <h3 className="text-xl font-bold text-white">{selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}</h3>
                 <p className="text-sm text-slate-500 mt-1">{selectedExpense ? 'Atualize os dados da despesa' : 'Registre uma nova saída financeira'}</p>
+                {user?.role === 'OPERATOR' && showSuccess && (
+                  <div className="mt-4 bg-emerald-500/20 border border-emerald-500/30 rounded px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Despesa cadastrada com sucesso
+                    </p>
+                  </div>
+                )}
               </div>
-              <button 
-                onClick={() => setIsDrawerOpen(false)}
-                className="text-slate-500 hover:text-white transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              {user?.role !== 'OPERATOR' && (
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              )}
             </div>
             
             <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">

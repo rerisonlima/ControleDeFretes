@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: idStr } = await params;
+  const id = parseInt(idStr);
+
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
   try {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
     const body = await request.json();
     const frete = await prisma.frete.update({
       where: { id },
@@ -26,7 +31,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(frete);
   } catch (error) {
-    console.error('Failed to update frete:', error);
+    console.error(`Failed to update frete with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Frete não encontrado' }, { status: 404 });
@@ -36,10 +41,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: idStr } = await params;
+  const id = parseInt(idStr);
+
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
   try {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-    
     // Check if frete is used in any trips
     const tripsCount = await prisma.trip.count({
       where: { freteId: id }
@@ -57,7 +66,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Failed to delete frete:', error);
+    console.error(`Failed to delete frete with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Frete não encontrado' }, { status: 404 });

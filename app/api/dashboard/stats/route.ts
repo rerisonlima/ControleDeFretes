@@ -35,204 +35,88 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Use a transaction for the dashboard queries to ensure they use the same connection
-    // and respect the session settings (timeouts).
-    const dashboardData = await prisma.$transaction(async (tx) => {
-      // Increase statement timeout for the dashboard query session
-      await tx.$executeRawUnsafe('SET statement_timeout = 60000;'); // 1 minute
-      // Set a longer lock timeout to allow brief blocking from background maintenance
-      await tx.$executeRawUnsafe('SET lock_timeout = 60000;'); // 60 seconds
-      
-      // Always fetch full month data to simplify logic and provide chart context
-      const fullMonthStart = startOfMonth(new Date(year, month - 1));
-      const fullMonthEnd = endOfMonth(fullMonthStart);
+    // Always fetch full month data to simplify logic and provide chart context
+    const fullMonthStart = startOfMonth(new Date(year, month - 1));
+    const fullMonthEnd = endOfMonth(fullMonthStart);
 
-      // Fetch current month and previous month data in parallel
-      const prevStartDate = startOfMonth(new Date(year, month - 2));
-      const prevEndDate = endOfMonth(prevStartDate);
+    // Fetch current month and previous month data in parallel
+    const prevStartDate = startOfMonth(new Date(year, month - 2));
+    const prevEndDate = endOfMonth(prevStartDate);
 
-      // Helper to calculate total KM in a period
-      const calculateTotalKm = async (start: Date, end: Date) => {
-        const tripsInPeriod = await tx.trip.groupBy({
-          by: ['vehicleId'],
-          where: { scheduledAt: { gte: start, lte: end }, odometer: { not: null } },
-          _max: { odometer: true },
-          _min: { odometer: true }
-        });
-
-        if (tripsInPeriod.length === 0) return 0;
-
-        const vehicleIds = tripsInPeriod.map(g => g.vehicleId);
-        
-        // Fetch last odometer before start for all vehicles in parallel
-        const lastTripsBefore = await Promise.all(vehicleIds.map(vId => 
-          tx.trip.findFirst({
-            where: { 
-              vehicleId: vId, 
-              scheduledAt: { lt: start }, 
-              odometer: { not: null } 
-            },
-            orderBy: { scheduledAt: 'desc' },
-            select: { vehicleId: true, odometer: true }
-          })
-        ));
-
-        const lastTripMap = new Map();
-        lastTripsBefore.forEach(t => {
-          if (t && t.odometer !== null) {
-            lastTripMap.set(t.vehicleId, t.odometer);
-          }
-        });
-
-        let totalKm = 0;
-        for (const group of tripsInPeriod) {
-          const maxOdo = group._max.odometer || 0;
-          const lastOdo = lastTripMap.get(group.vehicleId);
-
-          if (lastOdo !== undefined) {
-            totalKm += (maxOdo - lastOdo);
-          } else {
-            totalKm += (maxOdo - (group._min.odometer || 0));
-          }
-        }
-        return totalKm;
-      };
-
-      // Fetch all trips and expenses for the month to calculate weekly stats in memory
-      const [allMonthTrips, allMonthExpenses] = await Promise.all([
-        tx.trip.findMany({
-          where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-          select: { value: true, scheduledAt: true }
-        }),
-        tx.expense.findMany({
-          where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
-          select: { value: true, date: true }
-        })
-      ]);
-
-      const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
-      const weeklyStats = weeks.map(weekStart => {
-        const weekEnd = endOfWeek(weekStart);
-        const revenue = allMonthTrips
-          .filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
-          .reduce((sum, t) => sum + (t.value || 0), 0);
-        const expenses = allMonthExpenses
-          .filter(e => e.date >= weekStart && e.date <= weekEnd)
-          .reduce((sum, e) => sum + (e.value || 0), 0);
-        return { revenue, expenses };
+    // Helper to calculate total KM in a period
+    const calculateTotalKm = async (start: Date, end: Date) => {
+      const tripsInPeriod = await prisma.trip.groupBy({
+        by: ['vehicleId'],
+        where: { scheduledAt: { gte: start, lte: end }, odometer: { not: null } },
+        _max: { odometer: true },
+        _min: { odometer: true }
       });
 
-      const [
-        revenueStats,
-        expenseStats,
-        revenueByContractor,
-        expenseByType,
-        prevRevenueStats,
-        prevExpenseStats,
-        recentTripsData,
-        maintenanceData,
-        currentTotalKm,
-        prevTotalKm
-      ] = await Promise.all([
-        // Current Month Total Revenue
-        tx.trip.aggregate({
-          where: { scheduledAt: { gte: startDate, lte: endDate } },
-          _sum: { value: true },
-          _count: { id: true }
-        }),
-        // Current Month Total Expenses
-        tx.expense.aggregate({
-          where: { date: { gte: startDate, lte: endDate } },
-          _sum: { value: true }
-        }),
-        // Current Month Revenue by Contractor
-        tx.trip.groupBy({
-          by: ['contratanteId'],
-          where: { scheduledAt: { gte: startDate, lte: endDate } },
-          _sum: { value: true },
-          _count: { id: true }
-        }),
-        // Current Month Expense by Type
-        tx.expense.groupBy({
-          by: ['type'],
-          where: { date: { gte: startDate, lte: endDate } },
-          _sum: { value: true }
-        }),
-        // Previous Month Total Revenue
-        tx.trip.aggregate({
-          where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-          _sum: { value: true }
-        }),
-        // Previous Month Total Expenses
-        tx.expense.aggregate({
-          where: { date: { gte: prevStartDate, lte: prevEndDate } },
-          _sum: { value: true }
-        }),
-        // Recent Trips
-        tx.trip.findMany({
-          where: { scheduledAt: { gte: startDate, lte: endDate } },
-          orderBy: { scheduledAt: 'desc' },
-          take: 5,
-          select: {
-            id: true,
-            value: true,
-            status: true,
-            contract: true,
-            scheduledAt: true,
-            routeId: true,
-            vehicleId: true,
-            route: { select: { destination: true } },
-            frete: { select: { cidade: true } },
-            contratante: { select: { ContratanteNome: true } },
-            vehicle: { select: { plate: true } }
-          }
-        }),
-        // Maintenance Data
-        tx.maintenance.findMany({
-          where: { 
-            executionDate: null,
-            vehicle: {
-              status: 'ACTIVE'
-            }
-          },
-          include: {
-            vehicle: {
-              include: {
-                trips: {
-                  orderBy: { scheduledAt: 'desc' },
-                  take: 1,
-                  select: { odometer: true }
-                }
-              }
-            }
-          }
-        }),
-        // Current Total KM
-        calculateTotalKm(startDate, endDate),
-        // Previous Total KM
-        calculateTotalKm(prevStartDate, prevEndDate)
-      ]);
+      if (tripsInPeriod.length === 0) return 0;
 
-      return {
-        revenueStats,
-        expenseStats,
-        revenueByContractor,
-        expenseByType,
-        prevRevenueStats,
-        prevExpenseStats,
-        recentTripsData,
-        maintenanceData,
-        weeklyStats,
-        currentTotalKm,
-        prevTotalKm,
-        fullMonthStart,
-        fullMonthEnd
-      };
-    }, {
-      timeout: 120000 // 2 minutes for the whole transaction
+      const vehicleIds = tripsInPeriod.map(g => g.vehicleId);
+      
+      // Fetch last odometer before start for all vehicles in a single query
+      const lastTripsBefore = await prisma.trip.findMany({
+        where: {
+          vehicleId: { in: vehicleIds },
+          scheduledAt: { lt: start },
+          odometer: { not: null }
+        },
+        orderBy: [
+          { vehicleId: 'asc' },
+          { scheduledAt: 'desc' }
+        ],
+        distinct: ['vehicleId'],
+        select: { vehicleId: true, odometer: true }
+      });
+
+      const lastTripMap = new Map();
+      lastTripsBefore.forEach(t => {
+        if (t && t.odometer !== null) {
+          lastTripMap.set(t.vehicleId, t.odometer);
+        }
+      });
+
+      let totalKm = 0;
+      for (const group of tripsInPeriod) {
+        const maxOdo = group._max.odometer || 0;
+        const lastOdo = lastTripMap.get(group.vehicleId);
+
+        if (lastOdo !== undefined) {
+          totalKm += (maxOdo - lastOdo);
+        } else {
+          totalKm += (maxOdo - (group._min.odometer || 0));
+        }
+      }
+      return totalKm;
+    };
+
+    // Fetch all trips and expenses for the month to calculate weekly stats in memory
+    const [allMonthTrips, allMonthExpenses] = await Promise.all([
+      prisma.trip.findMany({
+        where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
+        select: { value: true, scheduledAt: true }
+      }),
+      prisma.expense.findMany({
+        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
+        select: { value: true, date: true }
+      })
+    ]);
+
+    const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
+    const weeklyStats = weeks.map(weekStart => {
+      const weekEnd = endOfWeek(weekStart);
+      const revenue = allMonthTrips
+        .filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
+        .reduce((sum, t) => sum + (t.value || 0), 0);
+      const expenses = allMonthExpenses
+        .filter(e => e.date >= weekStart && e.date <= weekEnd)
+        .reduce((sum, e) => sum + (e.value || 0), 0);
+      return { revenue, expenses };
     });
 
-    const {
+    const [
       revenueStats,
       expenseStats,
       revenueByContractor,
@@ -241,12 +125,87 @@ export async function GET(request: Request) {
       prevExpenseStats,
       recentTripsData,
       maintenanceData,
-      weeklyStats,
       currentTotalKm,
-      prevTotalKm,
-      fullMonthStart,
-      fullMonthEnd
-    } = dashboardData;
+      prevTotalKm
+    ] = await Promise.all([
+      // Current Month Total Revenue
+      prisma.trip.aggregate({
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        _sum: { value: true },
+        _count: { id: true }
+      }),
+      // Current Month Total Expenses
+      prisma.expense.aggregate({
+        where: { date: { gte: startDate, lte: endDate } },
+        _sum: { value: true }
+      }),
+      // Current Month Revenue by Contractor
+      prisma.trip.groupBy({
+        by: ['contratanteId'],
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        _sum: { value: true },
+        _count: { id: true }
+      }),
+      // Current Month Expense by Type
+      prisma.expense.groupBy({
+        by: ['type'],
+        where: { date: { gte: startDate, lte: endDate } },
+        _sum: { value: true }
+      }),
+      // Previous Month Total Revenue
+      prisma.trip.aggregate({
+        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+        _sum: { value: true }
+      }),
+      // Previous Month Total Expenses
+      prisma.expense.aggregate({
+        where: { date: { gte: prevStartDate, lte: prevEndDate } },
+        _sum: { value: true }
+      }),
+      // Recent Trips
+      prisma.trip.findMany({
+        where: { scheduledAt: { gte: startDate, lte: endDate } },
+        orderBy: { scheduledAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          value: true,
+          status: true,
+          contract: true,
+          scheduledAt: true,
+          routeId: true,
+          vehicleId: true,
+          route: { select: { destination: true } },
+          frete: { select: { cidade: true } },
+          contratante: { select: { ContratanteNome: true } },
+          vehicle: { select: { plate: true } }
+        }
+      }),
+      // Maintenance Data
+      prisma.maintenance.findMany({
+        where: { 
+          executionDate: null,
+          vehicle: {
+            status: 'ACTIVE'
+          }
+        },
+        include: {
+          vehicle: {
+            include: {
+              trips: {
+                orderBy: { scheduledAt: 'desc' },
+                take: 1,
+                select: { odometer: true }
+              }
+            }
+          }
+        }
+      }),
+      // Current Total KM
+      calculateTotalKm(startDate, endDate),
+      // Previous Total KM
+      calculateTotalKm(prevStartDate, prevEndDate)
+    ]);
 
     // Fetch contractor names for the breakdown
     const contractorIds = revenueByContractor.map(r => r.contratanteId).filter((id): id is number => id !== null);

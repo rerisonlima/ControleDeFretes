@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -27,12 +26,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     
     return NextResponse.json(expense);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Despesa não encontrada' }, { status: 404 });
-      }
+    console.error(`Failed to update expense with ID ${id}:`, error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Despesa não encontrada' }, { status: 404 });
     }
-    console.error('Failed to update expense:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -52,12 +50,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Despesa não encontrada ou já excluída' }, { status: 404 });
-      }
+    console.error(`Failed to delete expense with ID ${id}:`, error);
+    // @ts-expect-error - Prisma error code
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Despesa não encontrada ou já excluída' }, { status: 404 });
     }
-    console.error('Failed to delete expense:', error);
     return NextResponse.json({ error: 'Erro ao excluir despesa ou registro não encontrado' }, { status: 500 });
   }
 }

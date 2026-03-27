@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: idStr } = await params;
+  const id = parseInt(idStr);
+
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
   try {
-    const { id } = await params;
     const data = await request.json();
     const record = await prisma.valoresPagamentoMotoristaAjudante.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: {
         validade: new Date(data.validade),
         destino: data.destino,
@@ -19,7 +25,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(record);
   } catch (error) {
-    console.error('Error updating valor pagamento:', error);
+    console.error(`Error updating valor pagamento with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Registro não encontrado' }, { status: 404 });
@@ -29,14 +35,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: idStr } = await params;
+  const id = parseInt(idStr);
+
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
   try {
-    const { id } = await params;
     await prisma.valoresPagamentoMotoristaAjudante.delete({
-      where: { id: parseInt(id) },
+      where: { id },
     });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting valor pagamento:', error);
+    console.error(`Error deleting valor pagamento with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Registro não encontrado' }, { status: 404 });
