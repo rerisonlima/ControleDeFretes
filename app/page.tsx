@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import AppLayout, { useSidebar } from '@/components/AppLayout';
+import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
+import { logoutAction } from '@/app/actions/auth';
 import { 
   LayoutDashboard,
   TrendingUp, 
@@ -173,7 +174,6 @@ const MileageCounter = ({ value, isOverdue }: { value: number; isOverdue: boolea
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, isAuthReady, handleLogout } = useSidebar();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -182,6 +182,17 @@ export default function Dashboard() {
   const [error, setError] = React.useState<string | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData | null>(null);
   const [showValues, setShowValues] = React.useState(false);
+  const [isCheckingSession, setIsCheckingSession] = React.useState(true);
+  const [user, setUser] = React.useState<{ role: string } | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await logoutAction();
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
@@ -210,10 +221,24 @@ export default function Dashboard() {
   }, [selectedMonth, selectedYear, selectedWeek]);
 
   React.useEffect(() => {
-    if (isAuthReady && user?.role === 'OPERATOR') {
-      router.replace('/routes');
-    }
-  }, [isAuthReady, user, router]);
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.role === 'OPERATOR') {
+            router.replace('/routes');
+            return;
+          }
+          setUser(data);
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      }
+      setIsCheckingSession(false);
+    };
+    checkSession();
+  }, [router]);
 
   React.useEffect(() => {
     fetchStats();
@@ -223,7 +248,7 @@ export default function Dashboard() {
   const chartData = dashboardData?.chart || [];
   const trips = dashboardData?.recentTrips || [];
 
-  if (!isAuthReady) {
+  if (isCheckingSession) {
     return (
       <div className="min-h-screen bg-[#181411] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -234,15 +259,14 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <Header 
-        title="Dashboard" 
+        title="Visão Geral do Dashboard" 
         icon={LayoutDashboard}
         actionLabel="Nova Viagem" 
         onAction={() => router.push('/routes')}
-        onLogout={handleLogout}
-        user={user}
+        onLogout={user?.role === 'OPERATOR' ? handleLogout : undefined}
       />
       
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-8">
           
           {/* Filter Section */}
@@ -640,9 +664,7 @@ export default function Dashboard() {
               <h3 className="font-bold text-white">Viagens do Período</h3>
               <button className="text-sm font-bold text-primary hover:underline">Ver Todas</button>
             </div>
-            
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                   <tr>
@@ -658,7 +680,7 @@ export default function Dashboard() {
                   {loading ? (
                     [1, 2, 3].map(i => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
+                      <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
                       </tr>
                     ))
                   ) : trips.length === 0 ? (
@@ -705,62 +727,6 @@ export default function Dashboard() {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-border-dark">
-              {loading ? (
-                [1, 2, 3].map(i => (
-                  <div key={i} className="p-4 animate-pulse h-24 bg-white/5"></div>
-                ))
-              ) : trips.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm italic">
-                  Nenhuma viagem encontrada.
-                </div>
-              ) : trips.map((trip, i) => (
-                <div key={i} className="p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <Navigation className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white">{trip.route}</p>
-                        <p className="text-[10px] text-slate-500">{trip.date}</p>
-                      </div>
-                    </div>
-                    <button className="p-1 text-slate-500">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Placa</p>
-                      <p className="text-xs font-medium text-slate-300">{trip.plate}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Valor</p>
-                      <p className="text-xs font-bold text-white">{showValues ? trip.value : '******'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2">
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border",
-                      trip.status === 'DELIVERED' || trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                      trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
-                      "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                    )}>
-                      {trip.status === 'DELIVERED' ? 'Entregue' : 
-                       trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
-                       trip.status === 'PENDING' ? 'Pendente' : 
-                       trip.status}
-                    </span>
-                    <p className="text-[10px] text-slate-500 italic">{trip.contract || 'Sem contrato'}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
