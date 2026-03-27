@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AppLayout from '@/components/AppLayout';
+import AppLayout, { useSidebar } from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { Toast, useToast } from '@/components/Toast';
 import { 
@@ -28,6 +28,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { user } = useSidebar();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [users, setUsers] = useState<User[]>([]);

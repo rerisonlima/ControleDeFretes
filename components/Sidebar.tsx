@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { logoutAction } from '@/app/actions/auth';
+import { useSidebar } from './AppLayout';
 import { 
   LayoutDashboard, 
   Calculator, 
@@ -16,6 +16,7 @@ import {
   TruckIcon,
   Table,
   FileText,
+  X,
   User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,33 +36,7 @@ const menuItems = [
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; role: string; lastLogin?: string } | null>(null);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      console.log('Sidebar: Fetching session...');
-      try {
-        const res = await fetch('/api/auth/session');
-        console.log('Sidebar: Session response status:', res.status);
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Sidebar: Session data received:', data);
-          setUser(data);
-        } else {
-          console.warn('Sidebar: Session not found or invalid (Status:', res.status, ')');
-        }
-      } catch (error) {
-        console.error('Sidebar: Error fetching session:', error);
-      }
-    };
-    fetchSession();
-  }, []);
-
-  const handleLogout = async () => {
-    await logoutAction();
-    router.push('/login');
-    router.refresh();
-  };
+  const { user, handleLogout } = useSidebar();
 
   const getRoleLabel = (role: string) => {
     const r = role?.toUpperCase();
@@ -74,28 +49,50 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen">
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
-            <TruckIcon className="w-6 h-6 text-background-dark" />
+    <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen overflow-hidden">
+      <div className="p-6 border-b border-border-dark">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
+              <TruckIcon className="w-6 h-6 text-background-dark" />
+            </div>
+            <div>
+              <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
+              <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
-            <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
-          </div>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 lg:hidden"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        {onClose && (
+
+        {/* User Profile Section - Prominent at the top */}
+        <div className="bg-surface-dark/40 rounded-xl p-4 border border-border-dark/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <UserIcon className="w-5 h-5" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-bold text-white truncate">{user?.name || 'Carregando...'}</p>
+              <p className="text-[10px] text-slate-500 truncate uppercase font-bold tracking-wider">{user ? getRoleLabel(user.role) : '...'}</p>
+            </div>
+          </div>
           <button 
-            onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 lg:hidden"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-lg transition-all text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-rose-900/10"
           >
-            <LogOut className="w-4 h-4 rotate-180" />
+            <LogOut className="w-3.5 h-3.5" />
+            Sair do Sistema
           </button>
-        )}
+        </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 mt-4">
+      <nav className="flex-1 px-4 space-y-1 mt-6 overflow-y-auto custom-scrollbar">
         {menuItems
           .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes' || item.href === '/expenses')
           .map((item) => {
@@ -119,31 +116,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-border-dark">
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500 shrink-0">
-            <UserIcon className="w-6 h-6" />
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-semibold text-white truncate">{user?.name || 'Carregando...'}</p>
-            <p className="text-[10px] text-slate-500 truncate uppercase">{user ? getRoleLabel(user.role) : '...'}</p>
-          </div>
-          <button 
-            onClick={handleLogout}
-            className="w-10 h-10 flex items-center justify-center bg-rose-600 border border-rose-500 text-white hover:bg-rose-700 rounded-lg transition-all shadow-lg shadow-rose-900/20 shrink-0"
-            title="Sair do Sistema"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+      {user?.lastLogin && (
+        <div className="p-4 border-t border-border-dark bg-background-dark/50">
+          <p className="text-[9px] text-slate-600 text-center font-medium uppercase tracking-widest">
+            Último Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
-        {user?.lastLogin && (
-          <div className="px-2 pb-1">
-            <p className="text-[8px] text-slate-600 truncate">
-              Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        )}
-      </div>
+      )}
     </aside>
   );
 }

@@ -12,6 +12,7 @@ interface HeaderProps {
   onAction?: () => void;
   onLogout?: () => void;
   onMenuClick?: () => void;
+  user?: { name: string; role: string } | null;
   secondaryAction?: {
     label: string;
     icon: React.ElementType;
@@ -20,26 +21,35 @@ interface HeaderProps {
   };
 }
 
-export function Header({ title, icon: Icon, actionLabel, actionIcon: ActionIcon, onAction, onLogout, onMenuClick, secondaryAction }: HeaderProps) {
-  const { toggleSidebar } = useSidebar();
+export function Header({ title, icon: Icon, actionLabel, actionIcon: ActionIcon, onAction, onLogout: propLogout, onMenuClick, user: propUser, secondaryAction }: HeaderProps) {
+  const { toggleSidebar, user: contextUser, handleLogout: contextLogout } = useSidebar();
+  const user = propUser || contextUser;
+  const onLogout = propLogout || contextLogout;
 
   return (
     <header className="h-16 border-b border-border-dark bg-[#1c1814] px-4 md:px-8 flex items-center justify-between z-[999] sticky top-0 shadow-xl">
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="flex items-center gap-2 md:gap-3 min-w-0">
         <button 
           onClick={onMenuClick || toggleSidebar}
-          className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 lg:hidden"
+          className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 lg:hidden shrink-0"
         >
           <Menu className="w-5 h-5" />
         </button>
         {Icon && (
-          <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg shrink-0">
+          <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg shrink-0 hidden xs:flex">
             <Icon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
           </div>
         )}
-        <h2 className="text-sm md:text-base font-bold text-white tracking-tight">{title}</h2>
+        <h2 className="text-sm md:text-base font-bold text-white tracking-tight truncate">{title}</h2>
       </div>
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        {user && (
+          <div className="flex flex-col items-end mr-2">
+            <p className="text-[9px] md:text-[10px] font-bold text-white leading-none truncate max-w-[80px] md:max-w-none">{user.name}</p>
+            <p className="text-[7px] md:text-[8px] text-primary font-bold uppercase tracking-tighter">{user.role}</p>
+          </div>
+        )}
+
         {secondaryAction && (
           <button 
             onClick={secondaryAction.onClick}
@@ -57,7 +67,7 @@ export function Header({ title, icon: Icon, actionLabel, actionIcon: ActionIcon,
             title="Sair do Sistema"
           >
             <LogOut className="w-3 h-3 md:w-3.5 md:h-3.5" />
-            <span className="hidden xs:inline">Sair</span>
+            <span className="hidden min-[450px]:inline">Sair</span>
           </button>
         )}
 
