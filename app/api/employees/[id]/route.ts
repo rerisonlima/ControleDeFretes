@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const resolvedParams = await params;
-    const id = parseInt(resolvedParams.id);
+  const resolvedParams = await params;
+  const id = parseInt(resolvedParams.id);
 
+  try {
     if (isNaN(id)) {
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
     }
@@ -36,10 +36,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const resolvedParams = await params;
-    const id = parseInt(resolvedParams.id);
+  const resolvedParams = await params;
+  const id = parseInt(resolvedParams.id);
 
+  try {
     if (isNaN(id)) {
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
     }

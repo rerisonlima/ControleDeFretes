@@ -70,10 +70,10 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: idStr } = await params;
+  const vehicleId = parseInt(idStr);
+
   try {
-    const { id: idStr } = await params;
-    const vehicleId = parseInt(idStr);
-    
     if (isNaN(vehicleId)) {
       console.error('Invalid vehicle ID received:', idStr);
       return NextResponse.json({ error: 'ID de veículo inválido' }, { status: 400 });
