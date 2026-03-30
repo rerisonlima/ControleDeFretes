@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { logoutAction } from '@/app/actions/auth';
 import { 
   LayoutDashboard, 
@@ -15,15 +16,13 @@ import {
   LogOut,
   TruckIcon,
   Table,
-  FileText,
-  User as UserIcon
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Map, label: 'Viagens', href: '/routes' },
-  { icon: Receipt, label: 'Recebimentos', href: '/recebimentos' },
   { icon: Calculator, label: 'Pagamentos', href: '/payments' },
   { icon: Receipt, label: 'Despesas', href: '/expenses' },
   { icon: Truck, label: 'Veículos', href: '/vehicles' },
@@ -33,7 +32,7 @@ const menuItems = [
   { icon: UserCog, label: 'Usuários', href: '/users' },
 ];
 
-export function Sidebar({ onClose }: { onClose?: () => void }) {
+export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; role: string; lastLogin?: string } | null>(null);
@@ -76,36 +75,23 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen">
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
-            <TruckIcon className="w-6 h-6 text-background-dark" />
-          </div>
-          <div>
-            <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
-            <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
-          </div>
+      <div className="p-6 flex items-center gap-3">
+        <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
+          <TruckIcon className="w-6 h-6 text-background-dark" />
         </div>
-        {onClose && (
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 lg:hidden"
-          >
-            <LogOut className="w-4 h-4 rotate-180" />
-          </button>
-        )}
+        <div>
+          <h1 className="text-white text-lg font-bold leading-tight">Rápido Carioca</h1>
+          <p className="text-primary text-[10px] font-medium uppercase tracking-wider">Administração</p>
+        </div>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
-        {menuItems
-          .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes' || item.href === '/expenses')
-          .map((item) => {
+        {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group",
                 isActive 
@@ -122,28 +108,31 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div className="p-4 mt-auto border-t border-border-dark">
         <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500 shrink-0">
-            <UserIcon className="w-6 h-6" />
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border-dark">
+            <Image
+              src="https://picsum.photos/seed/admin/100/100"
+              alt="Avatar"
+              fill
+              className="object-cover"
+              referrerPolicy="no-referrer"
+            />
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="overflow-hidden">
             <p className="text-sm font-semibold text-white truncate">{user?.name || 'Carregando...'}</p>
             <p className="text-[10px] text-slate-500 truncate uppercase">{user ? getRoleLabel(user.role) : '...'}</p>
+            {user?.lastLogin && (
+              <p className="text-[8px] text-slate-600 truncate mt-0.5">
+                Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
           <button 
             onClick={handleLogout}
-            className="w-10 h-10 flex items-center justify-center bg-rose-600 border border-rose-500 text-white hover:bg-rose-700 rounded-lg transition-all shadow-lg shadow-rose-900/20 shrink-0"
-            title="Sair do Sistema"
+            className="ml-auto text-slate-500 hover:text-white transition-colors"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
-        {user?.lastLogin && (
-          <div className="px-2 pb-1">
-            <p className="text-[8px] text-slate-600 truncate">
-              Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        )}
       </div>
     </aside>
   );
