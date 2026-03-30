@@ -7,7 +7,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const body = await req.json();
-    console.log('Updating trip with body:', body);
+    console.log('Updating receipt with body:', body);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
@@ -47,10 +47,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
     return NextResponse.json(trip);
   } catch (error) {
-    console.error(`Failed to update trip with ID ${id}:`, error);
+    console.error(`Failed to update receipt with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Viagem não encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Recebimento não encontrado' }, { status: 404 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -71,13 +71,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Failed to delete trip with ID ${id}:`, error);
+    console.error(`Failed to delete receipt with ID ${id}:`, error);
     // @ts-expect-error - Prisma error code
     if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Viagem não encontrada ou já excluída' }, { status: 404 });
+      return NextResponse.json({ error: 'Recebimento não encontrado ou já excluído' }, { status: 404 });
     }
     return NextResponse.json({ 
-      error: 'Erro ao excluir viagem', 
+      error: 'Erro ao excluir recebimento', 
       details: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
   }

@@ -4,7 +4,6 @@ import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { logoutAction } from '@/app/actions/auth';
-import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { 
   Search, 
@@ -17,12 +16,12 @@ import {
   Truck,
   User,
   DollarSign,
-  Copy,
   Receipt,
   Loader2,
   Gauge,
+  ChevronRight,
   ChevronLeft,
-  ChevronRight
+  Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -86,11 +85,6 @@ interface Trip {
   route?: { destination: string };
 }
 
-interface Route {
-  id: number;
-  destination: string;
-}
-
 interface Vehicle {
   id: number;
   plate: string;
@@ -123,7 +117,7 @@ interface Frete {
   valor2aViagemAjudante: number;
 }
 
-export default function RoutesPage() {
+export default function ReceiptsPage() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -270,8 +264,6 @@ export default function RoutesPage() {
     fetchIp();
   }, [handleOpenDrawer]);
 
-  // Form state
-
   const isOperator = user?.role === 'OPERATOR';
 
   const handleLogout = async () => {
@@ -287,9 +279,6 @@ export default function RoutesPage() {
     e.preventDefault();
     e.stopPropagation();
     setIsNavigatingToExpenses(true);
-    
-    // Using window.location.href for more reliable navigation in the iframe environment
-    // while still keeping the loading state visible for feedback
     setTimeout(() => {
       window.location.href = '/expenses?new=true';
     }, 100);
@@ -321,7 +310,7 @@ export default function RoutesPage() {
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data</label>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
             <input 
@@ -540,79 +529,17 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Mot.</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                <input 
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                  placeholder="0,00" 
-                  type="number"
-                  step="0.01"
-                  value={formData.valor1aViagemMotorista}
-                  readOnly
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Mot.</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                <input 
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                  placeholder="0,00" 
-                  type="number"
-                  step="0.01"
-                  value={formData.valor2aViagemMotorista}
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 1ª Viagem Ajud.</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                <input 
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                  placeholder="0,00" 
-                  type="number"
-                  step="0.01"
-                  value={formData.valor1aViagemAjudante}
-                  readOnly
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor 2ª Viagem Ajud.</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                <input 
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                  placeholder="0,00" 
-                  type="number"
-                  step="0.01"
-                  value={formData.valor2aViagemAjudante}
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-
           <hr className="border-border-dark" />
 
           {/* Payment Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-emerald-500" />
-              <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
+              <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Recebimento</h4>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Pago</label>
+                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Recebido</label>
                 <select 
                   className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
                   value={formData.paid}
@@ -623,7 +550,7 @@ export default function RoutesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pagamento</label>
+                <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Recebimento</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                   <input 
@@ -642,34 +569,21 @@ export default function RoutesPage() {
     </div>
   );
 
-  React.useEffect(() => {
-    if (user?.role === 'OPERATOR' && !formData.tripId) {
-      handleOpenDrawer(null, false);
-    }
-  }, [user, formData.tripId, handleOpenDrawer]);
-
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const fetchJson = async (url: string, name: string) => {
-        console.log(`Fetching ${name} from ${url}...`);
+      const fetchJson = async (url: string) => {
         const res = await fetch(url);
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error(`${name} API error (${res.status}):`, errorText);
-          return [];
-        }
-        const data = await res.json();
-        return data;
+        if (!res.ok) return [];
+        return await res.json();
       };
 
-      const [tripsResponse, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
-        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`, 'Trips'),
-        fetchJson('/api/routes', 'Routes'),
-        fetchJson('/api/vehicles', 'Vehicles'),
-        fetchJson('/api/employees', 'Employees'),
-        fetchJson('/api/contratantes', 'Contratantes'),
-        fetchJson('/api/fretes', 'Fretes')
+      const [tripsResponse, vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
+        fetchJson(`/api/receipts?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`),
+        fetchJson('/api/vehicles'),
+        fetchJson('/api/employees'),
+        fetchJson('/api/contratantes'),
+        fetchJson('/api/fretes')
       ]);
 
       if (tripsResponse && tripsResponse.trips) {
@@ -698,7 +612,7 @@ export default function RoutesPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const url = selectedTrip ? `/api/trips/${selectedTrip.id}` : '/api/trips';
+      const url = selectedTrip ? `/api/receipts/${selectedTrip.id}` : '/api/receipts';
       const method = selectedTrip ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -711,9 +625,7 @@ export default function RoutesPage() {
         if (user?.role === 'OPERATOR') {
           setShowSuccess(true);
           setTimeout(() => setShowSuccess(false), 15000);
-          // Reset form for next entry
           handleOpenDrawer(null, false);
-          // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
             vehicleIdRef.current?.focus();
           }, 100);
@@ -722,15 +634,8 @@ export default function RoutesPage() {
           fetchData();
         }
       } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const error = await response.json();
-          alert(error.error || 'Erro ao salvar viagem');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao salvar viagem');
-        }
+        const error = await response.json();
+        alert(error.error || 'Erro ao salvar recebimento');
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -742,21 +647,13 @@ export default function RoutesPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/api/trips/${id}`, { method: 'DELETE' });
-      
-      const contentType = response.headers.get("content-type");
+      const response = await fetch(`/api/receipts/${id}`, { method: 'DELETE' });
       if (response.ok) {
         setDeleteConfirmId(null);
         fetchData();
       } else {
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const data = await response.json();
-          alert(data.error || 'Erro ao excluir viagem');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao excluir viagem');
-        }
+        const data = await response.json();
+        alert(data.error || 'Erro ao excluir recebimento');
         setDeleteConfirmId(null);
       }
     } catch (error) {
@@ -767,7 +664,6 @@ export default function RoutesPage() {
 
   const handleClone = async (trip: Trip) => {
     try {
-      console.log('Cloning trip:', trip);
       const newTripId = `TRIP-${Math.floor(1000 + Math.random() * 9000)}`;
       const cloneData = {
         tripId: newTripId,
@@ -791,29 +687,18 @@ export default function RoutesPage() {
         paymentDate: ''
       };
 
-      console.log('Sending clone data:', cloneData);
-
-      const response = await fetch('/api/trips', {
+      const response = await fetch('/api/receipts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cloneData)
       });
 
       if (response.ok) {
-        console.log('Clone successful');
         setCloneConfirmId(null);
         fetchData();
       } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const error = await response.json();
-          console.error('Clone failed:', error);
-          alert(error.details || error.error || 'Erro ao clonar viagem');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao clonar viagem');
-        }
+        const error = await response.json();
+        alert(error.error || 'Erro ao clonar recebimento');
         setCloneConfirmId(null);
       }
     } catch (error) {
@@ -845,9 +730,9 @@ export default function RoutesPage() {
   return (
     <AppLayout>
       <Header 
-        title={user?.role === 'OPERATOR' ? "Nova Viagem" : "Viagens"} 
-        icon={Truck}
-        actionLabel={user?.role === 'OPERATOR' ? undefined : "Nova Viagem"} 
+        title="Recebimentos" 
+        icon={DollarSign}
+        actionLabel={user?.role === 'OPERATOR' ? undefined : "Novo Recebimento"} 
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
         onLogout={handleLogout}
       />
@@ -855,468 +740,406 @@ export default function RoutesPage() {
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {user?.role === 'OPERATOR' ? (
           <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8 flex flex-col items-center gap-2">
-                <div className="flex flex-wrap justify-center gap-4">
-                  <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                    Usuário: {user?.name}
-                  </p>
-                  <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                    IP: {userIp}
-                  </p>
-                </div>
-              </div>
-              {showSuccess && (
-                <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 font-bold text-center animate-in fade-in zoom-in duration-300 flex items-center justify-center gap-3">
-                  <Truck className="w-5 h-5" />
-                  VIAGEM CADASTRADA COM SUCESSO
-                </div>
-              )}
-              
-              <div className="bg-surface-dark border border-border-dark rounded-2xl p-6 md:p-8 shadow-xl space-y-8">
-                {/* Form Content for Operator */}
-                {renderFormContent()}
-                
-                <div className="pt-4 flex items-center gap-4">
-                  <motion.button 
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-4 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 text-lg"
-                  >
-                    {isSaving ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <Check className="w-6 h-6" />
-                    )}
-                    {isSaving ? 'Salvando...' : 'Cadastrar Viagem'}
-                  </motion.button>
-                </div>
-              </div>
+            <div className="max-w-2xl mx-auto text-center p-12">
+              <DollarSign className="w-16 h-16 text-primary mx-auto mb-4 opacity-20" />
+              <h2 className="text-xl font-bold text-white mb-2">Módulo de Recebimentos</h2>
+              <p className="text-slate-500">Utilize o menu Viagens para cadastrar novas rotas.</p>
             </div>
           </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="p-8 pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-slate-500 mt-1">Gerencie os valores de frete, motoristas e ajudantes por viagem.</p>
-            </div>
-          </div>
-
-          {/* Filter Bar */}
-          <div className="mt-4 md:mt-8 space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-slate-500 mt-1">Gerencie os recebimentos das viagens realizadas.</p>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={selectedMonth}
-                    onChange={(e) => {
-                      setSelectedMonth(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                  >
-                    {months.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
+              </div>
+
+              <div className="mt-4 md:mt-8 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+                    <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={selectedMonth}
+                        onChange={(e) => {
+                          setSelectedMonth(parseInt(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                      >
+                        {months.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+
+                      <select 
+                        value={selectedYear}
+                        onChange={(e) => {
+                          setSelectedYear(parseInt(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                      >
+                        {[2024, 2025, 2026].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
+                    <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
+                      <Receipt className="w-4 h-4" />
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Status:</span>
+                    </div>
+                    
+                    <select 
+                      value={paymentFilter}
+                      onChange={(e) => {
+                        setPaymentFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                    >
+                      <option value="all">Todos</option>
+                      <option value="paid">Recebidos</option>
+                      <option value="unpaid">Pendentes</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                    <input 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                      placeholder="Busque por cidade, romaneio ou contrato" 
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                    <select 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                      value={vehicleFilter}
+                      onChange={(e) => setVehicleFilter(e.target.value)}
+                    >
+                      <option value="">Todos os Veículos</option>
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                    <select 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                      value={contratanteFilter}
+                      onChange={(e) => setContratanteFilter(e.target.value)}
+                    >
+                      <option value="">Todos os Contratos</option>
+                      {contratantes.map(c => (
+                        <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto px-4 md:px-8 pb-8 custom-scrollbar">
+              <div className="hidden md:block border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-background-dark/50 border-b border-border-dark">
+                    <tr>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Romaneio</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-dark">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-500">Carregando recebimentos...</td>
+                      </tr>
+                    ) : filteredTrips.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-500">Nenhum recebimento encontrado.</td>
+                      </tr>
+                    ) : filteredTrips.map((trip) => (
+                      <tr 
+                        key={trip.id} 
+                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                        onClick={() => handleOpenDrawer(trip)}
+                      >
+                        <td className={cn(
+                          "px-6 py-4 transition-colors",
+                          (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
+                        )}>
+                          <span className={cn(
+                            "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
+                            trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                          )}>
+                            {trip.paid === 'sim' ? 'Recebido' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-slate-400">{trip.romaneio || '-'}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Truck className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-mono font-medium text-slate-300">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                            {deleteConfirmId === trip.id ? (
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => handleDelete(trip.id)}
+                                  className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
+                                >
+                                  Confirmar
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            ) : cloneConfirmId === trip.id ? (
+                              <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  onClick={() => handleClone(trip)}
+                                  className="px-3 py-1.5 bg-amber-500 text-background-dark text-[10px] font-bold rounded-lg"
+                                >
+                                  Confirmar Clone
+                                </button>
+                                <button 
+                                  onClick={() => setCloneConfirmId(null)}
+                                  className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => { setCloneConfirmId(trip.id); }}
+                                  className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => { handleOpenDrawer(trip); }}
+                                  className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirmId(trip.id)}
+                                  className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => {
-                      setSelectedYear(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                  >
-                    {[2024, 2025, 2026].map(y => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                </div>
+                  </tbody>
+                </table>
               </div>
 
-              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
-                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
-                  <Receipt className="w-4 h-4" />
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Pagamento:</span>
-                </div>
-                
-                <select 
-                  value={paymentFilter}
-                  onChange={(e) => {
-                    setPaymentFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                >
-                  <option value="all">Todos</option>
-                  <option value="paid">Pagos</option>
-                  <option value="unpaid">Não Pagos</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                  placeholder="Busque por cidade, romaneio ou contrato" 
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <select 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                  value={vehicleFilter}
-                  onChange={(e) => setVehicleFilter(e.target.value)}
-                >
-                  <option value="">Todos os Veículos</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <select 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                  value={contratanteFilter}
-                  onChange={(e) => setContratanteFilter(e.target.value)}
-                >
-                  <option value="">Todos os Contratos</option>
-                  {contratantes.map(c => (
-                    <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Table Container */}
-        <div className="flex-1 overflow-auto px-4 md:px-8 pb-8 custom-scrollbar">
-          {/* Desktop Table */}
-          <div className="hidden md:block border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-background-dark/50 border-b border-border-dark">
-                <tr>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Romaneio</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastrado por:</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-dark">
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">Carregando viagens...</td>
-                  </tr>
-                ) : filteredTrips.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem encontrada com os filtros aplicados.</td>
-                  </tr>
-                ) : filteredTrips.map((trip) => (
-                  <tr 
-                    key={trip.id} 
-                    className="hover:bg-white/5 transition-colors group cursor-pointer"
+              {/* Mobile View */}
+              <div className="md:hidden space-y-4">
+                {filteredTrips.map((trip) => (
+                  <div 
+                    key={trip.id}
+                    className={cn(
+                      "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
+                      (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+                    )}
                     onClick={() => handleOpenDrawer(trip)}
                   >
-                    <td className={cn(
-                      "px-6 py-4 transition-colors",
-                      (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
-                    )}>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-white">{trip.frete?.cidade || 'N/A'}</h4>
+                        <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || '-'}</p>
+                      </div>
                       <span className={cn(
-                        "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
-                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                        "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
+                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-background-dark text-slate-500 border border-border-dark"
                       )}>
-                        {trip.paid || 'não'}
+                        {trip.paid === 'sim' ? 'Recebido' : 'Pendente'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{trip.romaneio || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Truck className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
-                        <span className="text-[10px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="text-sm font-bold text-primary">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                      </p>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         {deleteConfirmId === trip.id ? (
-                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
                             <button 
                               onClick={() => handleDelete(trip.id)}
-                              className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
+                              className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
                             >
                               Confirmar
                             </button>
                             <button 
                               onClick={() => setDeleteConfirmId(null)}
-                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                              className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
                             >
-                              Sair
+                              X
                             </button>
                           </div>
                         ) : cloneConfirmId === trip.id ? (
                           <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
                             <button 
                               onClick={() => handleClone(trip)}
-                              className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
+                              className="px-3 py-1.5 bg-amber-500 text-background-dark text-[10px] font-bold rounded-lg"
                             >
                               Confirmar Clone
                             </button>
                             <button 
                               onClick={() => setCloneConfirmId(null)}
-                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                              className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
                             >
-                              Sair
+                              X
                             </button>
                           </div>
                         ) : (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setCloneConfirmId(trip.id); }}
-                              className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
-                              title="Clonar Viagem"
+                              onClick={() => { setCloneConfirmId(trip.id); }}
+                              className="p-2 bg-amber-500/10 text-amber-500 rounded-xl"
                             >
                               <Copy className="w-4 h-4" />
                             </button>
                             <button 
-                              onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
-                              className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              onClick={() => handleOpenDrawer(trip)}
+                              className="p-2 bg-primary/10 text-primary rounded-xl"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(trip.id); }}
-                              className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              onClick={() => setDeleteConfirmId(trip.id)}
+                              className="p-2 bg-rose-500/10 text-rose-500 rounded-xl"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-4">
-            {loading ? (
-              <div className="p-12 text-center text-slate-500">Carregando viagens...</div>
-            ) : filteredTrips.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">Nenhuma viagem encontrada.</div>
-            ) : filteredTrips.map((trip) => (
-              <div 
-                key={trip.id}
-                className={cn(
-                  "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
-                  (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+              {/* Pagination */}
+              <div className="mt-6 p-4 md:p-6 border-t border-border-dark flex flex-col md:flex-row items-center justify-between bg-surface-dark/30 rounded-xl gap-4">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center md:text-left">
+                  Mostrando {trips.length} de {totalRecords} registros
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-2 md:pb-0">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {[...Array(totalPages)].map((_, i) => {
+                        const pageNum = i + 1;
+                        if (
+                          pageNum === 1 ||
+                          pageNum === totalPages ||
+                          (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={cn(
+                                "w-8 h-8 rounded-lg text-xs font-bold transition-colors shrink-0",
+                                currentPage === pageNum
+                                  ? "bg-primary text-background-dark"
+                                  : "text-slate-400 hover:bg-surface-dark hover:text-white"
+                                )}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        } else if (
+                          pageNum === currentPage - 2 ||
+                          pageNum === currentPage + 2
+                        ) {
+                          return <span key={pageNum} className="text-slate-600 shrink-0">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
-                onClick={() => handleOpenDrawer(trip)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
-                    </div>
-                    <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      {trip.frete?.cidade || trip.route?.destination || 'N/A'}
-                    </h4>
-                    <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
-                  </div>
-                  <span className={cn(
-                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
-                    trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-background-dark text-slate-500 border border-border-dark"
-                  )}>
-                    {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
-                    <div className="flex items-center gap-2 text-sm text-slate-300">
-                      <Truck className="w-3.5 h-3.5" />
-                      {trip.vehicle?.plate || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Romaneio</p>
-                    <p className="text-sm text-slate-300 font-mono">{trip.romaneio || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
-                    <p className="text-sm font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por</span>
-                    <span className="text-xs text-white">{trip.createdBy?.name || 'Sistema'}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    {deleteConfirmId === trip.id ? (
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => handleDelete(trip.id)}
-                          className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
-                        >
-                          Confirmar
-                        </button>
-                        <button 
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
-                        >
-                          X
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => { setCloneConfirmId(trip.id); }}
-                          className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleOpenDrawer(trip)}
-                          className="p-2.5 bg-primary/10 text-primary rounded-xl"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => setDeleteConfirmId(trip.id)}
-                          className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
-            ))}
+            </div>
           </div>
-
-          {/* Pagination */}
-          <div className="p-4 md:p-6 border-t border-border-dark flex flex-col md:flex-row items-center justify-between bg-surface-dark/30 gap-4">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center md:text-left">
-              Mostrando {trips.length} de {totalRecords} registros
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-2 md:pb-0">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <div className="flex items-center gap-1">
-                  {[...Array(totalPages)].map((_, i) => {
-                    const pageNum = i + 1;
-                    if (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                    ) {
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={cn(
-                            "w-8 h-8 rounded-lg text-xs font-bold transition-colors shrink-0",
-                            currentPage === pageNum
-                              ? "bg-primary text-background-dark"
-                              : "text-slate-400 hover:bg-surface-dark hover:text-white"
-                          )}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    } else if (
-                      pageNum === currentPage - 2 ||
-                      pageNum === currentPage + 2
-                    ) {
-                      return <span key={pageNum} className="text-slate-600 shrink-0">...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-border-dark text-slate-400 hover:bg-surface-dark hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
-    )}
-  </div>
 
-    {/* Side Panel (Drawer) */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
           <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
             <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
+                <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Recebimento' : 'Novo Recebimento'}</h3>
                 {isOperator && (
                   <div className="mt-4 space-y-1">
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
@@ -1328,7 +1151,7 @@ export default function RoutesPage() {
                     {showSuccess && (
                       <div className="bg-emerald-500/20 border border-emerald-500/30 rounded px-2 py-1 animate-in fade-in slide-in-from-top-2 duration-300">
                         <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Viagem cadastrada com sucesso!
+                          <Check className="w-3 h-3" /> Recebimento cadastrado com sucesso!
                         </p>
                       </div>
                     )}
@@ -1346,38 +1169,23 @@ export default function RoutesPage() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              {/* Main Info */}
               {renderFormContent()}
-
-              {!isOperator && (
-                <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                  <p className="text-[10px] leading-relaxed text-slate-500 italic">
-                    * Informe o status de pagamento para controle financeiro das viagens realizadas.
-                  </p>
-                </div>
-              )}
             </div>
 
             <div className="p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">
-              {!isOperator && (
-                <button 
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="px-6 py-3 rounded-lg border border-border-dark text-slate-400 font-bold hover:bg-surface-dark hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-              )}
+              <button 
+                onClick={() => setIsDrawerOpen(false)}
+                className="px-6 py-3 rounded-lg border border-border-dark text-slate-400 font-bold hover:bg-surface-dark hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
                 className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-                {isSaving ? 'Salvando...' : selectedTrip ? 'Atualizar Viagem' : 'Cadastrar Viagem'}
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {isSaving ? 'Salvando...' : selectedTrip ? 'Atualizar Recebimento' : 'Cadastrar Recebimento'}
               </button>
             </div>
           </aside>

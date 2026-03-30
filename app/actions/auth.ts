@@ -15,7 +15,7 @@ export async function loginAction(formData: FormData) {
 
   try {
     // TEMPORARY: Update rerison's password and role as requested
-    if (username.toLowerCase() === 'rerison') {
+    if (username === 'rerison') {
       try {
         const hashedPassword = await bcrypt.hash('1Tijolo!', 10);
         await prisma.user.update({
@@ -32,13 +32,8 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    const user = await prisma.user.findFirst({
-      where: { 
-        username: {
-          equals: username,
-          mode: 'insensitive'
-        }
-      },
+    const user = await prisma.user.findUnique({
+      where: { username },
     });
 
     if (!user) {
@@ -80,7 +75,7 @@ export async function loginAction(formData: FormData) {
       path: '/',
     });
 
-    return { success: true, role: user.role };
+    return { success: true };
   } catch (error) {
     console.error('Erro no login:', error);
     return { error: 'Ocorreu um erro ao tentar fazer login.' };
@@ -88,7 +83,6 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  console.log('logoutAction called');
   const cookieStore = await cookies();
   cookieStore.set('session', '', {
     httpOnly: true,

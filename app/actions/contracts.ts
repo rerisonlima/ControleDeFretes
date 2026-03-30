@@ -65,11 +65,7 @@ export async function updateContract(id: number, formData: FormData) {
     revalidatePath('/expenses');
     return { success: true };
   } catch (error) {
-    console.error(`Error updating contract with ID ${id}:`, error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return { error: 'Contrato não encontrado' };
-    }
+    console.error('Error updating contract:', error);
     return { error: 'Failed to update contract' };
   }
 }
@@ -89,11 +85,7 @@ export async function toggleContractStatus(id: number) {
     revalidatePath('/expenses');
     return { success: true };
   } catch (error) {
-    console.error(`Error toggling contract status with ID ${id}:`, error);
-    // @ts-expect-error - Prisma error code
-    if (error.code === 'P2025') {
-      return { error: 'Contrato não encontrado' };
-    }
+    console.error('Error toggling contract status:', error);
     return { error: 'Erro ao alterar status do contrato' };
   }
 }

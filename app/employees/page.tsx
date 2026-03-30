@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
-import { motion } from 'motion/react';
 import { 
+  Search, 
   Download, 
   Edit, 
   ChevronLeft, 
@@ -37,7 +36,6 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast, showToast, hideToast } = useToast();
   
   // Form State
   const [formData, setFormData] = useState({
@@ -117,7 +115,7 @@ export default function EmployeesPage() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.role) {
-      showToast('Por favor, preencha o nome e a função.', 'error');
+      alert('Por favor, preencha o nome e a função.');
       return;
     }
 
@@ -135,15 +133,14 @@ export default function EmployeesPage() {
 
       if (res.ok) {
         setIsDrawerOpen(false);
-        showToast(formData.id ? 'Funcionário atualizado!' : 'Funcionário cadastrado!', 'success');
         fetchEmployees();
       } else {
         const error = await res.json();
-        showToast(error.error || 'Erro ao salvar funcionário', 'error');
+        alert(error.error || 'Erro ao salvar funcionário');
       }
     } catch (error) {
       console.error('Error saving employee:', error);
-      showToast('Erro de conexão ao salvar funcionário', 'error');
+      alert('Erro de conexão ao salvar funcionário');
     } finally {
       setIsSaving(false);
     }
@@ -157,137 +154,84 @@ export default function EmployeesPage() {
         onAction={() => handleOpenDrawer()}
       />
       
-      <div className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-8">
           
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
+          <div className="flex items-end justify-between mb-2">
             <div>
-              <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-1 md:mb-2">Funcionários</h2>
-              <p className="text-slate-500 text-sm md:text-base">Listagem completa da equipe operacional e motoristas ativos.</p>
+              <h2 className="text-3xl font-black tracking-tight mb-2">Funcionários</h2>
+              <p className="text-slate-500">Listagem completa da equipe operacional e motoristas ativos.</p>
             </div>
-            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300">
+            <button className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300">
               <Download className="w-4 h-4" />
               Exportar CSV
             </button>
           </div>
 
-          {/* Table Card / Mobile View */}
+          {/* Table Card */}
           <div className="bg-surface-dark rounded-xl border border-border-dark overflow-hidden shadow-sm">
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-background-dark/50">
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Nome</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Função</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Telefone</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Viagens</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-background-dark/50">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Nome</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Função</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Telefone</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Viagens</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-dark">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-sm text-slate-500">Carregando funcionários...</p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border-dark">
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                          <p className="text-sm text-slate-500">Carregando funcionários...</p>
+                ) : employees.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
+                      Nenhum funcionário cadastrado.
+                    </td>
+                  </tr>
+                ) : employees.map((emp) => (
+                  <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-background-dark flex items-center justify-center text-[10px] font-bold text-slate-400 border border-border-dark">
+                          {emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                         </div>
-                      </td>
-                    </tr>
-                  ) : employees.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                        Nenhum funcionário cadastrado.
-                      </td>
-                    </tr>
-                  ) : employees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-background-dark flex items-center justify-center text-[10px] font-bold text-slate-400 border border-border-dark">
-                            {emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                          </div>
-                          <span className="text-sm font-semibold text-white">{emp.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                          emp.role.toLowerCase() === 'motorista' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                        )}>
-                          {emp.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">{emp.phone || '-'}</td>
-                      <td className="px-6 py-4 text-sm font-mono font-medium text-slate-300">
-                        {(emp._count?.trips || 0) + (emp._count?.helperTrips || 0)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => handleOpenDrawer(emp)}
-                          className="text-slate-500 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View */}
-            <div className="md:hidden divide-y divide-border-dark">
-              {isLoading ? (
-                <div className="p-10 text-center">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">Carregando funcionários...</p>
-                </div>
-              ) : employees.length === 0 ? (
-                <div className="p-10 text-center text-slate-500">
-                  Nenhum funcionário cadastrado.
-                </div>
-              ) : employees.map((emp) => (
-                <div key={emp.id} className="p-4 space-y-4 hover:bg-white/5 transition-colors" onClick={() => handleOpenDrawer(emp)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-background-dark flex items-center justify-center text-xs font-bold text-slate-400 border border-border-dark">
-                        {emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        <span className="text-sm font-semibold text-white">{emp.name}</span>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-base font-bold text-white leading-tight">{emp.name}</span>
-                        <span className="text-xs text-slate-500 font-mono mt-0.5">{emp.phone || 'Sem telefone'}</span>
-                      </div>
-                    </div>
-                    <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                      emp.role.toLowerCase() === 'motorista' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                    )}>
-                      {emp.role}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-border-dark/50">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Viagens</span>
-                      <span className="text-sm font-mono font-bold text-white">
-                        {(emp._count?.trips || 0) + (emp._count?.helperTrips || 0)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
+                        emp.role.toLowerCase() === 'motorista' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                      )}>
+                        {emp.role}
                       </span>
-                    </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleOpenDrawer(emp); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Editar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-400">{emp.phone || '-'}</td>
+                    <td className="px-6 py-4 text-sm font-mono font-medium text-slate-300">
+                      {(emp._count?.trips || 0) + (emp._count?.helperTrips || 0)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => handleOpenDrawer(emp)}
+                        className="text-slate-500 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             
-            <div className="px-4 md:px-6 py-4 bg-background-dark/30 border-t border-border-dark flex items-center justify-between">
+            <div className="px-6 py-4 bg-background-dark/30 border-t border-border-dark flex items-center justify-between">
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mostrando {employees.length} registros</span>
               <div className="flex gap-2">
                 <button className="p-1 rounded bg-surface-dark border border-border-dark text-slate-500 disabled:opacity-50" disabled>
@@ -428,9 +372,7 @@ export default function EmployeesPage() {
               >
                 Cancelar
               </button>
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button 
                 onClick={handleSave}
                 disabled={isSaving}
                 className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -441,17 +383,11 @@ export default function EmployeesPage() {
                   <UserPlus className="w-4 h-4" />
                 )}
                 {isSaving ? 'Salvando...' : 'Salvar'}
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>
       )}
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

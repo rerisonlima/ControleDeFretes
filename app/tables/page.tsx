@@ -1,805 +1,379 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
 import { 
   Search, 
-  MapPin, 
+  Truck, 
   Edit, 
-  Trash2, 
+  ChevronLeft, 
+  ChevronRight,
   X,
-  Check,
-  Calendar,
-  Truck,
-  Building2,
-  DollarSign,
+  Plus,
+  Info,
   Loader2,
-  Copy,
-  Eye,
-  EyeOff
+  Power,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, isAfter, isBefore, startOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
-interface Contratante {
+interface Category {
   id: number;
-  ContratanteNome: string;
+  name: string;
 }
 
-interface Categoria {
+interface Vehicle {
   id: number;
-  CategoriaNome: string;
+  plate: string;
+  model: string;
+  active: boolean;
+  categoryId: number;
+  category: Category;
 }
 
-interface Frete {
-  id: number;
-  cidade: string;
-  contratanteId: number;
-  categoriaId: number;
-  valorFrete: number;
-  valor1aViagemMotorista: number;
-  valor2aViagemMotorista: number;
-  valor1aViagemAjudante: number;
-  valor2aViagemAjudante: number;
-  validade: string;
-  contratante: Contratante;
-  categoria: Categoria;
-}
-
-export default function TablesPage() {
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const [fretes, setFretes] = React.useState<Frete[]>([]);
-  const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
-  const [categorias, setCategorias] = React.useState<Categoria[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [selectedFrete, setSelectedFrete] = React.useState<Frete | null>(null);
+export default function VehiclesPage() {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
   
-  // Filters
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [validityFilter, setValidityFilter] = React.useState<'valid' | 'expired' | 'all'>('valid');
-  const [contratanteFilter, setContratanteFilter] = React.useState<string>('all');
-  const [categoriaFilter, setCategoriaFilter] = React.useState<string>('all');
-  const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
-  const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const { toast, showToast, hideToast } = useToast();
-  const [showValues, setShowValues] = React.useState(false);
-
-  // Form state
-  const [formData, setFormData] = React.useState({
-    contratanteId: '',
-    cidade: '',
-    categoriaId: '',
-    valorFrete: '',
-    valor1aViagemMotorista: '',
-    valor2aViagemMotorista: '',
-    valor1aViagemAjudante: '',
-    valor2aViagemAjudante: '',
-    validade: ''
+  // Form State
+  const [formData, setFormData] = useState({
+    id: 0,
+    plate: '',
+    model: '',
+    categoryId: '',
+    active: true
   });
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
+  const fetchData = async () => {
     try {
-      const fetchJson = async (url: string, name: string) => {
-        const res = await fetch(url);
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error(`${name} API error:`, errorText);
-          return [];
-        }
-        return res.json();
-      };
-
-      const [fretesData, contratantesData, categoriasData] = await Promise.all([
-        fetchJson('/api/fretes', 'Fretes'),
-        fetchJson('/api/contratantes', 'Contratantes'),
-        fetchJson('/api/categorias', 'Categorias')
+      setIsLoading(true);
+      const [vRes, cRes] = await Promise.all([
+        fetch('/api/vehicles'),
+        fetch('/api/categories')
       ]);
-
-      setFretes(fretesData);
-      setContratantes(contratantesData);
-      setCategorias(categoriasData);
+      
+      if (vRes.ok && cRes.ok) {
+        setVehicles(await vRes.json());
+        setCategories(await cRes.json());
+      }
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleOpenDrawer = (frete: Frete | null = null) => {
-    if (frete) {
-      setSelectedFrete(frete);
+  const handleOpenDrawer = (vehicle?: Vehicle) => {
+    setError('');
+    if (vehicle) {
       setFormData({
-        contratanteId: frete.contratanteId.toString(),
-        cidade: frete.cidade,
-        categoriaId: frete.categoriaId.toString(),
-        valorFrete: frete.valorFrete.toString(),
-        valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
-        valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
-        valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
-        valor2aViagemAjudante: frete.valor2aViagemAjudante.toString(),
-        validade: frete.validade ? format(new Date(frete.validade), 'yyyy-MM-dd') : ''
+        id: vehicle.id,
+        plate: vehicle.plate,
+        model: vehicle.model,
+        categoryId: vehicle.categoryId.toString(),
+        active: vehicle.active
       });
     } else {
-      setSelectedFrete(null);
       setFormData({
-        contratanteId: '',
-        cidade: '',
-        categoriaId: '',
-        valorFrete: '',
-        valor1aViagemMotorista: '',
-        valor2aViagemMotorista: '',
-        valor1aViagemAjudante: '',
-        valor2aViagemAjudante: '',
-        validade: format(new Date(), 'yyyy-MM-dd')
+        id: 0,
+        plate: '',
+        model: '',
+        categoryId: '',
+        active: true
       });
     }
     setIsDrawerOpen(true);
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const url = selectedFrete ? `/api/fretes/${selectedFrete.id}` : '/api/fretes';
-      const method = selectedFrete ? 'PUT' : 'POST';
+    if (!formData.plate || !formData.model || !formData.categoryId) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
 
-      const response = await fetch(url, {
+    try {
+      setIsSaving(true);
+      setError('');
+      
+      const url = formData.id ? `/api/vehicles/${formData.id}` : '/api/vehicles';
+      const method = formData.id ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          categoryId: parseInt(formData.categoryId)
+        }),
       });
 
-      if (response.ok) {
+      if (res.ok) {
         setIsDrawerOpen(false);
-        showToast(selectedFrete ? 'Frete atualizado!' : 'Frete cadastrado!', 'success');
         fetchData();
       } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const error = await response.json();
-          showToast(error.error || 'Erro ao salvar frete', 'error');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          showToast('Erro no servidor ao salvar frete', 'error');
-        }
+        const errData = await res.json();
+        setError(errData.error || 'Erro ao salvar veículo');
       }
     } catch (error) {
-      console.error('Save error:', error);
-      showToast('Erro de conexão ao salvar', 'error');
+      console.error('Error saving vehicle:', error);
+      setError('Erro de conexão ao salvar veículo');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      const response = await fetch(`/api/fretes/${id}`, { method: 'DELETE' });
-      
-      if (response.ok) {
-        setDeleteConfirmId(null);
-        showToast('Frete excluído com sucesso!', 'success');
-        fetchData();
-      } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const data = await response.json();
-          showToast(data.error || 'Erro ao excluir frete', 'error');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          showToast('Erro no servidor ao excluir frete', 'error');
-        }
-        setDeleteConfirmId(null);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      showToast('Erro de conexão ao excluir', 'error');
-      setDeleteConfirmId(null);
-    }
-  };
+  const handleToggleStatus = async (vehicle: Vehicle) => {
+    const action = vehicle.active ? 'desativar' : 'ativar';
+    if (!window.confirm(`Tem certeza que deseja ${action} o veículo ${vehicle.plate}?`)) return;
 
-  const handleClone = async (frete: Frete) => {
     try {
-      const cloneData = {
-        contratanteId: frete.contratanteId.toString(),
-        cidade: `${frete.cidade} (Cópia)`,
-        categoriaId: frete.categoriaId.toString(),
-        valorFrete: frete.valorFrete.toString(),
-        valor1aViagemMotorista: frete.valor1aViagemMotorista.toString(),
-        valor2aViagemMotorista: frete.valor2aViagemMotorista.toString(),
-        valor1aViagemAjudante: frete.valor1aViagemAjudante.toString(),
-        valor2aViagemAjudante: frete.valor2aViagemAjudante.toString(),
-        validade: frete.validade ? format(new Date(frete.validade), 'yyyy-MM-dd') : ''
-      };
-
-      const response = await fetch('/api/fretes', {
-        method: 'POST',
+      const res = await fetch(`/api/vehicles/${vehicle.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cloneData)
+        body: JSON.stringify({ ...vehicle, active: !vehicle.active }),
       });
 
-      if (response.ok) {
-        setCloneConfirmId(null);
-        showToast('Frete clonado com sucesso!', 'success');
+      if (res.ok) {
         fetchData();
-      } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const error = await response.json();
-          showToast(error.error || 'Erro ao clonar frete', 'error');
-        } else {
-          const text = await response.text();
-          console.error('Non-JSON error response:', text);
-          showToast('Erro no servidor ao clonar frete', 'error');
-        }
-        setCloneConfirmId(null);
       }
     } catch (error) {
-      console.error('Clone error:', error);
-      showToast('Erro de conexão ao clonar', 'error');
-      setCloneConfirmId(null);
+      console.error('Error toggling status:', error);
     }
   };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  };
-
-  // Filter and Group Data
-  const today = startOfDay(new Date());
-
-  const filteredFretes = fretes.filter(frete => {
-    const matchesSearch = frete.cidade.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         frete.contratante?.ContratanteNome.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const validadeDate = startOfDay(new Date(frete.validade));
-    let matchesValidity = true;
-    
-    if (validityFilter === 'valid') {
-      matchesValidity = isAfter(validadeDate, today) || validadeDate.getTime() === today.getTime();
-    } else if (validityFilter === 'expired') {
-      matchesValidity = isBefore(validadeDate, today);
-    }
-
-    const matchesContratante = contratanteFilter === 'all' || frete.contratanteId.toString() === contratanteFilter;
-    const matchesCategoria = categoriaFilter === 'all' || frete.categoriaId.toString() === categoriaFilter;
-
-    return matchesSearch && matchesValidity && matchesContratante && matchesCategoria;
-  });
-
-  // Group by Categoria, then sort by Contratante within each group
-  const groupedFretes = filteredFretes.reduce((acc: Record<string, Frete[]>, frete) => {
-    const categoriaNome = frete.categoria?.CategoriaNome || 'Sem Categoria';
-    if (!acc[categoriaNome]) {
-      acc[categoriaNome] = [];
-    }
-    acc[categoriaNome].push(frete);
-    return acc;
-  }, {});
-
-  // Sort each group by Contratante
-  Object.keys(groupedFretes).forEach(categoria => {
-    groupedFretes[categoria].sort((a, b) => {
-      const nomeA = a.contratante?.ContratanteNome || '';
-      const nomeB = b.contratante?.ContratanteNome || '';
-      return nomeA.localeCompare(nomeB);
-    });
-  });
 
   return (
     <AppLayout>
       <Header 
-        title="Tabelas de Frete" 
-        actionLabel="Novo Frete" 
+        title="Gestão de Veículos" 
+        actionLabel="Novo Veículo" 
         onAction={() => handleOpenDrawer()}
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-4 md:p-8 pb-4">
-          <div className="flex items-start justify-between gap-4">
+      <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-8">
+          
+          <div className="flex items-end justify-between mb-2">
             <div>
-              <h2 className="text-2xl md:text-3xl font-black tracking-tight">Tabelas de Frete</h2>
-              <p className="text-slate-500 mt-1 text-sm md:text-base">Gerencie os valores de frete por contratante, cidade e categoria.</p>
+              <h2 className="text-3xl font-black tracking-tight mb-2">Frota</h2>
+              <p className="text-slate-500">Controle de veículos, categorias e status operacional.</p>
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="mt-6 md:mt-8 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-3 md:gap-4">
-            <div className="flex-1 min-w-0 md:min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <input 
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                placeholder="Buscar por cidade ou contratante..." 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+          {/* Table Card */}
+          <div className="bg-surface-dark rounded-xl border border-border-dark overflow-hidden shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-background-dark/50">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Placa</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Modelo</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Categoria</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-dark">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-sm text-slate-500">Carregando frota...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : vehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
+                      Nenhum veículo cadastrado.
+                    </td>
+                  </tr>
+                ) : vehicles.map((vehicle) => (
+                  <tr key={vehicle.id} className={cn(
+                    "hover:bg-white/5 transition-colors group",
+                    !vehicle.active && "opacity-60"
+                  )}>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-7 rounded bg-background-dark border border-border-dark flex items-center justify-center text-[10px] font-black text-white tracking-tighter">
+                          <div className="w-full h-1 bg-blue-600 absolute top-0 rounded-t-sm"></div>
+                          {vehicle.plate.toUpperCase()}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-semibold text-white">{vehicle.model}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-400 font-medium">{vehicle.category.name}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
+                        vehicle.active ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                      )}>
+                        {vehicle.active ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleOpenDrawer(vehicle)}
+                          className="text-slate-500 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleToggleStatus(vehicle)}
+                          className={cn(
+                            "p-2 rounded-lg transition-colors",
+                            vehicle.active ? "text-slate-500 hover:text-rose-500 hover:bg-rose-500/10" : "text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10"
+                          )}
+                        >
+                          <Power className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row gap-3 md:gap-4">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <select 
-                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                  value={validityFilter}
-                  onChange={(e) => setValidityFilter(e.target.value as 'valid' | 'expired' | 'all')}
-                >
-                  <option value="valid">Vigentes (Validade &gt; Hoje)</option>
-                  <option value="expired">Vencidos (Validade &lt; Hoje)</option>
-                  <option value="all">Todos os Registros</option>
-                </select>
-              </div>
-
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <select 
-                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                  value={contratanteFilter}
-                  onChange={(e) => setContratanteFilter(e.target.value)}
-                >
-                  <option value="all">Todos os Contratantes</option>
-                  {contratantes.map(c => (
-                    <option key={c.id} value={c.id.toString()}>{c.ContratanteNome}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="relative">
-                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <select 
-                  className="w-full lg:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
-                  value={categoriaFilter}
-                  onChange={(e) => setCategoriaFilter(e.target.value)}
-                >
-                  <option value="all">Todos os Tipos de Veículo</option>
-                  {categorias.map(c => (
-                    <option key={c.id} value={c.id.toString()}>{c.CategoriaNome}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowValues(!showValues)}
-                  className="flex-1 lg:flex-none bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-10 px-4 flex items-center justify-center gap-2 transition-all outline-none text-sm font-bold"
-                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-                >
-                  {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  <span className="lg:hidden">{showValues ? "Ocultar Valores" : "Mostrar Valores"}</span>
+            <div className="px-6 py-4 bg-background-dark/30 border-t border-border-dark flex items-center justify-between">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total de {vehicles.length} veículos</span>
+              <div className="flex gap-2">
+                <button className="p-1 rounded bg-surface-dark border border-border-dark text-slate-500 disabled:opacity-50" disabled>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button className="p-1 rounded bg-surface-dark border border-border-dark text-slate-500 disabled:opacity-50" disabled>
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Table Container */}
-        <div className="flex-1 overflow-auto px-4 md:px-8 pb-8 custom-scrollbar">
-          {loading ? (
-            <div className="text-center py-12 text-slate-500">Carregando tabelas...</div>
-          ) : Object.keys(groupedFretes).length === 0 ? (
-            <div className="text-center py-12 text-slate-500 bg-surface-dark rounded-xl border border-border-dark">
-              Nenhum registro encontrado com os filtros aplicados.
-            </div>
-          ) : (
-            <div className="space-y-6 md:space-y-8">
-              {Object.entries(groupedFretes).map(([categoria, fretesList]) => (
-                <div key={categoria} className="border border-border-dark rounded-xl bg-surface-dark overflow-hidden shadow-sm">
-                  <div className="bg-primary/10 px-4 md:px-6 py-3 md:py-4 border-b border-border-dark flex items-center gap-3">
-                    <Truck className="w-5 h-5 text-primary shrink-0" />
-                    <h3 className="text-base md:text-lg font-bold text-white tracking-tight truncate">{categoria}</h3>
-                    <span className="ml-auto bg-primary/20 text-primary text-[10px] md:text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap">
-                      {fretesList.length} registros
-                    </span>
-                  </div>
-                  
-                  {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-background-dark/50 border-b border-border-dark">
-                        <tr>
-                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contratante</th>
-                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cidade</th>
-                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Validade</th>
-                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
-                          <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-dark">
-                        {fretesList.map((frete) => (
-                          <tr 
-                            key={frete.id} 
-                            className="hover:bg-white/5 transition-colors group cursor-pointer"
-                            onClick={() => handleOpenDrawer(frete)}
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <Building2 className="w-4 h-4 text-slate-500" />
-                                <span className="font-semibold text-white">{frete.contratante?.ContratanteNome || 'N/A'}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <MapPin className="w-4 h-4 text-primary" />
-                                <span className="text-slate-300">{frete.cidade}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={cn(
-                                "text-sm font-mono px-2 py-1 rounded-md",
-                                isBefore(startOfDay(new Date(frete.validade)), today) 
-                                  ? "bg-rose-500/10 text-rose-500" 
-                                  : "bg-emerald-500/10 text-emerald-500"
-                              )}>
-                                {formatDate(frete.validade)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                              {showValues ? formatCurrency(frete.valorFrete) : '******'}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                {deleteConfirmId === frete.id ? (
-                                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                                    <button 
-                                      onClick={() => handleDelete(frete.id)}
-                                      className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
-                                    >
-                                      Confirmar
-                                    </button>
-                                    <button 
-                                      onClick={() => setDeleteConfirmId(null)}
-                                      className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                                    >
-                                      Sair
-                                    </button>
-                                  </div>
-                                ) : cloneConfirmId === frete.id ? (
-                                  <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                                    <button 
-                                      onClick={() => handleClone(frete)}
-                                      className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
-                                    >
-                                      Confirmar Clone
-                                    </button>
-                                    <button 
-                                      onClick={() => setCloneConfirmId(null)}
-                                      className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                                    >
-                                      Sair
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setCloneConfirmId(frete.id); }}
-                                      className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
-                                      title="Clonar Frete"
-                                    >
-                                      <Copy className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); handleOpenDrawer(frete); }}
-                                      className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(frete.id); }}
-                                      className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Card View */}
-                  <div className="md:hidden divide-y divide-border-dark">
-                    {fretesList.map((frete) => (
-                      <div 
-                        key={frete.id} 
-                        className="p-4 space-y-4 hover:bg-white/5 transition-colors"
-                        onClick={() => handleOpenDrawer(frete)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="text-xs font-bold text-white truncate max-w-[150px]">
-                              {frete.contratante?.ContratanteNome || 'N/A'}
-                            </span>
-                          </div>
-                          <span className={cn(
-                            "text-[10px] font-mono px-2 py-0.5 rounded-md font-bold uppercase",
-                            isBefore(startOfDay(new Date(frete.validade)), today) 
-                              ? "bg-rose-500/10 text-rose-500" 
-                              : "bg-emerald-500/10 text-emerald-500"
-                          )}>
-                            {formatDate(frete.validade)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                            <MapPin className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block">Cidade</span>
-                            <span className="text-base font-bold text-white truncate block">{frete.cidade}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block">Valor</span>
-                            <span className="text-lg font-mono font-bold text-primary">
-                              {showValues ? formatCurrency(frete.valorFrete) : '******'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            onClick={() => handleOpenDrawer(frete)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Editar
-                          </button>
-                          <button 
-                            onClick={() => setCloneConfirmId(frete.id)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-amber-500/10 text-amber-500 rounded-lg text-xs font-bold transition-colors"
-                          >
-                            <Copy className="w-4 h-4" />
-                            Clonar
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmId(frete.id)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-rose-500/10 text-rose-500 rounded-lg text-xs font-bold transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Excluir
-                          </button>
-                        </div>
-
-                        {/* Mobile Confirmation Overlays */}
-                        {deleteConfirmId === frete.id && (
-                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
-                            <span className="text-xs font-bold text-rose-500">Excluir este registro?</span>
-                            <div className="flex gap-2">
-                              <button onClick={() => handleDelete(frete.id)} className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded">Sim</button>
-                              <button onClick={() => setDeleteConfirmId(null)} className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded">Não</button>
-                            </div>
-                          </div>
-                        )}
-
-                        {cloneConfirmId === frete.id && (
-                          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
-                            <span className="text-xs font-bold text-amber-500">Clonar este registro?</span>
-                            <div className="flex gap-2">
-                              <button onClick={() => handleClone(frete)} className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded">Sim</button>
-                              <button onClick={() => setCloneConfirmId(null)} className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded">Não</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Side Panel (Drawer) */}
+      {/* Drawer Overlay */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
-          <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
+          <div className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-8 border-b border-border-dark flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">{selectedFrete ? 'Editar Frete' : 'Novo Frete'}</h3>
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Configuração de Tabela</p>
+                <h3 className="text-xl font-bold text-white">
+                  {formData.id ? 'Editar Veículo' : 'Novo Veículo'}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {formData.id ? 'Atualize as informações da frota' : 'Cadastre um novo veículo operacional'}
+                </p>
               </div>
               <button 
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-white"
+                className="text-slate-500 hover:text-white transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              <div className="space-y-6">
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contratante</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.contratanteId}
-                    onChange={(e) => setFormData({...formData, contratanteId: e.target.value})}
-                  >
-                    <option value="">Selecionar Contratante</option>
-                    {contratantes.map(c => (
-                      <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
-                    ))}
-                  </select>
+            <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">
+              {error && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Categoria do Veículo</label>
-                  <select 
-                    className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
-                    value={formData.categoriaId}
-                    onChange={(e) => setFormData({...formData, categoriaId: e.target.value})}
-                  >
-                    <option value="">Selecionar Categoria</option>
-                    {categorias.map(c => (
-                      <option key={c.id} value={c.id}>{c.CategoriaNome}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</label>
+                <input 
+                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700 font-black uppercase tracking-widest"
+                  placeholder="ABC-1234"
+                  type="text"
+                  maxLength={8}
+                  value={formData.plate}
+                  onChange={(e) => setFormData({ ...formData, plate: e.target.value.toUpperCase() })}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modelo / Descrição</label>
+                <input 
+                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                  placeholder="Ex: Mercedes-Benz Accelo 1016"
+                  type="text"
+                  value={formData.model}
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Cidade (Destino)</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                    <input 
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                      value={formData.cidade}
-                      onChange={(e) => setFormData({...formData, cidade: e.target.value})}
-                      placeholder="Ex: São Paulo - SP"
-                    />
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                <select 
+                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none"
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                >
+                  <option disabled value="">Selecione uma categoria</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data de Validade</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                    <input 
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                      type="date"
-                      value={formData.validade}
-                      onChange={(e) => setFormData({...formData, validade: e.target.value})}
-                    />
-                  </div>
-                </div>
+              <div className="flex items-center gap-3 p-4 bg-surface-dark border border-border-dark rounded-xl">
+                <input 
+                  type="checkbox"
+                  id="active-check"
+                  className="w-5 h-5 rounded border-border-dark bg-background-dark text-primary focus:ring-primary"
+                  checked={formData.active}
+                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                />
+                <label htmlFor="active-check" className="text-sm font-bold text-slate-300 cursor-pointer">Veículo Ativo na Frota</label>
+              </div>
 
-                <hr className="border-border-dark" />
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                    <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Valores</h4>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-widest block">Valor Total do Frete</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-primary/50">R$</span>
-                      <input 
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm font-bold text-white outline-none" 
-                        placeholder="0,00" 
-                        type="number"
-                        step="0.01"
-                        value={formData.valorFrete}
-                        onChange={(e) => setFormData({...formData, valorFrete: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">1ª Viagem Motorista</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">R$</span>
-                        <input 
-                          className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                          placeholder="0,00" 
-                          type="number"
-                          step="0.01"
-                          value={formData.valor1aViagemMotorista}
-                          onChange={(e) => setFormData({...formData, valor1aViagemMotorista: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">2ª Viagem Motorista</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">R$</span>
-                        <input 
-                          className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                          placeholder="0,00" 
-                          type="number"
-                          step="0.01"
-                          value={formData.valor2aViagemMotorista}
-                          onChange={(e) => setFormData({...formData, valor2aViagemMotorista: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">1ª Viagem Ajudante</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">R$</span>
-                        <input 
-                          className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                          placeholder="0,00" 
-                          type="number"
-                          step="0.01"
-                          value={formData.valor1aViagemAjudante}
-                          onChange={(e) => setFormData({...formData, valor1aViagemAjudante: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">2ª Viagem Ajudante</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">R$</span>
-                        <input 
-                          className="w-full pl-12 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                          placeholder="0,00" 
-                          type="number"
-                          step="0.01"
-                          value={formData.valor2aViagemAjudante}
-                          onChange={(e) => setFormData({...formData, valor2aViagemAjudante: e.target.value})}
-                        />
-                      </div>
-                    </div>
+              <div className="mt-8 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                <div className="flex gap-3">
+                  <Info className="w-5 h-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary mb-1">Dica de Gestão</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Mantenha a categoria atualizada para garantir que os cálculos de frete e pagamentos sejam processados corretamente.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">
+            <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
               <button 
                 onClick={() => setIsDrawerOpen(false)}
-                className="px-6 py-3 rounded-lg border border-border-dark text-slate-400 font-bold hover:bg-surface-dark hover:text-white transition-colors"
+                className="flex-1 px-4 py-3 border border-border-dark rounded-lg text-sm font-bold text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"
+                disabled={isSaving}
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 bg-primary hover:bg-primary/90 text-background-dark py-3 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Check className="w-4 h-4" />
+                  <Plus className="w-4 h-4" />
                 )}
-                {isSaving ? 'Salvando...' : selectedFrete ? 'Atualizar Frete' : 'Salvar Frete'}
+                {isSaving ? 'Salvando...' : 'Salvar Veículo'}
               </button>
             </div>
-          </aside>
+          </div>
         </div>
       )}
-
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

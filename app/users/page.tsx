@@ -3,63 +3,49 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { Toast, useToast } from '@/components/Toast';
 import { 
   Search, 
-  Edit, 
+  UserPlus, 
+  Shield, 
+  Edit2, 
   Trash2, 
   X, 
-  Check, 
-  Eye, 
-  EyeOff,
-  ChevronDown,
-  Loader2
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface User {
   id: number;
-  name: string;
   username: string;
-  email: string;
-  role: 'ADMIN' | 'MANAGER' | 'OPERATOR';
-  lastLogin?: string;
-  createdAt: string;
+  role: string;
 }
 
 export default function UsersPage() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { toast, showToast, hideToast } = useToast();
-
-  // Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    username: '',
-    password: '',
-    role: 'OPERATOR'
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchUsers = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const res = await fetch('/api/users');
-      if (!res.ok) {
-        const text = await res.text();
-        console.error('API error response:', text);
-        throw new Error(`HTTP error! status: ${res.status}`);
+      if (res.ok) {
+        setUsers(await res.json());
       }
-      const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
+    } catch (err) {
+      console.error('Error fetching users:', err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -67,446 +53,239 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.username || (!selectedUser && !formData.password)) {
-      showToast('Por favor, preencha todos os campos.', 'error');
-      return;
+  const handleOpenCreate = () => {
+    setModalMode('create');
+    setSelectedUser(null);
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (user: User) => {
+    setModalMode('edit');
+    setSelectedUser(user);
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
+    
+    try {
+      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        alert('Erro ao excluir usuário');
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
 
     try {
-      setIsSaving(true);
-      const url = selectedUser ? `/api/users/${selectedUser.id}` : '/api/users';
-      const method = selectedUser ? 'PUT' : 'POST';
+      const url = modalMode === 'create' ? '/api/users' : `/api/users/${selectedUser?.id}`;
+      const method = modalMode === 'create' ? 'POST' : 'PUT';
       
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (res.ok) {
-        setIsDrawerOpen(false);
-        setSelectedUser(null);
-        setFormData({
-          name: '',
-          email: '',
-          username: '',
-          password: '',
-          role: 'OPERATOR'
-        });
-        showToast(selectedUser ? 'Usuário atualizado!' : 'Usuário cadastrado!', 'success');
+        setIsModalOpen(false);
         fetchUsers();
       } else {
-        const error = await res.json();
-        showToast(error.error || 'Erro ao salvar usuário', 'error');
+        const errData = await res.json();
+        setError(errData.error || 'Erro ao salvar usuário');
       }
-    } catch (error) {
-      console.error('Error saving user:', error);
-      showToast('Erro de conexão ao salvar usuário', 'error');
+    } catch (err) {
+      setError('Erro de conexão');
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      username: user.username,
-      password: '', // Don't populate password for security
-      role: user.role
-    });
-    setIsDrawerOpen(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-
-    try {
-      const res = await fetch(`/api/users/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        showToast('Usuário excluído com sucesso!', 'success');
-        fetchUsers();
-      } else {
-        const error = await res.json();
-        showToast(error.error || 'Erro ao excluir usuário', 'error');
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      showToast('Erro de conexão ao excluir usuário', 'error');
-    }
-  };
+  const filteredUsers = users.filter(u => 
+    u.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <AppLayout>
       <Header 
         title="Gestão de Usuários" 
         actionLabel="Novo Usuário" 
-        onAction={() => {
-          setSelectedUser(null);
-          setFormData({
-            name: '',
-            email: '',
-            username: '',
-            password: '',
-            role: 'OPERATOR'
-          });
-          setIsDrawerOpen(true);
-        }}
+        onAction={handleOpenCreate}
       />
       
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Table Section */}
-        <section className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
-          <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-dark border border-border-dark rounded-xl text-sm text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-slate-600" 
-                  placeholder="Pesquisar usuários..." 
-                  type="text"
-                />
-              </div>
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden md:block bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                    <th className="px-6 py-4">Nome</th>
-                    <th className="px-6 py-4">Username</th>
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Cargo</th>
-                    <th className="px-6 py-4">Último Acesso</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-dark">
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-10 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                          <p className="text-sm text-slate-500">Carregando usuários...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : users.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
-                        Nenhum usuário cadastrado.
-                      </td>
-                    </tr>
-                  ) : users.map((user, i) => (
-                    <tr key={user.id || i} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-background-dark flex items-center justify-center text-slate-500 text-[10px] font-bold border border-border-dark uppercase">
-                            {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </div>
-                          <span className="text-sm font-semibold text-white">{user.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">{user.username}</td>
-                      <td className="px-6 py-4 text-sm text-slate-400">{user.email}</td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",
-                          user.role?.toUpperCase() === 'ADMIN' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                          user.role?.toUpperCase() === 'MANAGER' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
-                          user.role?.toUpperCase() === 'OPERATOR' ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                          "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                        )}>
-                          {user.role?.toUpperCase() === 'ADMIN' ? 'Admin' : 
-                           user.role?.toUpperCase() === 'MANAGER' ? 'Gerente' : 
-                           user.role?.toUpperCase() === 'OPERATOR' ? 'Operador' : 
-                           user.role || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "flex items-center gap-1.5 text-xs font-medium",
-                          "text-emerald-500"
-                        )}>
-                          <div className={cn("w-1.5 h-1.5 rounded-full", "bg-emerald-500")} />
-                          Ativo
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => handleEdit(user)}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(user.id)}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-rose-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <p className="text-sm text-slate-500">Carregando usuários...</p>
-                </div>
-              ) : users.length === 0 ? (
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-8 text-center text-slate-500">
-                  Nenhum usuário cadastrado.
-                </div>
-              ) : (
-                users.map((user, i) => (
-                  <div key={user.id || i} className="bg-surface-dark border border-border-dark rounded-xl p-4 space-y-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-background-dark flex items-center justify-center text-slate-500 text-xs font-bold border border-border-dark uppercase">
-                          {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">{user.name}</h4>
-                          <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">{user.username}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={() => handleEdit(user)}
-                          className="p-2 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(user.id)}
-                          className="p-2 hover:bg-white/10 rounded-lg text-slate-500 hover:text-rose-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo</p>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border inline-block",
-                          user.role?.toUpperCase() === 'ADMIN' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                          user.role?.toUpperCase() === 'MANAGER' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
-                          user.role?.toUpperCase() === 'OPERATOR' ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                          "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                        )}>
-                          {user.role?.toUpperCase() === 'ADMIN' ? 'Admin' : 
-                           user.role?.toUpperCase() === 'MANAGER' ? 'Gerente' : 
-                           user.role?.toUpperCase() === 'OPERATOR' ? 'Operador' : 
-                           user.role || 'N/A'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status</p>
-                        <span className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-500">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          Ativo
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Email:</span>
-                        <span className="text-xs text-slate-300 font-medium">{user.email}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Último Acesso:</span>
-                        <span className="text-xs text-slate-300 font-medium">
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Side Form Panel / Drawer */}
-        {isDrawerOpen && (
-          <div className="fixed inset-0 z-50 md:relative md:inset-auto md:z-0 flex justify-end">
-            <div 
-              className="absolute inset-0 bg-background-dark/80 backdrop-blur-sm md:hidden"
-              onClick={() => {
-                setIsDrawerOpen(false);
-                setSelectedUser(null);
-              }}
+      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="max-w-5xl mx-auto space-y-6">
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+            <input 
+              className="w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-white placeholder:text-slate-600"
+              placeholder="Pesquisar por nome de usuário..."
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <aside className="relative w-full max-w-md md:w-96 border-l border-border-dark bg-background-dark p-6 md:p-8 overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-300 shadow-2xl md:shadow-none">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-white">
-                  {selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
-                </h3>
-                <button 
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setSelectedUser(null);
-                  }}
-                  className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+          </div>
+
+          {/* Users List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+              [1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-surface-dark border border-border-dark rounded-xl animate-pulse"></div>
+              ))
+            ) : filteredUsers.length === 0 ? (
+              <div className="col-span-full py-20 text-center text-slate-500 italic">
+                Nenhum usuário encontrado.
               </div>
-            
-            <form className="space-y-6" onSubmit={handleSave}>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nome Completo</label>
-                <input 
-                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm placeholder:text-slate-700" 
-                  placeholder="Ex: João Silva" 
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">E-mail Corporativo</label>
-                <input 
-                  className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm placeholder:text-slate-700" 
-                  placeholder="email@exemplo.com.br" 
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Username</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm placeholder:text-slate-700" 
-                    placeholder="jsilva" 
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Cargo</label>
-                  <div className="relative">
-                    <select 
-                      className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm appearance-none"
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    >
-                      <option value="ADMIN">Admin</option>
-                      <option value="MANAGER">Gerente</option>
-                      <option value="OPERATOR">Operador</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+            ) : filteredUsers.map((user) => (
+              <div key={user.id} className="bg-surface-dark border border-border-dark rounded-xl p-5 flex items-center justify-between hover:border-primary/50 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-primary">
+                    <Shield className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold">{user.username}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
+                        user.role === 'ADMIN' ? "bg-primary/10 text-primary" : "bg-slate-500/10 text-slate-400"
+                      )}>
+                        {user.role}
+                      </span>
+                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">ID: #{user.id}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                  {selectedUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
-                </label>
-                <div className="relative">
-                  <input 
-                    className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary/50 outline-none text-white text-sm placeholder:text-slate-700" 
-                    placeholder="••••••••" 
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
+                
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    onClick={() => handleOpenEdit(user)}
+                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(user.id)}
+                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                {!selectedUser && (
-                  <p className="text-[9px] text-slate-500 mt-1 font-medium italic">Mínimo de 8 caracteres, incluindo letras e números.</p>
-                )}
               </div>
-              
-              <div className="pt-6 flex flex-col gap-3">
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Modal Create/Edit */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-surface-dark border border-border-dark rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-border-dark">
+              <h2 className="text-xl font-bold text-white">
+                {modalMode === 'create' ? 'Novo Usuário' : 'Editar Usuário'}
+              </h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Nome de Usuário</label>
+                  <input 
+                    required
+                    name="username"
+                    defaultValue={selectedUser?.username || ''}
+                    className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
+                    placeholder="Ex: joao.silva" 
+                    type="text"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">
+                    {modalMode === 'create' ? 'Senha' : 'Nova Senha (deixe em branco para manter)'}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                    <input 
+                      required={modalMode === 'create'}
+                      name="password"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
+                      placeholder="••••••••" 
+                      type="password"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Nível de Acesso</label>
+                  <select 
+                    required
+                    name="role"
+                    defaultValue={selectedUser?.role || 'USER'}
+                    className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none"
+                  >
+                    <option value="USER">Usuário Padrão</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
                 <button 
-                  className="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-3 rounded-lg transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50" 
-                  type="submit"
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  {isSaving ? 'Salvando...' : selectedUser ? 'Atualizar Usuário' : 'Salvar Usuário'}
-                </button>
-                <button 
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setSelectedUser(null);
-                  }}
-                  className="w-full bg-transparent hover:bg-white/5 text-slate-500 font-bold py-2 rounded-lg transition-colors" 
                   type="button"
-                  disabled={isSaving}
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 px-4 bg-background-dark hover:bg-white/5 text-white font-bold rounded-xl border border-border-dark transition-colors"
                 >
                   Cancelar
                 </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    modalMode === 'create' ? 'Criar Usuário' : 'Salvar Alterações'
+                  )}
+                </button>
               </div>
             </form>
-            
-            {selectedUser && (
-              <div className="mt-12 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Informações Adicionais</p>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">Último Acesso:</span>
-                    <span className="text-xs font-medium text-white">
-                      {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleString('pt-BR') : 'Nunca'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">Criado em:</span>
-                    <span className="text-xs font-medium text-white">
-                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
+          </div>
         </div>
       )}
-    </div>
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={hideToast} 
-      />
     </AppLayout>
   );
 }

@@ -749,13 +749,15 @@ export default function ExpensesPage() {
             </div>
 
             <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
-              <button 
-                onClick={() => setIsDrawerOpen(false)}
-                className="flex-1 px-4 py-3 border border-border-dark rounded-lg text-sm font-bold text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"
-                disabled={isSaving}
-              >
-                Cancelar
-              </button>
+              {user?.role !== 'OPERATOR' && (
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="flex-1 px-4 py-3 border border-border-dark rounded-lg text-sm font-bold text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"
+                  disabled={isSaving}
+                >
+                  Cancelar
+                </button>
+              )}
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

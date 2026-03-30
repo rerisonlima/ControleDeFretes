@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-
-export const dynamic = 'force-dynamic';
+import { getSession } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
@@ -10,8 +9,11 @@ export async function GET(req: Request) {
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     const paymentStatus = searchParams.get('paymentStatus');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '30');
+    const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.TripWhereInput = {};
 
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -28,25 +30,93 @@ export async function GET(req: Request) {
       where.paid = 'sim';
     }
 
-    const trips = await prisma.trip.findMany({
-      where,
-      include: {
-        route: true,
-        frete: {
-          include: {
-            categoria: true
-          }
+    const [tripsData, total] = await Promise.all([
+      prisma.trip.findMany({
+        where,
+        select: {
+          id: true,
+          tripId: true,
+          routeId: true,
+          freteId: true,
+          contratanteId: true,
+          vehicleId: true,
+          driverId: true,
+          helperId: true,
+          scheduledAt: true,
+          value: true,
+          valor1aViagemMotorista: true,
+          valor2aViagemMotorista: true,
+          valor1aViagemAjudante: true,
+          valor2aViagemAjudante: true,
+          status: true,
+          paid: true,
+          contract: true,
+          romaneio: true,
+          odometer: true,
+          paymentDate: true,
+          route: {
+            select: {
+              id: true,
+              destination: true,
+              freightValue: true
+            }
+          },
+          frete: {
+            select: {
+              id: true,
+              cidade: true,
+              valorFrete: true,
+              categoria: {
+                select: {
+                  id: true,
+                  CategoriaNome: true
+                }
+              }
+            }
+          },
+          contratante: {
+            select: {
+              id: true,
+              ContratanteNome: true
+            }
+          },
+          vehicle: {
+            select: {
+              id: true,
+              plate: true,
+              model: true
+            }
+          },
+          driver: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          helper: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          createdBy: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          },
         },
-        contratante: true,
-        vehicle: true,
-        driver: true,
-        helper: true,
-      },
-      orderBy: { scheduledAt: 'desc' }
-    });
-    return NextResponse.json(trips);
+        orderBy: { scheduledAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.trip.count({ where })
+    ]);
+
+    return NextResponse.json({ trips: tripsData, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.error('Failed to fetch trips:', error);
+    console.error('Failed to fetch receipts:', error);
     return NextResponse.json({ 
       error: 'Internal Server Error', 
       details: error instanceof Error ? error.message : 'Unknown error' 
@@ -56,8 +126,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
     const body = await req.json();
-    console.log('Creating trip with body:', body);
+    console.log('Creating receipt with body:', body);
     const trip = await prisma.trip.create({
       data: {
         tripId: body.tripId || `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -76,8 +147,10 @@ export async function POST(req: Request) {
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
+        odometer: body.odometer ? parseFloat(body.odometer) : null,
         romaneio: body.romaneio || null,
         paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
+        createdByUserId: session?.id ? (typeof session.id === 'string' ? parseInt(session.id, 10) : (session.id as number)) : null,
       },
       include: {
         route: true,
@@ -90,7 +163,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(trip);
   } catch (error) {
-    console.error('Failed to create trip:', error);
+    console.error('Failed to create receipt:', error);
     return NextResponse.json({ 
       error: 'Internal Server Error', 
       details: error instanceof Error ? error.message : 'Unknown error' 

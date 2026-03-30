@@ -4,6 +4,8 @@ import { startOfMonth, endOfMonth, endOfWeek, eachWeekOfInterval, format } from 
 import { ptBR } from 'date-fns/locale';
 // No Prisma model imports needed as we use custom interface
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get('month');
@@ -54,7 +56,7 @@ export async function GET(request: Request) {
 
       if (tripsInPeriod.length === 0) return 0;
 
-      const vehicleIds = tripsInPeriod.map(g => g.vehicleId);
+      const vehicleIds = tripsInPeriod.map((g: any) => g.vehicleId);
       
       // Fetch last odometer before start for all vehicles in a single query
       const lastTripsBefore = await prisma.trip.findMany({
@@ -72,7 +74,7 @@ export async function GET(request: Request) {
       });
 
       const lastTripMap = new Map();
-      lastTripsBefore.forEach(t => {
+      lastTripsBefore.forEach((t: any) => {
         if (t && t.odometer !== null) {
           lastTripMap.set(t.vehicleId, t.odometer);
         }
@@ -105,14 +107,14 @@ export async function GET(request: Request) {
     ]);
 
     const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
-    const weeklyStats = weeks.map(weekStart => {
+    const weeklyStats = weeks.map((weekStart: Date) => {
       const weekEnd = endOfWeek(weekStart);
       const revenue = allMonthTrips
-        .filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
-        .reduce((sum, t) => sum + (t.value || 0), 0);
+        .filter((t: any) => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
+        .reduce((sum: number, t: any) => sum + (t.value || 0), 0);
       const expenses = allMonthExpenses
-        .filter(e => e.date >= weekStart && e.date <= weekEnd)
-        .reduce((sum, e) => sum + (e.value || 0), 0);
+        .filter((e: any) => e.date >= weekStart && e.date <= weekEnd)
+        .reduce((sum: number, e: any) => sum + (e.value || 0), 0);
       return { revenue, expenses };
     });
 
@@ -172,6 +174,7 @@ export async function GET(request: Request) {
           value: true,
           status: true,
           contract: true,
+          romaneio: true,
           scheduledAt: true,
           routeId: true,
           vehicleId: true,
@@ -208,12 +211,12 @@ export async function GET(request: Request) {
     ]);
 
     // Fetch contractor names for the breakdown
-    const contractorIds = revenueByContractor.map(r => r.contratanteId).filter((id): id is number => id !== null);
+    const contractorIds = revenueByContractor.map((r: any) => r.contratanteId).filter((id: any): id is number => id !== null);
     const contractors = await prisma.contratante.findMany({
       where: { id: { in: contractorIds } },
       select: { id: true, ContratanteNome: true }
     });
-    const contractorMap = new Map(contractors.map(c => [c.id, c.ContratanteNome]));
+    const contractorMap = new Map(contractors.map((c: any) => [c.id, c.ContratanteNome]));
 
     interface VehicleMaintenanceGroup {
       name: string;
@@ -230,7 +233,7 @@ export async function GET(request: Request) {
 
     const maintenanceByVehicle = new Map<string, VehicleMaintenanceGroup>();
     
-    maintenanceData.forEach(m => {
+    maintenanceData.forEach((m: any) => {
       const vehicleKey = `${m.vehicle.model} (${m.vehicle.plate})`;
       if (!maintenanceByVehicle.has(vehicleKey)) {
         const latestTripOdo = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || 0;
@@ -267,7 +270,7 @@ export async function GET(request: Request) {
       });
     });
 
-    const maintenanceBreakdown = Array.from(maintenanceByVehicle.values()).map(v => ({
+    const maintenanceBreakdown = Array.from(maintenanceByVehicle.values()).map((v: any) => ({
       name: v.name,
       maintenances: v.maintenances
     }));
@@ -301,23 +304,23 @@ export async function GET(request: Request) {
     const profitPerKmTrend = currentProfitPerKm >= prevProfitPerKm ? 'up' : 'down';
 
     const revenueBreakdown = revenueByContractor
-      .map(r => ({
+      .map((r: any) => ({
         name: r.contratanteId ? contractorMap.get(r.contratanteId) || 'Desconhecido' : 'Sem Contratante',
         value: `${r._count.id} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r._sum.value || 0)}`,
         percentage: totalRevenue > 0 ? (((r._sum.value || 0) / totalRevenue) * 100).toFixed(1) + '%' : '0%',
         rawVal: r._sum.value || 0,
         rawCount: r._count.id
       }))
-      .sort((a, b) => b.rawCount - a.rawCount);
+      .sort((a: any, b: any) => b.rawCount - a.rawCount);
 
     const expenseBreakdown = expenseByType
-      .map(e => ({
+      .map((e: any) => ({
         name: e.type,
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e._sum.value || 0),
         percentage: totalExpenses > 0 ? (((e._sum.value || 0) / totalExpenses) * 100).toFixed(1) + '%' : '0%',
         rawVal: e._sum.value || 0
       }))
-      .sort((a, b) => b.rawVal - a.rawVal);
+      .sort((a: any, b: any) => b.rawVal - a.rawVal);
 
     // Chart data (weekly)
     const chartWeeks = eachWeekOfInterval({ 
@@ -392,12 +395,13 @@ export async function GET(request: Request) {
         },
       ],
       chart: finalChartData,
-      recentTrips: recentTripsData.map(t => ({
+      recentTrips: recentTripsData.map((t: any) => ({
         route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
         plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
         id: t.id,
         value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
         status: t.status,
+        romaneio: t.romaneio,
         contract: t.contratante?.ContratanteNome || t.contract || '-',
         date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
       }))

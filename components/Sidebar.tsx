@@ -16,6 +16,7 @@ import {
   TruckIcon,
   Table,
   FileText,
+  DollarSign,
   User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ import { cn } from '@/lib/utils';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Map, label: 'Viagens', href: '/routes' },
+  { icon: DollarSign, label: 'Recebimentos', href: '/receipts' },
   { icon: Calculator, label: 'Pagamentos', href: '/payments' },
   { icon: Receipt, label: 'Despesas', href: '/expenses' },
   { icon: Truck, label: 'Veículos', href: '/vehicles' },

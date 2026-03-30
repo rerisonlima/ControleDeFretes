@@ -15,7 +15,6 @@ model User {
   password  String
   role      String   @default("OPERATOR")
   lastLogin DateTime?
-  trips     Trip[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -63,24 +62,12 @@ model Vehicle {
   capacity        Float
   status          String   @default("ACTIVE")
   lastMaintenance DateTime?
-  currentOdometer Float?
+  currentOdometer Int?
   categoriaId     Int?
   categoria       CategoriaVeiculos? @relation(fields: [categoriaId], references: [id])
   trips           Trip[]
   expenses        Expense[]
   maintenances    Maintenance[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
-model Maintenance {
-  id              Int      @id @default(autoincrement())
-  type            String
-  odometer        Float
-  currentOdometer Float?
-  executionDate   DateTime?
-  vehicleId       Int
-  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -129,6 +116,7 @@ model Trip {
   helper      Employee? @relation("HelperTrips", fields: [helperId], references: [id])
   scheduledAt DateTime
   value       Float
+  odometer    Int?
   valor1aViagemMotorista Float?
   valor2aViagemMotorista Float?
   valor1aViagemAjudante  Float?
@@ -137,14 +125,21 @@ model Trip {
   paid        String   @default("não")
   contract    String?
   romaneio    String?
-  odometer    Float?
   paymentDate DateTime?
-  createdByUserId Int?
-  createdBy   User?    @relation(fields: [createdByUserId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
 
-  @@index([scheduledAt])
+model Maintenance {
+  id              Int       @id @default(autoincrement())
+  vehicleId       Int
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id])
+  type            String
+  odometer        Int       // Intervalo de manutenção (ex: 10000km)
+  currentOdometer Int?      // Odometer no momento da última manutenção/registro
+  executionDate   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Expense {
@@ -158,8 +153,6 @@ model Expense {
   status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@index([date])
 }
 
 model ValoresPagamentoMotoristaAjudante {
