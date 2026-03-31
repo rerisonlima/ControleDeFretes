@@ -17,29 +17,8 @@ export async function GET() {
     name: session.name || session.username,
     username: session.username,
     role: session.role,
+    lastLogin: session.lastLogin,
   };
-
-  try {
-    // Attempt to fetch fresh data from DB
-    const user = await prisma.user.findUnique({
-      where: { id: session.id as number },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        role: true,
-        lastLogin: true,
-        email: true,
-      }
-    });
-
-    if (user) {
-      return NextResponse.json(user);
-    }
-  } catch (error) {
-    console.error('Error fetching user session from DB:', error);
-    // If DB fails, we still return the basic session data so the UI doesn't break
-  }
 
   return NextResponse.json(userData);
 }

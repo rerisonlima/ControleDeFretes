@@ -69,9 +69,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     const r = role?.toUpperCase();
     switch (r) {
       case 'ADMIN': return 'Administrador';
-      case 'MANAGER': return 'Gerente de Operações';
       case 'OPERATOR': return 'Operador';
-      default: return role || 'Usuário';
+      default: return 'Operador';
     }
   };
 

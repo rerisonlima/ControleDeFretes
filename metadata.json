@@ -1,6 +1,6 @@
 {
-  "name": "Fleet Management Dashboard",
-  "description": "A comprehensive dashboard for managing vehicle fleets, trips, and maintenance.",
+  "name": "Rápido Carioca - Gestão Logística",
+  "description": "Sistema completo de gestão logística para controle de fretes, frotas, pagamentos e despesas.",
   "requestFramePermissions": [
     "geolocation"
   ]

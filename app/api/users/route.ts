@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       data: {
         username,
         password: hashedPassword,
-        role: role || 'USER',
+        role: role || 'OPERATOR',
         name: username, // Defaulting name to username
         email: `${username}@example.com`, // Defaulting email
       },

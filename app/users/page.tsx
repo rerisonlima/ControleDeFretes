@@ -40,10 +40,17 @@ export default function UsersPage() {
       setLoading(true);
       const res = await fetch('/api/users');
       if (res.ok) {
-        setUsers(await res.json());
+        const data = await res.json();
+        console.log('Fetched users:', data);
+        setUsers(data);
+      } else {
+        const errData = await res.json();
+        console.error('Error fetching users:', errData);
+        setError(`Erro ao buscar usuários: ${errData.error || res.statusText}`);
       }
     } catch (err) {
       console.error('Error fetching users:', err);
+      setError('Erro de conexão ao buscar usuários');
     } finally {
       setLoading(false);
     }
@@ -164,7 +171,7 @@ export default function UsersPage() {
                         "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
                         user.role === 'ADMIN' ? "bg-primary/10 text-primary" : "bg-slate-500/10 text-slate-400"
                       )}>
-                        {user.role}
+                        {user.role === 'ADMIN' ? 'Administrador' : 'Operador'}
                       </span>
                       <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">ID: #{user.id}</span>
                     </div>
@@ -250,10 +257,10 @@ export default function UsersPage() {
                   <select 
                     required
                     name="role"
-                    defaultValue={selectedUser?.role || 'USER'}
+                    defaultValue={selectedUser?.role || 'OPERATOR'}
                     className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none"
                   >
-                    <option value="USER">Usuário Padrão</option>
+                    <option value="OPERATOR">Operador</option>
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>

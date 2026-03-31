@@ -6,10 +6,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // Clear existing users
-  await prisma.user.deleteMany();
-  console.log('Users cleared.');
-
   // Create rerison user
   const rerisonPassword = await bcrypt.hash('1Tijolo!', 10);
   const rerison = await prisma.user.upsert({
@@ -43,12 +39,14 @@ async function main() {
   // Create default operator user
   const operatorPassword = await bcrypt.hash('op123', 10);
   const operator = await prisma.user.upsert({
-    where: { username: 'operador' },
-    update: {},
+    where: { username: 'operador_rc' },
+    update: {
+      role: 'OPERATOR',
+    },
     create: {
-      username: 'operador',
+      username: 'operador_rc',
       name: 'Operador',
-      email: 'operador@rapidocarioca.com.br',
+      email: 'operador_rc@rapidocarioca.com.br',
       password: operatorPassword,
       role: 'OPERATOR',
     },

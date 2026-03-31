@@ -37,160 +37,44 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Always fetch full month data to simplify logic and provide chart context
     const fullMonthStart = startOfMonth(new Date(year, month - 1));
     const fullMonthEnd = endOfMonth(fullMonthStart);
-
-    // Fetch current month and previous month data in parallel
     const prevStartDate = startOfMonth(new Date(year, month - 2));
     const prevEndDate = endOfMonth(prevStartDate);
 
-    // Helper to calculate total KM in a period
-    const calculateTotalKm = async (start: Date, end: Date) => {
-      const tripsInPeriod = await prisma.trip.groupBy({
-        by: ['vehicleId'],
-        where: { scheduledAt: { gte: start, lte: end }, odometer: { not: null } },
-        _max: { odometer: true },
-        _min: { odometer: true }
-      });
-
-      if (tripsInPeriod.length === 0) return 0;
-
-      const vehicleIds = tripsInPeriod.map((g: any) => g.vehicleId);
-      
-      // Fetch last odometer before start for all vehicles in a single query
-      const lastTripsBefore = await prisma.trip.findMany({
-        where: {
-          vehicleId: { in: vehicleIds },
-          scheduledAt: { lt: start },
-          odometer: { not: null }
-        },
-        orderBy: [
-          { vehicleId: 'asc' },
-          { scheduledAt: 'desc' }
-        ],
-        distinct: ['vehicleId'],
-        select: { vehicleId: true, odometer: true }
-      });
-
-      const lastTripMap = new Map();
-      lastTripsBefore.forEach((t: any) => {
-        if (t && t.odometer !== null) {
-          lastTripMap.set(t.vehicleId, t.odometer);
-        }
-      });
-
-      let totalKm = 0;
-      for (const group of tripsInPeriod) {
-        const maxOdo = group._max.odometer || 0;
-        const lastOdo = lastTripMap.get(group.vehicleId);
-
-        if (lastOdo !== undefined) {
-          totalKm += (maxOdo - lastOdo);
-        } else {
-          totalKm += (maxOdo - (group._min.odometer || 0));
-        }
-      }
-      return totalKm;
-    };
-
-    // Fetch all trips and expenses for the month to calculate weekly stats in memory
-    const [allMonthTrips, allMonthExpenses] = await Promise.all([
+    // Fetch everything in parallel with fewer queries
+    const [
+      currentMonthTrips,
+      currentMonthExpenses,
+      prevMonthTrips,
+      prevMonthExpenses,
+      maintenanceData,
+      contractors
+    ] = await Promise.all([
       prisma.trip.findMany({
         where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-        select: { value: true, scheduledAt: true }
-      }),
-      prisma.expense.findMany({
-        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } },
-        select: { value: true, date: true }
-      })
-    ]);
-
-    const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
-    const weeklyStats = weeks.map((weekStart: Date) => {
-      const weekEnd = endOfWeek(weekStart);
-      const revenue = allMonthTrips
-        .filter((t: any) => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
-        .reduce((sum: number, t: any) => sum + (t.value || 0), 0);
-      const expenses = allMonthExpenses
-        .filter((e: any) => e.date >= weekStart && e.date <= weekEnd)
-        .reduce((sum: number, e: any) => sum + (e.value || 0), 0);
-      return { revenue, expenses };
-    });
-
-    const [
-      revenueStats,
-      expenseStats,
-      revenueByContractor,
-      expenseByType,
-      prevRevenueStats,
-      prevExpenseStats,
-      recentTripsData,
-      maintenanceData,
-      currentTotalKm,
-      prevTotalKm
-    ] = await Promise.all([
-      // Current Month Total Revenue
-      prisma.trip.aggregate({
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        _sum: { value: true },
-        _count: { id: true }
-      }),
-      // Current Month Total Expenses
-      prisma.expense.aggregate({
-        where: { date: { gte: startDate, lte: endDate } },
-        _sum: { value: true }
-      }),
-      // Current Month Revenue by Contractor
-      prisma.trip.groupBy({
-        by: ['contratanteId'],
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        _sum: { value: true },
-        _count: { id: true }
-      }),
-      // Current Month Expense by Type
-      prisma.expense.groupBy({
-        by: ['type'],
-        where: { date: { gte: startDate, lte: endDate } },
-        _sum: { value: true }
-      }),
-      // Previous Month Total Revenue
-      prisma.trip.aggregate({
-        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
-        _sum: { value: true }
-      }),
-      // Previous Month Total Expenses
-      prisma.expense.aggregate({
-        where: { date: { gte: prevStartDate, lte: prevEndDate } },
-        _sum: { value: true }
-      }),
-      // Recent Trips
-      prisma.trip.findMany({
-        where: { scheduledAt: { gte: startDate, lte: endDate } },
-        orderBy: { scheduledAt: 'desc' },
-        take: 5,
-        select: {
-          id: true,
-          value: true,
-          status: true,
-          contract: true,
-          romaneio: true,
-          scheduledAt: true,
-          routeId: true,
-          vehicleId: true,
+        include: { 
           route: { select: { destination: true } },
           frete: { select: { cidade: true } },
           contratante: { select: { ContratanteNome: true } },
           vehicle: { select: { plate: true } }
         }
       }),
-      // Maintenance Data
+      prisma.expense.findMany({
+        where: { date: { gte: fullMonthStart, lte: fullMonthEnd } }
+      }),
+      prisma.trip.findMany({
+        where: { scheduledAt: { gte: prevStartDate, lte: prevEndDate } },
+        select: { value: true, vehicleId: true, odometer: true, scheduledAt: true }
+      }),
+      prisma.expense.findMany({
+        where: { date: { gte: prevStartDate, lte: prevEndDate } },
+        select: { value: true }
+      }),
       prisma.maintenance.findMany({
         where: { 
           executionDate: null,
-          vehicle: {
-            status: 'ACTIVE'
-          }
+          vehicle: { status: 'ACTIVE' }
         },
         include: {
           vehicle: {
@@ -204,65 +88,117 @@ export async function GET(request: Request) {
           }
         }
       }),
-      // Current Total KM
-      calculateTotalKm(startDate, endDate),
-      // Previous Total KM
-      calculateTotalKm(prevStartDate, prevEndDate)
+      prisma.contratante.findMany({
+        select: { id: true, ContratanteNome: true }
+      })
     ]);
 
-    // Fetch contractor names for the breakdown
-    const contractorIds = revenueByContractor.map((r: any) => r.contratanteId).filter((id: any): id is number => id !== null);
-    const contractors = await prisma.contratante.findMany({
-      where: { id: { in: contractorIds } },
-      select: { id: true, ContratanteNome: true }
-    });
     const contractorMap = new Map(contractors.map((c: any) => [c.id, c.ContratanteNome]));
 
-    interface VehicleMaintenanceGroup {
-      name: string;
-      latestTripOdo: number;
-      maintenances: {
-        type: string;
-        value: string;
-        remainingKms: number;
-        overdueKms: number;
-        percentage: string;
-        isOverdue: boolean;
-      }[];
-    }
+    // Filter for the specific range (if week is selected)
+    const filteredTrips = currentMonthTrips.filter(t => t.scheduledAt >= startDate && t.scheduledAt <= endDate);
+    const filteredExpenses = currentMonthExpenses.filter(e => e.date >= startDate && e.date <= endDate);
 
-    const maintenanceByVehicle = new Map<string, VehicleMaintenanceGroup>();
-    
+    // Calculate Totals
+    const totalRevenue = filteredTrips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
+    const totalTripsCount = filteredTrips.length;
+    const profit = totalRevenue - totalExpenses;
+
+    const prevRevenue = prevMonthTrips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const prevExpensesVal = prevMonthExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
+    const prevProfit = prevRevenue - prevExpensesVal;
+
+    // Revenue by Contractor
+    const revenueByContractorMap = new Map<number | null, { sum: number, count: number }>();
+    filteredTrips.forEach(t => {
+      const current = revenueByContractorMap.get(t.contratanteId) || { sum: 0, count: 0 };
+      revenueByContractorMap.set(t.contratanteId, { 
+        sum: current.sum + (t.value || 0), 
+        count: current.count + 1 
+      });
+    });
+
+    const revenueBreakdown = Array.from(revenueByContractorMap.entries())
+      .map(([id, stats]) => ({
+        name: id ? contractorMap.get(id) || 'Desconhecido' : 'Sem Contratante',
+        value: `${stats.count} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.sum)}`,
+        percentage: totalRevenue > 0 ? ((stats.sum / totalRevenue) * 100).toFixed(1) + '%' : '0%',
+        rawVal: stats.sum,
+        rawCount: stats.count
+      }))
+      .sort((a, b) => b.rawCount - a.rawCount);
+
+    // Expense by Type
+    const expenseByTypeMap = new Map<string, number>();
+    filteredExpenses.forEach(e => {
+      const current = expenseByTypeMap.get(e.type) || 0;
+      expenseByTypeMap.set(e.type, current + (e.value || 0));
+    });
+
+    const expenseBreakdown = Array.from(expenseByTypeMap.entries())
+      .map(([type, sum]) => ({
+        name: type,
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sum),
+        percentage: totalExpenses > 0 ? ((sum / totalExpenses) * 100).toFixed(1) + '%' : '0%',
+        rawVal: sum
+      }))
+      .sort((a, b) => b.rawVal - a.rawVal);
+
+    // Weekly Stats for Chart
+    const weeks = eachWeekOfInterval({ start: fullMonthStart, end: fullMonthEnd });
+    const finalChartData = weeks.map((weekStart, index) => {
+      const weekEnd = endOfWeek(weekStart);
+      const revenue = currentMonthTrips
+        .filter(t => t.scheduledAt >= weekStart && t.scheduledAt <= weekEnd)
+        .reduce((sum, t) => sum + (t.value || 0), 0);
+      const expenses = currentMonthExpenses
+        .filter(e => e.date >= weekStart && e.date <= weekEnd)
+        .reduce((sum, e) => sum + (e.value || 0), 0);
+      return { name: `Semana ${index + 1}`, revenue, expenses };
+    });
+
+    // Calculate Total KM (Simplified logic for performance)
+    const calculateKmInMemory = (trips: any[]) => {
+      const vehicleKm = new Map<number, { min: number, max: number }>();
+      trips.forEach(t => {
+        if (t.odometer === null) return;
+        const current = vehicleKm.get(t.vehicleId) || { min: t.odometer, max: t.odometer };
+        vehicleKm.set(t.vehicleId, {
+          min: Math.min(current.min, t.odometer),
+          max: Math.max(current.max, t.odometer)
+        });
+      });
+      
+      let total = 0;
+      vehicleKm.forEach(v => {
+        total += (v.max - v.min);
+      });
+      return total;
+    };
+
+    const currentTotalKm = calculateKmInMemory(filteredTrips);
+    const prevTotalKm = calculateKmInMemory(prevMonthTrips);
+
+    // Maintenance Breakdown
+    const maintenanceByVehicle = new Map<string, any>();
     maintenanceData.forEach((m: any) => {
       const vehicleKey = `${m.vehicle.model} (${m.vehicle.plate})`;
       if (!maintenanceByVehicle.has(vehicleKey)) {
         const latestTripOdo = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || 0;
-        maintenanceByVehicle.set(vehicleKey, {
-          name: vehicleKey,
-          latestTripOdo,
-          maintenances: []
-        });
+        maintenanceByVehicle.set(vehicleKey, { name: vehicleKey, latestTripOdo, maintenances: [] });
       }
       
       const vehicleData = maintenanceByVehicle.get(vehicleKey)!;
       const registeredOdo = m.currentOdometer || 0;
-      const interval = m.odometer; // Kilometragem p/ Manutenção
-      
+      const interval = m.odometer;
       const diff = vehicleData.latestTripOdo - registeredOdo;
       const remaining = interval - diff;
-      
-      let statusMsg = '';
-      let isOverdue = false;
-      if (diff > interval) {
-        isOverdue = true;
-        statusMsg = `Kilometragem já foi ultrapassada em ${(diff - interval).toLocaleString('pt-BR')} km`;
-      } else {
-        statusMsg = `Faltam ${remaining.toLocaleString('pt-BR')} kilometros`;
-      }
+      const isOverdue = diff > interval;
       
       vehicleData.maintenances.push({
         type: m.type,
-        value: statusMsg,
+        value: isOverdue ? `Ultrapassada em ${(diff - interval).toLocaleString('pt-BR')} km` : `Faltam ${remaining.toLocaleString('pt-BR')} km`,
         remainingKms: isOverdue ? 0 : remaining,
         overdueKms: isOverdue ? (diff - interval) : 0,
         percentage: isOverdue ? '100%' : `${Math.max(0, Math.min(100, (diff / interval) * 100)).toFixed(1)}%`,
@@ -270,19 +206,22 @@ export async function GET(request: Request) {
       });
     });
 
-    const maintenanceBreakdown = Array.from(maintenanceByVehicle.values()).map((v: any) => ({
-      name: v.name,
-      maintenances: v.maintenances
-    }));
+    const maintenanceBreakdown = Array.from(maintenanceByVehicle.values());
 
-    const totalRevenue = revenueStats._sum.value || 0;
-    const totalExpenses = expenseStats._sum.value || 0;
-    const totalTripsCount = revenueStats._count.id || 0;
-    const profit = totalRevenue - totalExpenses;
-
-    const prevRevenue = prevRevenueStats._sum.value || 0;
-    const prevExpensesVal = prevExpenseStats._sum.value || 0;
-    const prevProfit = prevRevenue - prevExpensesVal;
+    // Recent Trips
+    const recentTrips = [...filteredTrips]
+      .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
+      .slice(0, 5)
+      .map(t => ({
+        route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
+        plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
+        id: t.id,
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
+        status: t.status,
+        romaneio: t.romaneio,
+        contract: t.contratante?.ContratanteNome || t.contract || '-',
+        date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
+      }));
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';
@@ -290,49 +229,15 @@ export async function GET(request: Request) {
       return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
     };
 
-    // Calculate Custo Variável KM Rodado
     const currentCostPerKm = currentTotalKm > 0 ? totalExpenses / currentTotalKm : 0;
     const prevCostPerKm = prevTotalKm > 0 ? prevExpensesVal / prevTotalKm : 0;
-    
-    const costPerKmChange = calculateChange(currentCostPerKm, prevCostPerKm);
-    const costPerKmTrend = currentCostPerKm <= prevCostPerKm ? 'down' : 'up';
-
-    // Calculate Receita Variável KM Rodado (Profit per KM)
     const currentProfitPerKm = currentTotalKm > 0 ? profit / currentTotalKm : 0;
     const prevProfitPerKm = prevTotalKm > 0 ? prevProfit / prevTotalKm : 0;
+
+    const costPerKmChange = calculateChange(currentCostPerKm, prevCostPerKm);
+    const costPerKmTrend = currentCostPerKm <= prevCostPerKm ? 'down' : 'up';
     const profitPerKmChange = calculateChange(currentProfitPerKm, prevProfitPerKm);
     const profitPerKmTrend = currentProfitPerKm >= prevProfitPerKm ? 'up' : 'down';
-
-    const revenueBreakdown = revenueByContractor
-      .map((r: any) => ({
-        name: r.contratanteId ? contractorMap.get(r.contratanteId) || 'Desconhecido' : 'Sem Contratante',
-        value: `${r._count.id} viagens - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r._sum.value || 0)}`,
-        percentage: totalRevenue > 0 ? (((r._sum.value || 0) / totalRevenue) * 100).toFixed(1) + '%' : '0%',
-        rawVal: r._sum.value || 0,
-        rawCount: r._count.id
-      }))
-      .sort((a: any, b: any) => b.rawCount - a.rawCount);
-
-    const expenseBreakdown = expenseByType
-      .map((e: any) => ({
-        name: e.type,
-        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e._sum.value || 0),
-        percentage: totalExpenses > 0 ? (((e._sum.value || 0) / totalExpenses) * 100).toFixed(1) + '%' : '0%',
-        rawVal: e._sum.value || 0
-      }))
-      .sort((a: any, b: any) => b.rawVal - a.rawVal);
-
-    // Chart data (weekly)
-    const chartWeeks = eachWeekOfInterval({ 
-      start: fullMonthStart, 
-      end: fullMonthEnd 
-    });
-
-    const finalChartData = chartWeeks.map((weekStart, index) => ({
-      name: `Semana ${index + 1}`,
-      revenue: weeklyStats[index].revenue,
-      expenses: weeklyStats[index].expenses,
-    }));
 
     const calculatePercentage = (value: number) => {
       if (totalRevenue === 0) return '0%';
@@ -395,16 +300,7 @@ export async function GET(request: Request) {
         },
       ],
       chart: finalChartData,
-      recentTrips: recentTripsData.map((t: any) => ({
-        route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
-        plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
-        id: t.id,
-        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
-        status: t.status,
-        romaneio: t.romaneio,
-        contract: t.contratante?.ContratanteNome || t.contract || '-',
-        date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
-      }))
+      recentTrips: recentTrips
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
