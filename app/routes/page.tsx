@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { logoutAction } from '@/app/actions/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'motion/react';
 import { 
   Search, 
@@ -123,7 +123,10 @@ interface Frete {
   valor2aViagemAjudante: number;
 }
 
-export default function RoutesPage() {
+function RoutesPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -684,12 +687,20 @@ export default function RoutesPage() {
       setEmployees(employeesData);
       setContratantes(contratantesData);
       setFretes(fretesData);
+
+      // Handle direct edit from query param
+      if (editId && tripsResponse && tripsResponse.trips) {
+        const tripToEdit = tripsResponse.trips.find((t: Trip) => t.id.toString() === editId);
+        if (tripToEdit) {
+          handleOpenDrawer(tripToEdit);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, paymentFilter, currentPage]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage, editId, handleOpenDrawer]);
 
   React.useEffect(() => {
     fetchData();
@@ -1014,9 +1025,9 @@ export default function RoutesPage() {
                 <tr>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Romaneio</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Romaneio</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastrado por:</th>
@@ -1056,6 +1067,9 @@ export default function RoutesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <span className="text-sm font-bold text-white">{trip.romaneio || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <MapPin className="w-4 h-4 text-primary" />
                         <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
@@ -1063,9 +1077,6 @@ export default function RoutesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400 font-mono">{trip.romaneio || '-'}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -1171,7 +1182,6 @@ export default function RoutesPage() {
                       {trip.frete?.cidade || trip.route?.destination || 'N/A'}
                     </h4>
                     <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
-                    <p className="text-[10px] font-mono text-slate-500">Romaneio: {trip.romaneio || '-'}</p>
                   </div>
                   <span className={cn(
                     "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
@@ -1381,5 +1391,13 @@ export default function RoutesPage() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+export default function RoutesPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-background-dark text-slate-500">Carregando...</div>}>
+      <RoutesPageContent />
+    </Suspense>
   );
 }

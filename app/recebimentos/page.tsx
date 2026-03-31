@@ -3,22 +3,28 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
-import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { 
   Search, 
-  DollarSign, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp,
-  Filter,
-  ArrowUpRight,
+  MapPin, 
+  Calendar,
+  Truck,
+  DollarSign,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  FileText
+  Wallet,
+  Eye,
+  EyeOff,
+  TrendingUp,
+  TrendingDown,
+  Navigation,
+  User,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   AreaChart, 
   Area, 
@@ -26,7 +32,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer
 } from 'recharts';
 
 const months = [
@@ -47,6 +53,8 @@ const months = [
 interface Trip {
   id: number;
   tripId: string;
+  vehicleId: number;
+  contratanteId?: number;
   scheduledAt: string;
   value: number;
   status: string;
@@ -54,15 +62,16 @@ interface Trip {
   contract?: string;
   romaneio?: string;
   paymentDate?: string;
-  vehicle?: { plate: string };
+  vehicle?: { plate: string; model: string };
   contratante?: { ContratanteNome: string };
   frete?: { cidade: string };
-  route?: { destination: string };
 }
 
 interface Vehicle {
   id: number;
   plate: string;
+  brand: string;
+  model: string;
 }
 
 interface Contratante {
@@ -70,52 +79,81 @@ interface Contratante {
   ContratanteNome: string;
 }
 
+interface ContractorStat {
+  name: string;
+  total: number;
+  received: number;
+  toReceive: number;
+  count: number;
+}
+
+interface ChartDataPoint {
+  date: string;
+  total: number;
+  contractors: { name: string; value: number }[];
+}
+
 export default function RecebimentosPage() {
+  const router = useRouter();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
-  const [vehicleFilter, setVehicleFilter] = React.useState('all');
-  const [contractorFilter, setContractorFilter] = React.useState('all');
-  const [searchTerm, setSearchTerm] = React.useState('');
   const [paymentFilter, setPaymentFilter] = React.useState('all');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [vehicleFilter, setVehicleFilter] = React.useState('');
+  const [contratanteFilter, setContratanteFilter] = React.useState('');
+  const [showValues, setShowValues] = React.useState(false);
   
-  const [loading, setLoading] = React.useState(true);
-  const [stats, setStats] = React.useState({
-    totalToReceive: 0,
-    totalReceived: 0,
-    chartData: [] as { date: string; formattedDate: string; value: number }[]
-  });
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
   const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
+  const [stats, setStats] = React.useState<{
+    totalRevenue: number;
+    received: number;
+    toReceive: number;
+    totalTrips: number;
+    contractors: ContractorStat[];
+    chartData: ChartDataPoint[];
+  } | null>(null);
   
+  const [loading, setLoading] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, tripsRes, vehiclesRes, contratantesRes] = await Promise.all([
-        fetch(`/api/recebimentos/stats?month=${selectedMonth}&year=${selectedYear}&vehicleId=${vehicleFilter}&contractorId=${contractorFilter}&search=${searchTerm}`),
-        fetch(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&vehicleId=${vehicleFilter}&contractorId=${contractorFilter}&search=${searchTerm}&page=${currentPage}&limit=20`),
-        fetch('/api/vehicles'),
-        fetch('/api/contratantes')
-      ]);
+      const fetchJson = async (url: string) => {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        return await res.json();
+      };
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (tripsRes.ok) {
-        const data = await tripsRes.json();
-        setTrips(data.trips || []);
-        setTotalPages(data.totalPages || 1);
+      // Fetch trips with same filters as routes page
+      const [tripsData, statsData, vehiclesData, contratantesData] = await Promise.all([
+        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`),
+        fetchJson(`/api/recebimentos/stats?month=${selectedMonth}&year=${selectedYear}`),
+        fetchJson('/api/vehicles'),
+        fetchJson('/api/contratantes')
+      ]);
+      
+      if (tripsData && tripsData.trips) {
+        setTrips(tripsData.trips);
+        setTotalPages(tripsData.totalPages);
+      } else {
+        setTrips(tripsData || []);
       }
-      if (vehiclesRes.ok) setVehicles(await vehiclesRes.json());
-      if (contratantesRes.ok) setContratantes(await contratantesRes.json());
+
+      setStats(statsData);
+      setVehicles(vehiclesData);
+      setContratantes(contratantesData);
+
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, vehicleFilter, contractorFilter, searchTerm, paymentFilter, currentPage]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage]);
 
   React.useEffect(() => {
     fetchData();
@@ -125,364 +163,420 @@ export default function RecebimentosPage() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
+  const filteredTrips = trips.filter(trip => {
+    const matchesSearch = trip.tripId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (trip.contratante?.ContratanteNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (trip.frete?.cidade || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesVehicle = vehicleFilter === '' || trip.vehicleId.toString() === vehicleFilter;
+    const matchesContratante = contratanteFilter === '' || trip.contratanteId?.toString() === contratanteFilter;
+    return matchesSearch && matchesVehicle && matchesContratante;
+  });
+
+  const totalFreight = filteredTrips.reduce((sum, t) => sum + (t.value || 0), 0);
+
+  const renderStatCard = (title: string, value: number, colorClass: string, icon: React.ElementType, breakdownType: 'total' | 'received' | 'toReceive', showTripsCount: boolean = false) => {
+    const breakdown = stats?.contractors || [];
+    const totalVal = breakdown.reduce((sum, c) => sum + c[breakdownType], 0);
+
+    return (
+      <div className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm relative overflow-hidden group">
+        <div className="flex justify-between items-start mb-4">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{title}</p>
+          <div className={cn("p-2 rounded-lg", colorClass.replace('text-', 'bg-').concat('/10'))}>
+            {React.createElement(icon, { className: cn("w-5 h-5", colorClass) })}
+          </div>
+        </div>
+        <p className="text-3xl font-black text-white tracking-tight">
+          {showValues ? formatCurrency(value) : '******'}
+        </p>
+
+        {showTripsCount && stats?.totalTrips !== undefined && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                {stats.totalTrips} Viagens Totais
+              </span>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-6 pt-4 border-t border-border-dark space-y-3">
+          <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Por Contratante</h4>
+          {breakdown.slice(0, 5).map((item, idx) => {
+            const itemVal = item[breakdownType];
+            const percentage = totalVal > 0 ? ((itemVal / totalVal) * 100).toFixed(1) + '%' : '0%';
+            return (
+              <div key={idx} className="flex flex-col gap-1">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-slate-400 truncate max-w-[150px]">{item.name}</span>
+                  <span className="text-white">{showValues ? formatCurrency(itemVal) : '******'}</span>
+                </div>
+                <div className="h-1.5 w-full bg-background-dark rounded-full overflow-hidden">
+                  <div 
+                    className={cn("h-full rounded-full", colorClass.replace('text-', 'bg-'))}
+                    style={{ width: percentage }}
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-right text-slate-500">{percentage}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AppLayout>
-      <div className="flex flex-col h-full">
-        <Header />
-        
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-background-dark">
-          {/* Filters Section */}
-          <section className="bg-surface-dark border border-border-dark rounded-2xl p-4 shadow-sm">
+      <Header 
+        title="Recebimentos" 
+        icon={Wallet}
+        actionLabel="Nova Viagem" 
+        onAction={() => router.push('/routes')}
+      />
+      
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-8">
+          
+          {/* Filter Section */}
+          <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2 text-primary">
-                <Filter className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">Filtros</span>
+              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {months.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {[2024, 2025, 2026].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              
-              <div className="flex flex-wrap gap-3 flex-1">
-                <select 
-                  className="bg-background-dark border border-border-dark text-white text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(parseInt(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  {months.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
 
+              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+                  <Receipt className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Pagamento:</span>
+                </div>
+                
                 <select 
-                  className="bg-background-dark border border-border-dark text-white text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
-                  value={selectedYear}
-                  onChange={(e) => {
-                    setSelectedYear(parseInt(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  {[2024, 2025, 2026].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-
-                <select 
-                  className="bg-background-dark border border-border-dark text-white text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
-                  value={vehicleFilter}
-                  onChange={(e) => {
-                    setVehicleFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="all">Todos Veículos</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.plate}</option>
-                  ))}
-                </select>
-
-                <select 
-                  className="bg-background-dark border border-border-dark text-white text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
-                  value={contractorFilter}
-                  onChange={(e) => {
-                    setContractorFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="all">Todos Contratantes</option>
-                  {contratantes.map(c => (
-                    <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
-                  ))}
-                </select>
-
-                <select 
-                  className="bg-background-dark border border-border-dark text-white text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
                   value={paymentFilter}
                   onChange={(e) => {
                     setPaymentFilter(e.target.value);
                     setCurrentPage(1);
                   }}
+                  className="bg-background-dark border border-border-dark text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                 >
-                  <option value="all">Status Pagamento</option>
-                  <option value="pago">Pago</option>
-                  <option value="pendente">Pendente</option>
+                  <option value="all">Todos</option>
+                  <option value="paid">Pagos</option>
+                  <option value="unpaid">Não Pagos</option>
                 </select>
+              </div>
 
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                  <input 
-                    type="text"
-                    placeholder="Buscar por ID, Contrato ou Romaneio..."
-                    className="w-full bg-background-dark border border-border-dark text-white text-xs rounded-lg pl-10 pr-4 py-2 outline-none focus:ring-1 focus:ring-primary transition-all"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="p-2.5 bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-xl transition-all shadow-sm ml-auto"
+                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+              >
+                {showValues ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <input 
+                  type="text"
+                  placeholder="Buscar por ID, Contratante ou Cidade..."
+                  className="w-full bg-surface-dark border border-border-dark text-white text-sm rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="relative">
+                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  value={vehicleFilter}
+                  onChange={(e) => setVehicleFilter(e.target.value)}
+                  className="w-full bg-surface-dark border border-border-dark text-white text-sm rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none"
+                >
+                  <option value="">Todos os Veículos</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id.toString()}>{v.plate} - {v.model}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <select 
+                  value={contratanteFilter}
+                  onChange={(e) => setContratanteFilter(e.target.value)}
+                  className="w-full bg-surface-dark border border-border-dark text-white text-sm rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none"
+                >
+                  <option value="">Todos os Contratos</option>
+                  {contratantes.map(c => (
+                    <option key={c.id} value={c.id.toString()}>{c.ContratanteNome}</option>
+                  ))}
+                </select>
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Stats Cards Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-surface-dark border border-border-dark rounded-2xl p-6 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <DollarSign className="w-16 h-16 text-primary" />
-              </div>
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-primary" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Valores Totais a Receber</span>
-                </div>
-                <div>
-                  <h3 className="text-3xl font-bold text-white tracking-tight">
-                    {loading ? <Loader2 className="w-8 h-8 animate-spin text-primary" /> : formatCurrency(stats.totalToReceive)}
-                  </h3>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">Total faturado no período selecionado</p>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-primary bg-primary/5 w-fit px-2 py-1 rounded-full">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>PREVISÃO DE RECEITA</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-surface-dark border border-border-dark rounded-2xl p-6 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <CheckCircle className="w-16 h-16 text-emerald-500" />
-              </div>
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Valores Recebidos</span>
-                </div>
-                <div>
-                  <h3 className="text-3xl font-bold text-white tracking-tight">
-                    {loading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-500" /> : formatCurrency(stats.totalReceived)}
-                  </h3>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">Total já liquidado no período</p>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/5 w-fit px-2 py-1 rounded-full">
-                  <ArrowUpRight className="w-3 h-3" />
-                  <span>{stats.totalToReceive > 0 ? ((stats.totalReceived / stats.totalToReceive) * 100).toFixed(1) : 0}% LIQUIDADO</span>
-                </div>
-              </div>
-            </motion.div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {loading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="bg-surface-dark p-6 rounded-xl border border-border-dark shadow-sm animate-pulse h-64"></div>
+              ))
+            ) : (
+              <>
+                {renderStatCard('Receita Total', stats?.totalRevenue || 0, 'text-primary', DollarSign, 'total', true)}
+                {renderStatCard('Valores Já Recebidos', stats?.received || 0, 'text-emerald-500', TrendingUp, 'received')}
+                {renderStatCard('Valores a Receber', stats?.toReceive || 0, 'text-rose-500', TrendingDown, 'toReceive')}
+              </>
+            )}
           </div>
 
           {/* Chart Section */}
-          <section className="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingUp className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Fluxo de Recebimentos</h4>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest">Valores recebidos por data de pagamento</p>
-                </div>
+          <div className="bg-surface-dark rounded-xl border border-border-dark p-6 md:p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-lg font-bold text-white">Datas de Pagamento</h3>
+                <p className="text-sm text-slate-500">Fluxo de recebimentos por data de pagamento - {months.find(m => m.id === selectedMonth)?.name} {selectedYear}</p>
               </div>
             </div>
             
-            <div className="h-[300px] w-full">
+            <div className="h-[350px] w-full">
               {loading ? (
-                <div className="h-full w-full flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="w-full h-full flex items-center justify-center bg-background-dark/20 rounded-lg">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stats.chartData}>
+                  <AreaChart data={stats?.chartData || []}>
                     <defs>
-                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#facc15" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#facc15" stopOpacity={0}/>
+                      <linearGradient id="colorReceived" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#393028" vertical={false} />
                     <XAxis 
-                      dataKey="formattedDate" 
-                      stroke="#64748b" 
+                      dataKey="date" 
+                      stroke="#5A5A40" 
                       fontSize={10} 
                       tickLine={false} 
                       axisLine={false}
+                      dy={10}
+                      tickFormatter={(val) => format(new Date(val), 'dd/MM')}
                     />
                     <YAxis 
-                      stroke="#64748b" 
+                      stroke="#5A5A40" 
                       fontSize={10} 
                       tickLine={false} 
                       axisLine={false}
-                      tickFormatter={(value) => `R$ ${value}`}
+                      tickFormatter={(value) => showValues ? `R$ ${value}` : '******'}
                     />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                      itemStyle={{ color: '#facc15', fontSize: '12px' }}
-                      labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '4px' }}
-                      formatter={(value: number) => [formatCurrency(value), 'Recebido']}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload as ChartDataPoint;
+                          return (
+                            <div className="bg-[#27211b] border border-[#393028] p-3 rounded-lg shadow-xl">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">
+                                {format(new Date(data.date), "dd 'de' MMMM", { locale: ptBR })}
+                              </p>
+                              <p className="text-sm font-bold text-emerald-500 mb-2">
+                                Total: {showValues ? formatCurrency(data.total) : '******'}
+                              </p>
+                              <div className="space-y-1">
+                                {data.contractors.map((c, idx) => (
+                                  <div key={idx} className="flex justify-between gap-4 text-[10px]">
+                                    <span className="text-slate-300">{c.name}</span>
+                                    <span className="text-white font-bold">{showValues ? formatCurrency(c.value) : '******'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
                     <Area 
                       type="monotone" 
-                      dataKey="value" 
-                      stroke="#facc15" 
-                      strokeWidth={2}
+                      dataKey="total" 
+                      name="Recebido"
+                      stroke="#10b981" 
+                      strokeWidth={3}
                       fillOpacity={1} 
-                      fill="url(#colorValue)" 
+                      fill="url(#colorReceived)" 
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
-          </section>
+          </div>
 
-          {/* Trip List Table */}
-          <section className="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-border-dark flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-bold text-white uppercase tracking-widest">Listagem de Viagens</h4>
-              </div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Mostrando {trips.length} registros
+          {/* Trips Table */}
+          <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-border-dark flex justify-between items-center bg-background-dark/30">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Navigation className="w-4 h-4 text-primary" />
+                Listagem de Viagens
+              </h3>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Frete no Período</p>
+                <p className="text-lg font-black text-primary">{showValues ? formatCurrency(totalFreight) : '******'}</p>
               </div>
             </div>
-
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-background-dark/50">
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ID / Romaneio</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Contrato</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Destino</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pagamento</th>
+              <table className="w-full text-left">
+                <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                  <tr>
+                    <th className="px-6 py-4">Data</th>
+                    <th className="px-6 py-4">Romaneio</th>
+                    <th className="px-6 py-4">Contratante</th>
+                    <th className="px-6 py-4">Rota</th>
+                    <th className="px-6 py-4">Veículo</th>
+                    <th className="px-6 py-4">Valor Frete</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Pagamento</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-dark">
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-                        <p className="text-xs text-slate-500 mt-2 uppercase tracking-widest">Carregando viagens...</p>
-                      </td>
-                    </tr>
-                  ) : trips.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center">
-                        <p className="text-xs text-slate-500 uppercase tracking-widest">Nenhuma viagem encontrada</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    trips.map((trip) => (
-                      <tr key={trip.id} className="hover:bg-white/5 transition-colors group">
-                        <td className="px-4 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-white">{format(parseISO(trip.scheduledAt), 'dd/MM/yyyy')}</span>
-                            <span className="text-[10px] text-slate-500">{format(parseISO(trip.scheduledAt), 'HH:mm')}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-primary">{trip.tripId}</span>
-                            <span className="text-[10px] text-slate-500">{trip.romaneio || '-'}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-xs text-slate-300">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-xs font-mono text-slate-300">{trip.vehicle?.plate || '-'}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-xs text-slate-300 truncate max-w-[150px] block">
-                            {trip.frete?.cidade || trip.route?.destination || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-xs font-bold text-white">{formatCurrency(trip.value)}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest",
-                            trip.status === 'DELIVERED' ? "bg-emerald-500/10 text-emerald-500" :
-                            trip.status === 'CANCELLED' ? "bg-rose-500/10 text-rose-500" :
-                            "bg-amber-500/10 text-amber-500"
-                          )}>
-                            {trip.status === 'DELIVERED' ? 'Entregue' : 
-                             trip.status === 'CANCELLED' ? 'Cancelado' : 
-                             trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 'Agendado'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5">
-                              {trip.paid === 'sim' ? (
-                                <CheckCircle className="w-3 h-3 text-emerald-500" />
-                              ) : (
-                                <Clock className="w-3 h-3 text-amber-500" />
-                              )}
-                              <span className={cn(
-                                "text-[10px] font-bold uppercase tracking-widest",
-                                trip.paid === 'sim' ? "text-emerald-500" : "text-amber-500"
-                              )}>
-                                {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
-                              </span>
-                            </div>
-                            {trip.paid === 'sim' && trip.paymentDate && (
-                              <span className="text-[9px] text-slate-500 ml-4">
-                                {format(parseISO(trip.paymentDate), 'dd/MM/yyyy')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
+                    [1, 2, 3, 4, 5].map(i => (
+                      <tr key={i} className="animate-pulse">
+                        <td colSpan={8} className="px-6 py-8 bg-white/5"></td>
                       </tr>
                     ))
-                  )}
+                  ) : filteredTrips.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center text-slate-500 text-sm italic">
+                        Nenhuma viagem encontrada para os filtros selecionados.
+                      </td>
+                    </tr>
+                  ) : filteredTrips.map((trip) => (
+                    <tr 
+                      key={trip.id} 
+                      className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      onClick={() => router.push(`/routes?edit=${trip.id}`)}
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-white">{format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-white">{trip.romaneio || '-'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-slate-300">{trip.contratante?.ContratanteNome || '-'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1 text-sm font-medium text-slate-400">
+                          <MapPin className="w-3 h-3 text-primary/60" />
+                          {trip.frete?.cidade || '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-primary/60" />
+                          <span className="text-sm font-medium text-slate-300">{trip.vehicle?.plate || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-white">{showValues ? formatCurrency(trip.value) : '******'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",
+                          trip.status === 'DELIVERED' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                          trip.status === 'IN_TRANSIT' ? "bg-primary/10 text-primary border-primary/20" :
+                          "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        )}>
+                          {trip.status === 'DELIVERED' ? 'Entregue' : 
+                           trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
+                           trip.status === 'SCHEDULED' ? 'Agendado' : trip.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit",
+                            trip.paid === 'sim' ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
+                          )}>
+                            {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
+                          </span>
+                          {trip.paymentDate && (
+                            <p className="text-[9px] text-slate-500">
+                              {format(new Date(trip.paymentDate), 'dd/MM/yyyy')}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
+                <tfoot className="bg-background-dark/30 border-t border-border-dark">
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-sm font-bold text-slate-400 text-right uppercase tracking-widest">Total da Página:</td>
+                    <td className="px-6 py-4 text-sm font-black text-primary">{showValues ? formatCurrency(totalFreight) : '******'}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
-
+            
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="p-4 border-t border-border-dark flex items-center justify-between">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Página {currentPage} de {totalPages}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    disabled={currentPage === 1 || loading}
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                    className="p-2 rounded-lg bg-background-dark border border-border-dark text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button 
-                    disabled={currentPage === totalPages || loading}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    className="p-2 rounded-lg bg-background-dark border border-border-dark text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+            <div className="p-6 border-t border-border-dark flex items-center justify-between bg-background-dark/20">
+              <p className="text-xs text-slate-500 font-medium">
+                Página <span className="text-white font-bold">{currentPage}</span> de <span className="text-white font-bold">{totalPages}</span>
+              </p>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-surface-dark border border-border-dark rounded-lg text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-surface-dark border border-border-dark rounded-lg text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-            )}
-          </section>
-        </main>
+            </div>
+          </div>
+
+        </div>
       </div>
     </AppLayout>
   );

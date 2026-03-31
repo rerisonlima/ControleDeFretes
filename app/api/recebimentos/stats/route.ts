@@ -1,94 +1,97 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
-import { Prisma } from '@prisma/client';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get('month');
   const yearParam = searchParams.get('year');
-  const vehicleId = searchParams.get('vehicleId');
-  const contractorId = searchParams.get('contractorId');
-  const search = searchParams.get('search');
+  
+  let month = monthParam ? parseInt(monthParam) : parseInt(format(new Date(), 'M'));
+  let year = yearParam ? parseInt(yearParam) : parseInt(format(new Date(), 'yyyy'));
 
-  const month = monthParam ? parseInt(monthParam) : parseInt(format(new Date(), 'M'));
-  const year = yearParam ? parseInt(yearParam) : parseInt(format(new Date(), 'yyyy'));
+  if (isNaN(month) || month < 1 || month > 12) month = parseInt(format(new Date(), 'M'));
+  if (isNaN(year) || year < 2000 || year > 2100) year = parseInt(format(new Date(), 'yyyy'));
 
   const startDate = startOfMonth(new Date(year, month - 1));
   const endDate = endOfMonth(startDate);
 
   try {
-    const where: Prisma.TripWhereInput = {
-      scheduledAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    };
-
-    if (vehicleId && vehicleId !== 'all') {
-      where.vehicleId = parseInt(vehicleId);
-    }
-
-    if (contractorId && contractorId !== 'all') {
-      where.contratanteId = parseInt(contractorId);
-    }
-
-    if (search) {
-      where.OR = [
-        { tripId: { contains: search, mode: 'insensitive' } },
-        { contract: { contains: search, mode: 'insensitive' } },
-        { romaneio: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
+    // Fetch all trips in the period
     const trips = await prisma.trip.findMany({
-      where,
-      select: {
-        value: true,
-        paid: true,
-        paymentDate: true,
-        scheduledAt: true,
+      where: {
+        scheduledAt: { gte: startDate, lte: endDate }
       },
-    });
-
-    const totalToReceive = trips.reduce((sum, trip) => sum + (trip.value || 0), 0);
-    const totalReceived = trips
-      .filter((trip) => trip.paid === 'sim')
-      .reduce((sum, trip) => sum + (trip.value || 0), 0);
-
-    // Chart data based on paymentDate
-    // Group by day for the selected month
-    const chartDataMap = new Map<string, number>();
-    
-    // Initialize all days of the month with 0
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      chartDataMap.set(format(current, 'yyyy-MM-dd'), 0);
-      current.setDate(current.getDate() + 1);
-    }
-
-    trips.forEach((trip) => {
-      if (trip.paid === 'sim' && trip.paymentDate) {
-        const dateKey = format(trip.paymentDate, 'yyyy-MM-dd');
-        if (chartDataMap.has(dateKey)) {
-          chartDataMap.set(dateKey, (chartDataMap.get(dateKey) || 0) + (trip.value || 0));
-        }
+      include: {
+        contratante: { select: { id: true, ContratanteNome: true } }
       }
     });
 
-    const chartData = Array.from(chartDataMap.entries())
-      .map(([date, value]) => ({
-        date,
-        formattedDate: format(parseISO(date), 'dd/MM'),
-        value,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const totalRevenue = trips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const received = trips
+      .filter(t => t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago')
+      .reduce((sum, t) => sum + (t.value || 0), 0);
+    const toReceive = totalRevenue - received;
+
+    // Group by contractor
+    const contractorStats = new Map<number, { name: string; total: number; received: number; toReceive: number; count: number }>();
+
+    trips.forEach(t => {
+      const cId = t.contratanteId || 0;
+      const cName = t.contratante?.ContratanteNome || 'Sem Contratante';
+      const isPaid = t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago';
+      
+      if (!contractorStats.has(cId)) {
+        contractorStats.set(cId, { name: cName, total: 0, received: 0, toReceive: 0, count: 0 });
+      }
+      
+      const stats = contractorStats.get(cId)!;
+      stats.total += (t.value || 0);
+      stats.count += 1;
+      if (isPaid) {
+        stats.received += (t.value || 0);
+      } else {
+        stats.toReceive += (t.value || 0);
+      }
+    });
+
+    const sortedContractors = Array.from(contractorStats.values()).sort((a, b) => b.total - a.total);
+
+    // Chart data: Grouped by paymentDate
+    // Only for paid trips
+    const paidTrips = trips.filter(t => (t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago') && t.paymentDate);
+    
+    // Group by date and contractor for tooltip
+    const chartDataMap = new Map<string, { date: string; total: number; contractors: { name: string; value: number }[] }>();
+
+    paidTrips.forEach(t => {
+      const dateStr = format(new Date(t.paymentDate!), 'yyyy-MM-dd');
+      if (!chartDataMap.has(dateStr)) {
+        chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
+      }
+      const data = chartDataMap.get(dateStr)!;
+      data.total += (t.value || 0);
+      
+      const cName = t.contratante?.ContratanteNome || 'Sem Contratante';
+      const existingC = data.contractors.find(c => c.name === cName);
+      if (existingC) {
+        existingC.value += (t.value || 0);
+      } else {
+        data.contractors.push({ name: cName, value: (t.value || 0) });
+      }
+    });
+
+    const chartData = Array.from(chartDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
     return NextResponse.json({
-      totalToReceive,
-      totalReceived,
-      chartData,
+      totalRevenue,
+      received,
+      toReceive,
+      totalTrips: trips.length,
+      contractors: sortedContractors,
+      chartData
     });
+
   } catch (error) {
     console.error('Recebimentos stats error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
