@@ -3,56 +3,46 @@
 import { cookies } from 'next/headers';
 import { encrypt } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export async function loginAction(formData: FormData) {
-  const username = formData.get('username') as string;
-  const password = formData.get('password') as string;
-
-  if (!username || !password) {
-    return { error: 'Usuário e senha são obrigatórios.' };
-  }
-
   try {
-    console.log(`Iniciando login para o usuário: ${username}`);
-    const start = Date.now();
+    const username = (formData.get('username') as string)?.trim();
+    const password = formData.get('password') as string;
+
+    if (!username || !password) {
+      return { error: 'Usuário e senha são obrigatórios.' };
+    }
+
+    // 1. Busca de usuário
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: { 
+        username: username.toLowerCase()
+      },
     });
-    console.log(`Busca de usuário levou ${Date.now() - start}ms`);
 
     if (!user) {
       return { error: 'Credenciais inválidas.' };
     }
 
-    const startBcrypt = Date.now();
+    // 2. Verificação de senha
     const isValid = await bcrypt.compare(password, user.password);
-    console.log(`Bcrypt compare levou ${Date.now() - startBcrypt}ms`);
 
     if (!isValid) {
       return { error: 'Credenciais inválidas.' };
     }
 
-    // Criar sessão (token JWT)
+    // 3. Criar sessão
     const sessionData = {
       id: user.id,
       username: user.username,
       role: user.role,
       name: user.name,
-      lastLogin: user.lastLogin,
     };
 
-    // Atualizar último acesso (não bloqueante para o login)
-    prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() }
-    }).catch(e => console.error('Erro ao atualizar lastLogin:', e));
-
-    const startEncrypt = Date.now();
     const encryptedSessionData = await encrypt(sessionData);
-    console.log(`Criptografia de sessão levou ${Date.now() - startEncrypt}ms`);
-
-    const cookieStore = await cookies();
+    
+    const cookieStore = cookies();
     cookieStore.set('session', encryptedSessionData, {
       httpOnly: true,
       secure: true,
@@ -61,16 +51,24 @@ export async function loginAction(formData: FormData) {
       path: '/',
     });
 
-    console.log(`Login concluído com sucesso em ${Date.now() - start}ms`);
-    return { success: true };
+    // 4. Atualização do lastLogin (não bloqueante para acelerar a resposta)
+    prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    }).catch(e => console.error('Erro ao atualizar lastLogin:', e));
+
+    return { success: true, role: user.role };
   } catch (error) {
-    console.error('Erro no login:', error);
-    return { error: 'Ocorreu um erro ao tentar fazer login.' };
+    console.error('--- SERVER: Erro crítico no login ---', error);
+    return { 
+      error: 'Erro no servidor ao processar login. Por favor, tente novamente.',
+      details: error instanceof Error ? error.message : String(error)
+    };
   }
 }
 
 export async function logoutAction() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   cookieStore.set('session', '', {
     httpOnly: true,
     secure: true,

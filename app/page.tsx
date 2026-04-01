@@ -265,18 +265,18 @@ export default function Dashboard() {
         onLogout={user?.role === 'OPERATOR' ? handleLogout : undefined}
       />
       
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* Filter Section */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-2 md:p-1.5 shadow-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-400 border-b border-border-dark sm:border-b-0 sm:border-r sm:pr-4">
                 <Calendar className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 p-1 sm:p-0">
                 <select 
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
@@ -580,13 +580,13 @@ export default function Dashboard() {
           </div>
 
           {/* Chart Section */}
-          <div className="bg-surface-dark rounded-xl border border-border-dark p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
+          <div className="bg-surface-dark rounded-xl border border-border-dark p-4 md:p-8 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div>
                 <h3 className="text-lg font-bold text-white">Desempenho Financeiro</h3>
-                <p className="text-sm text-slate-500">Comparativo de Receitas vs Despesas - {months.find(m => m.id === selectedMonth)?.name} {selectedYear}</p>
+                <p className="text-sm text-slate-500">Receitas vs Despesas - {months.find(m => m.id === selectedMonth)?.name} {selectedYear}</p>
               </div>
-              <div className="flex gap-6">
+              <div className="flex gap-4 sm:gap-6">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-primary"></div>
                   <span className="text-xs font-semibold text-slate-400">Receita</span>
@@ -663,7 +663,7 @@ export default function Dashboard() {
               <h3 className="font-bold text-white">Viagens do Período</h3>
               <button className="text-sm font-bold text-primary hover:underline">Ver Todas</button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left">
                 <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                   <tr>
@@ -726,6 +726,68 @@ export default function Dashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {loading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="p-4 animate-pulse space-y-3">
+                    <div className="h-4 w-3/4 bg-white/5 rounded"></div>
+                    <div className="h-3 w-1/2 bg-white/5 rounded"></div>
+                  </div>
+                ))
+              ) : trips.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-sm italic">
+                  Nenhuma viagem encontrada para este período.
+                </div>
+              ) : trips.map((trip, i) => (
+                <div key={i} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
+                        <Navigation className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">{trip.route}</p>
+                        <p className="text-[10px] text-slate-500">{trip.date}</p>
+                      </div>
+                    </div>
+                    <button className="text-slate-500 hover:text-primary transition-colors">
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Contrato</p>
+                      <p className="text-xs text-slate-300">{trip.contract || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Placa</p>
+                      <p className="text-xs text-slate-300">{trip.plate}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Valor</p>
+                      <p className="text-xs font-bold text-white">{showValues ? trip.value : '******'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Status</p>
+                      <span className={cn(
+                        "inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border",
+                        trip.status === 'DELIVERED' || trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                        trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
+                        "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                      )}>
+                        {trip.status === 'DELIVERED' ? 'Entregue' : 
+                         trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
+                         trip.status === 'PENDING' ? 'Pendente' : 
+                         trip.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

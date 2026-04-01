@@ -689,7 +689,7 @@ function RoutesPageContent() {
       setFretes(fretesData);
 
       // Handle direct edit from query param
-      if (editId && tripsResponse && tripsResponse.trips) {
+      if (editId && tripsResponse && tripsResponse.trips && user?.role !== 'OPERATOR') {
         const tripToEdit = tripsResponse.trips.find((t: Trip) => t.id.toString() === editId);
         if (tripToEdit) {
           handleOpenDrawer(tripToEdit);
@@ -909,7 +909,7 @@ function RoutesPageContent() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="p-8 pb-4">
+            <div className="p-4 md:p-8 md:pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-slate-500 mt-1">Gerencie os valores de frete, motoristas e ajudantes por viagem.</p>
@@ -1320,10 +1320,10 @@ function RoutesPageContent() {
     {/* Side Panel (Drawer) */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
-          <aside className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
+          <aside className="w-full sm:max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+            <div className="p-4 md:p-6 border-b border-border-dark flex items-center justify-between bg-primary/5">
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
+                <h3 className="text-lg md:text-xl font-bold text-white">{selectedTrip ? 'Editar Viagem' : 'Nova Viagem'}</h3>
                 {isOperator && (
                   <div className="mt-4 space-y-1">
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
@@ -1352,7 +1352,7 @@ function RoutesPageContent() {
               )}
             </div>
             
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 custom-scrollbar">
               {/* Main Info */}
               {renderFormContent()}
 
@@ -1365,7 +1365,7 @@ function RoutesPageContent() {
               )}
             </div>
 
-            <div className="p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">
+            <div className="p-4 md:p-8 border-t border-border-dark bg-background-dark/50 flex items-center gap-4">
               {!isOperator && (
                 <button 
                   onClick={() => setIsDrawerOpen(false)}

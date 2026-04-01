@@ -221,23 +221,23 @@ export default function PaymentsPage() {
         actionLabel="Finalizar e Gerar Relatório" 
       />
       
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <RefreshCw className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : (
-          <div className="max-w-6xl mx-auto space-y-8">
+          <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
           
           {/* Welcome & Filters */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
-            <div className="lg:col-span-1">
-              <h3 className="text-2xl font-black text-white tracking-tight">Pagamentos</h3>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Pagamentos</h3>
               <p className="text-slate-400 text-sm mt-1">Gestão de pagamentos e ganhos dos motoristas.</p>
             </div>
             
-            <div className="lg:col-span-2 flex flex-wrap gap-4 justify-end">
-              <div className="flex flex-col gap-1.5 min-w-[240px]">
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <div className="flex flex-col gap-1.5 flex-1 sm:min-w-[240px]">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Veículo</label>
                 <div className="relative">
                   <select 
@@ -254,11 +254,11 @@ export default function PaymentsPage() {
                 </div>
               </div>
               
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 flex-1 sm:w-auto">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Mês</label>
                 <div className="relative">
                   <input 
-                    className="bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary w-[240px] text-sm outline-none" 
+                    className="bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary w-full sm:w-[240px] text-sm outline-none" 
                     type="month" 
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
@@ -270,13 +270,13 @@ export default function PaymentsPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
             <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                 <Calculator className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total a Pagar</p>
-              <h4 className="text-3xl font-black text-white mt-2">
+              <h4 className="text-2xl md:text-3xl font-black text-white mt-2">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                   dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
                 )}
@@ -292,7 +292,7 @@ export default function PaymentsPage() {
                 <RefreshCw className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total de Viagens</p>
-              <h4 className="text-3xl font-black text-white mt-2">
+              <h4 className="text-2xl md:text-3xl font-black text-white mt-2">
                 {dailyDetails.reduce((acc, curr) => acc + curr.trips, 0)}
               </h4>
               <div className="flex items-center gap-1 mt-2 text-slate-500 text-[10px] font-bold uppercase tracking-tight">
@@ -306,19 +306,19 @@ export default function PaymentsPage() {
                 <Calendar className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Dias Ativos</p>
-              <h4 className="text-3xl font-black text-white mt-2">{dailyDetails.length}</h4>
+              <h4 className="text-2xl md:text-3xl font-black text-white mt-2">{dailyDetails.length}</h4>
               <div className="flex items-center gap-1 mt-2 text-primary text-[10px] font-bold uppercase tracking-tight">
                 <Info className="w-3 h-3" />
                 No período selecionado
               </div>
             </div>
 
-            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col">
+            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col sm:col-span-2 lg:col-span-1">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                 <Truck className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pagamento Motorista (Seg-Sex)</p>
-              <div className="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+              <div className="mt-2 flex-1 max-h-[150px] overflow-y-auto custom-scrollbar pr-2 space-y-2">
                 {weeklyPayments.length === 0 ? (
                   <p className="text-sm text-slate-400">Nenhuma viagem registrada</p>
                 ) : (
@@ -334,12 +334,12 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col">
+            <div className="bg-surface-dark border border-border-dark p-6 rounded-xl relative overflow-hidden group flex flex-col sm:col-span-2 lg:col-span-1">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                 <User className="w-16 h-16 text-primary" />
               </div>
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pagamento Ajudante (Seg-Sex)</p>
-              <div className="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+              <div className="mt-2 flex-1 max-h-[150px] overflow-y-auto custom-scrollbar pr-2 space-y-2">
                 {weeklyPayments.length === 0 ? (
                   <p className="text-sm text-slate-400">Nenhuma viagem registrada</p>
                 ) : (
@@ -363,12 +363,14 @@ export default function PaymentsPage() {
               <div className="flex gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-tight">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                  Cálculo Válido
+                  <span className="hidden sm:inline">Cálculo Válido</span>
+                  <span className="sm:hidden">Válido</span>
                 </span>
               </div>
             </div>
             
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="text-slate-500 text-[10px] uppercase tracking-widest font-bold bg-background-dark/50">
@@ -420,16 +422,80 @@ export default function PaymentsPage() {
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {dailyDetails.map((row, i) => (
+                <div key={i} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-white font-bold">{row.date}</p>
+                      <p className="text-xs text-slate-400 mt-1">{row.route}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-bold uppercase tracking-tighter border border-emerald-500/20">
+                      {row.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Viagens</p>
+                      <p className="text-sm text-slate-200 font-mono">{row.trips.toString().padStart(2, '0')}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Total Dia</p>
+                      <p className="text-sm text-white font-bold text-right">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.total)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border-dark/30">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">1ª Viagem</p>
+                      <p className="text-xs text-slate-400">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.unitValue)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">2ª Viagem</p>
+                      <p className="text-xs text-slate-400 text-right">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.extra)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {dailyDetails.length === 0 && (
+                <div className="p-8 text-center text-slate-500 italic text-sm">
+                  Nenhum detalhamento disponível para este período.
+                </div>
+              )}
+
+              {dailyDetails.length > 0 && (
+                <div className="p-4 bg-primary/5 border-t border-border-dark">
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subtotal Período:</p>
+                    <p className="text-lg font-black text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        dailyDetails.reduce((acc, curr) => acc + curr.total, 0)
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Footer Action */}
-          <div className="flex flex-col md:flex-row justify-end items-center gap-6 pt-4 pb-12">
+          <div className="flex flex-col md:flex-row justify-end items-center gap-4 md:gap-6 pt-4 pb-12">
             <p className="text-xs text-slate-500 max-w-md text-center md:text-right">
               Os valores acima contemplam taxas administrativas e bônus de performance calculados automaticamente pelo sistema.
             </p>
-            <button className="bg-primary hover:bg-primary/90 text-background-dark px-8 py-4 rounded-lg text-base font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-3">
+            <button className="w-full md:w-auto bg-primary hover:bg-primary/90 text-background-dark px-8 py-4 rounded-lg text-base font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-3">
               <FileText className="w-5 h-5" />
-              Finalizar e Enviar para Pagamento
+              Finalizar e Enviar
             </button>
           </div>
 

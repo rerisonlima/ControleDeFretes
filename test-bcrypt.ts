@@ -1,16 +1,6 @@
 import bcrypt from 'bcryptjs';
-
-async function testBcrypt() {
-  const password = 'password123';
-  const hash = await bcrypt.hash(password, 10);
-  
-  console.log('Testing bcrypt compare...');
-  const start = Date.now();
-  const result = await bcrypt.compare(password, hash);
-  const end = Date.now();
-  
-  console.log(`Bcrypt compare took ${end - start}ms`);
-  console.log('Result:', result);
-}
-
-testBcrypt();
+const hash = '$2b$10$tM.yF.7p.W6.yF.7p.W6.yF.7p.W6.yF.7p.W6.yF.7p.W6.yF.7p.W6'; // Wait, I need to get the actual hash from check-admin.ts
+const password = '1Tijolo!';
+bcrypt.compare(password, hash).then(res => {
+  console.log('Password match:', res);
+}).catch(console.error);

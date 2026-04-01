@@ -26,14 +26,33 @@ export default function LoginPage() {
     setError('');
     
     const formData = new FormData(e.currentTarget);
-    const result = await loginAction(formData);
-    
-    if (result?.error) {
-      setError(result.error);
+    try {
+      console.log('Iniciando loginAction...');
+      const result = await loginAction(formData);
+      console.log('Resultado do loginAction:', result);
+      
+      if (!result) {
+        console.error('ERRO: loginAction retornou undefined ou nulo');
+        setError('O servidor não respondeu corretamente. Por favor, tente novamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        console.log('Login bem-sucedido, redirecionando...');
+        if (result.role === 'OPERATOR') {
+          window.location.href = '/routes';
+        } else {
+          window.location.href = '/';
+        }
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Ocorreu um erro inesperado. Por favor, tente novamente.');
       setLoading(false);
-    } else {
-      router.push('/');
-      router.refresh();
     }
   };
 
@@ -45,6 +64,7 @@ export default function LoginPage() {
             src="https://picsum.photos/seed/logistics/1000/1000"
             alt="Logistics Background"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover opacity-40"
             referrerPolicy="no-referrer"
             priority
@@ -83,7 +103,16 @@ export default function LoginPage() {
               {error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <p className="text-sm font-medium">{error}</p>
+                  <div className="text-sm font-medium">
+                    <p>{error}</p>
+                    <button 
+                      type="button" 
+                      onClick={() => window.location.reload()}
+                      className="text-[10px] underline mt-1 block opacity-70 hover:opacity-100"
+                    >
+                      Recarregar página
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -94,6 +123,7 @@ export default function LoginPage() {
                   <input 
                     required
                     name="username"
+                    autoComplete="username"
                     className="w-full pl-12 pr-4 py-4 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
                     placeholder="Digite seu usuário" 
                     type="text"
@@ -108,6 +138,7 @@ export default function LoginPage() {
                   <input 
                     required
                     name="password"
+                    autoComplete="current-password"
                     className="w-full pl-12 pr-12 py-4 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
                     placeholder="••••••••" 
                     type={showPassword ? "text" : "password"}
@@ -128,9 +159,28 @@ export default function LoginPage() {
                     className="rounded border-border-dark text-primary focus:ring-primary bg-background-dark w-4 h-4" 
                     type="checkbox"
                   />
-                  <span className="text-slate-500 text-xs font-bold uppercase tracking-tight group-hover:text-primary transition-colors">Lembrar de mim</span>
+                  <span className="text-slate-500 text-xs font-bold uppercase tracking-tight group-hover:text-primary transition-colors">Lembrar</span>
                 </label>
-                <a className="text-primary text-xs font-bold uppercase tracking-tight hover:underline" href="#">Esqueci minha senha</a>
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    const btn = document.getElementById('conn-test');
+                    if (btn) btn.innerText = 'Testando...';
+                    try {
+                      const res = await fetch('/api/health');
+                      if (res.ok) alert('Conexão com o servidor: OK');
+                      else alert('Erro na conexão com o servidor');
+                    } catch (e) {
+                      alert('Falha crítica de rede');
+                    } finally {
+                      if (btn) btn.innerText = 'Verificar Conexão';
+                    }
+                  }}
+                  id="conn-test"
+                  className="text-primary text-[10px] font-bold uppercase tracking-tight hover:underline"
+                >
+                  Verificar Conexão
+                </button>
               </div>
 
               <button 

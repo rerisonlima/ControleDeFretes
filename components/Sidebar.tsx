@@ -17,7 +17,8 @@ import {
   Table,
   FileText,
   Wallet,
-  User as UserIcon
+  User as UserIcon,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -91,16 +92,22 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             onClick={onClose}
             className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 lg:hidden"
           >
-            <LogOut className="w-4 h-4 rotate-180" />
+            <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
         {menuItems
-          .filter(item => user?.role !== 'OPERATOR' || item.href === '/routes' || item.href === '/expenses')
+          .filter(item => {
+            if (!user) return false; // Não mostra nada enquanto carrega a sessão
+            if (user.role === 'ADMIN') return true; // Admin vê tudo
+            // Operador vê apenas Viagens e Despesas (Dashboard é removido pois redireciona para Viagens)
+            return item.href === '/routes' || item.href === '/expenses';
+          })
           .map((item) => {
           const isActive = pathname === item.href;
+          const label = (user?.role === 'OPERATOR' && item.href === '/routes') ? 'Nova Viagem' : item.label;
           return (
             <Link
               key={item.href}
@@ -114,7 +121,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               )}
             >
               <item.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-slate-400 group-hover:text-white")} />
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-medium">{label}</span>
             </Link>
           );
         })}

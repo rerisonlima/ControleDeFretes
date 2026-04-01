@@ -597,10 +597,10 @@ export default function ExpensesPage() {
       {/* Drawer Overlay */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
-          <div className="w-full max-w-[400px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-8 border-b border-border-dark flex items-center justify-between">
+          <div className="w-full sm:max-w-[400px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-4 md:p-8 border-b border-border-dark flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">{selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}</h3>
+                <h3 className="text-lg md:text-xl font-bold text-white">{selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}</h3>
                 <p className="text-sm text-slate-500 mt-1">{selectedExpense ? 'Atualize os dados da despesa' : 'Registre uma nova saída financeira'}</p>
                 {user?.role === 'OPERATOR' && showSuccess && (
                   <div className="mt-4 bg-emerald-500/20 border border-emerald-500/30 rounded px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -620,7 +620,7 @@ export default function ExpensesPage() {
               )}
             </div>
             
-            <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-auto p-4 md:p-8 space-y-4 md:space-y-6 custom-scrollbar">
               {isOperator && (
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
@@ -748,7 +748,7 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
+            <div className="p-4 md:p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
               {user?.role !== 'OPERATOR' && (
                 <button 
                   onClick={() => setIsDrawerOpen(false)}

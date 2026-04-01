@@ -133,7 +133,7 @@ export default function UsersPage() {
         onAction={handleOpenCreate}
       />
       
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         <div className="max-w-5xl mx-auto space-y-6">
           
           {/* Search Bar */}
@@ -159,26 +159,26 @@ export default function UsersPage() {
                 Nenhum usuário encontrado.
               </div>
             ) : filteredUsers.map((user) => (
-              <div key={user.id} className="bg-surface-dark border border-border-dark rounded-xl p-5 flex items-center justify-between hover:border-primary/50 transition-all group">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-primary">
-                    <Shield className="w-6 h-6" />
+              <div key={user.id} className="bg-surface-dark border border-border-dark rounded-xl p-4 md:p-5 flex items-center justify-between hover:border-primary/50 transition-all group">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-primary shrink-0">
+                    <Shield className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
-                  <div>
-                    <h4 className="text-white font-bold">{user.username}</h4>
+                  <div className="min-w-0">
+                    <h4 className="text-white font-bold truncate">{user.username}</h4>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
                         user.role === 'ADMIN' ? "bg-primary/10 text-primary" : "bg-slate-500/10 text-slate-400"
                       )}>
-                        {user.role === 'ADMIN' ? 'Administrador' : 'Operador'}
+                        {user.role === 'ADMIN' ? 'Admin' : 'Operador'}
                       </span>
-                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">ID: #{user.id}</span>
+                      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">#{user.id}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 md:gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                   <button 
                     onClick={() => handleOpenEdit(user)}
                     className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"

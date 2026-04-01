@@ -120,11 +120,11 @@ export default function ContractsPage() {
         onAction={handleOpenCreateModal}
       />
       
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-6">
           
           {/* Search Bar and Filters */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
               <input 
@@ -138,7 +138,7 @@ export default function ContractsPage() {
             <button 
               onClick={() => setShowInactive(!showInactive)}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                "flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all w-full sm:w-auto",
                 showInactive 
                   ? "bg-primary text-background-dark" 
                   : "bg-surface-dark border border-border-dark text-slate-300 hover:border-primary"
@@ -151,7 +151,7 @@ export default function ContractsPage() {
 
           {/* Contracts Table */}
           <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                   <tr>
@@ -165,12 +165,12 @@ export default function ContractsPage() {
                   {loading ? (
                     [1, 2, 3].map(i => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={3} className="px-6 py-8 bg-white/5"></td>
+                        <td colSpan={4} className="px-6 py-8 bg-white/5"></td>
                       </tr>
                     ))
                   ) : filteredContracts.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-6 py-12 text-center text-slate-500 text-sm italic">
+                      <td colSpan={4} className="px-6 py-12 text-center text-slate-500 text-sm italic">
                         Nenhum contrato encontrado.
                       </td>
                     </tr>
@@ -201,7 +201,7 @@ export default function ContractsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => handleOpenEditModal(contract)}
                             className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
@@ -227,6 +227,68 @@ export default function ContractsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {loading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="p-4 animate-pulse space-y-3">
+                    <div className="h-4 w-3/4 bg-white/5 rounded"></div>
+                    <div className="h-3 w-1/2 bg-white/5 rounded"></div>
+                  </div>
+                ))
+              ) : filteredContracts.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-sm italic">
+                  Nenhum contrato encontrado.
+                </div>
+              ) : filteredContracts.map((contract) => (
+                <div key={contract.id} className={cn(
+                  "p-4 space-y-3",
+                  !contract.active && "opacity-60"
+                )}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">{contract.ContratanteNome}</p>
+                        <p className="text-[10px] text-slate-500 font-mono">#{contract.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleOpenEditModal(contract)}
+                        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleToggleStatus(contract.id, contract.active)}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          contract.active 
+                            ? "text-slate-400 hover:text-rose-500 hover:bg-rose-500/10" 
+                            : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10"
+                        )}
+                      >
+                        <Power className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-white/5">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase",
+                      contract.active 
+                        ? "bg-emerald-500/10 text-emerald-500" 
+                        : "bg-rose-500/10 text-rose-500"
+                    )}>
+                      {contract.active ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

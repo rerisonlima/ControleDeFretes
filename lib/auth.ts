@@ -20,7 +20,7 @@ export async function decrypt(input: string): Promise<Record<string, unknown>> {
 }
 
 export async function getSession() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const session = cookieStore.get('session')?.value;
   if (!session) return null;
   try {

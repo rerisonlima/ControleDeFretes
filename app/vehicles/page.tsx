@@ -167,26 +167,26 @@ export default function VehiclesPage() {
         onAction={() => handleOpenDrawer()}
       />
       
-      <div className="flex-1 overflow-auto p-8 custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
-          <div className="flex items-end justify-between mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
             <div>
-              <h2 className="text-3xl font-black tracking-tight mb-2 text-white uppercase">Veículos</h2>
-              <p className="text-slate-500">Controle de frotas, categorias e status operacional.</p>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2 text-white uppercase">Veículos</h2>
+              <p className="text-sm text-slate-500">Controle de frotas, categorias e status operacional.</p>
             </div>
-            <div className="flex gap-4">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input 
                   type="text"
                   placeholder="Buscar placa, marca..."
-                  className="pl-10 pr-4 py-2 bg-surface-dark border border-border-dark rounded-lg text-sm text-white focus:ring-2 focus:ring-primary outline-none w-64"
+                  className="pl-10 pr-4 py-2 bg-surface-dark border border-border-dark rounded-lg text-sm text-white focus:ring-2 focus:ring-primary outline-none w-full sm:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300">
+              <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300">
                 <Download className="w-4 h-4" />
                 Exportar
               </button>
@@ -195,72 +195,122 @@ export default function VehiclesPage() {
 
           {/* Table Card */}
           <div className="bg-surface-dark rounded-xl border border-border-dark overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-background-dark/50">
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Placa</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Veículo</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Categoria</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-dark">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-sm text-slate-500">Carregando frota...</p>
-                      </div>
-                    </td>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-background-dark/50">
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Placa</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Veículo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Categoria</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
                   </tr>
-                ) : filteredVehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                      Nenhum veículo encontrado.
-                    </td>
-                  </tr>
-                ) : filteredVehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20 uppercase tracking-wider">
+                </thead>
+                <tbody className="divide-y divide-border-dark">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                          <p className="text-sm text-slate-500">Carregando frota...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredVehicles.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
+                        Nenhum veículo encontrado.
+                      </td>
+                    </tr>
+                  ) : filteredVehicles.map((v) => (
+                    <tr key={v.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20 uppercase tracking-wider">
+                          {v.plate}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-white">{v.brand} {v.model}</span>
+                          <span className="text-[10px] text-slate-500 uppercase">{v.type} • {v.year}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-400">
+                          {v.categoria?.CategoriaNome || '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
+                          v.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
+                          v.status === 'MAINTENANCE' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                          "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                        )}>
+                          {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => handleOpenDrawer(v)}
+                          className="text-slate-500 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {isLoading ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Carregando frota...</p>
+                </div>
+              ) : filteredVehicles.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-sm italic">
+                  Nenhum veículo encontrado.
+                </div>
+              ) : filteredVehicles.map((v) => (
+                <div key={v.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase tracking-wider w-fit">
                         {v.plate}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold text-white">{v.brand} {v.model}</span>
                         <span className="text-[10px] text-slate-500 uppercase">{v.type} • {v.year}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">
-                        {v.categoria?.CategoriaNome || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                        v.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
-                        v.status === 'MAINTENANCE' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                        "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                      )}>
-                        {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
                       <button 
                         onClick={() => handleOpenDrawer(v)}
                         className="text-slate-500 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase border",
+                        v.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
+                        v.status === 'MAINTENANCE' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                        "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                      )}>
+                        {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : 'Inativo'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-white/5">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Categoria</p>
+                    <p className="text-xs text-slate-300">{v.categoria?.CategoriaNome || '-'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
             
             <div className="px-6 py-4 bg-background-dark/30 border-t border-border-dark flex items-center justify-between">
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mostrando {filteredVehicles.length} veículos</span>
@@ -280,10 +330,10 @@ export default function VehiclesPage() {
       {/* Drawer Overlay */}
       {isDrawerOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
-          <div className="w-full max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-8 border-b border-border-dark flex items-center justify-between">
+          <div className="w-full sm:max-w-[450px] bg-background-dark h-full shadow-2xl border-l border-border-dark flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-4 md:p-8 border-b border-border-dark flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white uppercase tracking-tight">
+                <h3 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight">
                   {formData.id ? 'Editar Veículo' : 'Novo Veículo'}
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">
@@ -298,7 +348,7 @@ export default function VehiclesPage() {
               </button>
             </div>
             
-            <div className="flex-1 overflow-auto p-8 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-auto p-4 md:p-8 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</label>
@@ -425,7 +475,7 @@ export default function VehiclesPage() {
               </div>
             </div>
 
-            <div className="p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
+            <div className="p-4 md:p-8 bg-background-dark/50 border-t border-border-dark flex gap-4">
               <button 
                 onClick={() => setIsDrawerOpen(false)}
                 className="flex-1 px-4 py-3 border border-border-dark rounded-lg text-sm font-bold text-slate-400 hover:bg-surface-dark hover:text-white transition-colors"

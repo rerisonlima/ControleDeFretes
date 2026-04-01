@@ -363,15 +363,15 @@ export default function RecebimentosPage() {
           </div>
 
           {/* Chart Section */}
-          <div className="bg-surface-dark rounded-xl border border-border-dark p-6 md:p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
+          <div className="bg-surface-dark rounded-xl border border-border-dark p-4 md:p-8 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
               <div>
                 <h3 className="text-lg font-bold text-white">Datas de Pagamento</h3>
                 <p className="text-sm text-slate-500">Fluxo de recebimentos por data de pagamento - {months.find(m => m.id === selectedMonth)?.name} {selectedYear}</p>
               </div>
             </div>
             
-            <div className="h-[350px] w-full">
+            <div className="h-[250px] md:h-[350px] w-full">
               {loading ? (
                 <div className="w-full h-full flex items-center justify-center bg-background-dark/20 rounded-lg">
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -445,17 +445,19 @@ export default function RecebimentosPage() {
 
           {/* Trips Table */}
           <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-border-dark flex justify-between items-center bg-background-dark/30">
+            <div className="p-4 md:p-6 border-b border-border-dark flex flex-col sm:flex-row justify-between items-start sm:items-center bg-background-dark/30 gap-4">
               <h3 className="font-bold text-white flex items-center gap-2">
                 <Navigation className="w-4 h-4 text-primary" />
                 Listagem de Viagens
               </h3>
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Frete no Período</p>
                 <p className="text-lg font-black text-primary">{showValues ? formatCurrency(totalFreight) : '******'}</p>
               </div>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                   <tr>
@@ -551,9 +553,80 @@ export default function RecebimentosPage() {
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden divide-y divide-border-dark">
+              {loading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="p-8 flex justify-center">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  </div>
+                ))
+              ) : filteredTrips.length === 0 ? (
+                <div className="p-12 text-center text-slate-500 text-sm italic">
+                  Nenhuma viagem encontrada.
+                </div>
+              ) : filteredTrips.map((trip) => (
+                <div 
+                  key={trip.id} 
+                  className="p-4 space-y-3"
+                  onClick={() => router.push(`/routes?edit=${trip.id}`)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                        {format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}
+                      </p>
+                      <p className="text-sm font-bold text-white mt-1">
+                        {trip.contratante?.ContratanteNome || '-'}
+                      </p>
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
+                      trip.paid === 'sim' ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
+                    )}>
+                      {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rota</p>
+                      <div className="flex items-center gap-1 text-xs text-slate-300 mt-1">
+                        <MapPin className="w-3 h-3 text-primary/60" />
+                        {trip.frete?.cidade || '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Valor Frete</p>
+                      <p className="text-sm font-bold text-white text-right mt-1">
+                        {showValues ? formatCurrency(trip.value) : '******'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-border-dark/30">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-3 h-3 text-primary/60" />
+                      <span className="text-xs text-slate-400">{trip.vehicle?.plate || '-'}</span>
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
+                      trip.status === 'DELIVERED' ? "text-emerald-500" :
+                      trip.status === 'IN_TRANSIT' ? "text-primary" :
+                      "text-blue-500"
+                    )}>
+                      {trip.status === 'DELIVERED' ? 'Entregue' : 
+                       trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
+                       trip.status === 'SCHEDULED' ? 'Agendado' : trip.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
             
             {/* Pagination */}
-            <div className="p-6 border-t border-border-dark flex items-center justify-between bg-background-dark/20">
+            <div className="p-4 md:p-6 border-t border-border-dark flex items-center justify-between bg-background-dark/20">
               <p className="text-xs text-slate-500 font-medium">
                 Página <span className="text-white font-bold">{currentPage}</span> de <span className="text-white font-bold">{totalPages}</span>
               </p>
