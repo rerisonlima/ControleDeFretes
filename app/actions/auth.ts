@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { encrypt } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export async function loginAction(formData: FormData) {
   try {
