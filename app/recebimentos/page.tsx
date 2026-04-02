@@ -580,7 +580,7 @@ export default function RecebimentosPage() {
                         </p>
                         {trip.romaneio && (
                           <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-widest">
-                            ROM: {trip.romaneio}
+                            Romaneio: {trip.romaneio}
                           </span>
                         )}
                       </div>

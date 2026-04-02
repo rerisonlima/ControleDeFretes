@@ -745,7 +745,7 @@ function RoutesPageContent() {
           handleOpenDrawer(null, false);
           // Focus on the first field (Vehicle is now the entry point)
           setTimeout(() => {
-            vehicleIdRef.current?.focus();
+            vehicleIdRef.current?.focus({ preventScroll: true });
           }, 100);
         } else {
           setIsDrawerOpen(false);
@@ -1207,7 +1207,7 @@ function RoutesPageContent() {
                       <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
                       {trip.romaneio && (
                         <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-                          ROM: {trip.romaneio}
+                          Romaneio: {trip.romaneio}
                         </span>
                       )}
                     </div>
