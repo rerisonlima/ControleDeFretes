@@ -227,7 +227,7 @@ function RoutesPageContent() {
     if (shouldOpen) {
       setIsDrawerOpen(true);
     }
-  }, [user?.role]);
+  }, []);
 
   const scheduledAtRef = React.useRef<HTMLInputElement>(null);
   const vehicleIdRef = React.useRef<HTMLSelectElement>(null);
@@ -700,7 +700,7 @@ function RoutesPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, paymentFilter, currentPage, editId, handleOpenDrawer]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage, editId, handleOpenDrawer, user?.role]);
 
   React.useEffect(() => {
     fetchData();
