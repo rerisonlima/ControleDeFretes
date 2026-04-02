@@ -43,20 +43,35 @@ export async function PUT(
 ) {
   try {
     const id = parseInt(params.id);
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID de viagem inválido' }, { status: 400 });
+    }
+
     const body = await request.json();
     
+    // Validate required fields
+    const vehicleId = parseInt(body.vehicleId);
+    const driverId = parseInt(body.driverId);
+    const value = parseFloat(body.value);
+    const scheduledAt = body.scheduledAt ? new Date(`${body.scheduledAt}T12:00:00Z`) : new Date();
+
+    if (isNaN(vehicleId)) return NextResponse.json({ error: 'Veículo é obrigatório' }, { status: 400 });
+    if (isNaN(driverId)) return NextResponse.json({ error: 'Motorista é obrigatório' }, { status: 400 });
+    if (isNaN(value)) return NextResponse.json({ error: 'Valor do frete inválido' }, { status: 400 });
+    if (isNaN(scheduledAt.getTime())) return NextResponse.json({ error: 'Data da viagem inválida' }, { status: 400 });
+
     const trip = await prisma.trip.update({
       where: { id },
       data: {
         tripId: body.tripId,
-        routeId: body.routeId ? parseInt(body.routeId) : null,
-        freteId: body.freteId ? parseInt(body.freteId) : null,
-        contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,
-        vehicleId: parseInt(body.vehicleId),
-        driverId: parseInt(body.driverId),
-        helperId: body.helperId ? parseInt(body.helperId) : null,
-        scheduledAt: new Date(`${body.scheduledAt}T12:00:00Z`),
-        value: parseFloat(body.value),
+        routeId: (body.routeId && body.routeId !== '') ? parseInt(body.routeId) : null,
+        freteId: (body.freteId && body.freteId !== '') ? parseInt(body.freteId) : null,
+        contratanteId: (body.contratanteId && body.contratanteId !== '') ? parseInt(body.contratanteId) : null,
+        vehicleId,
+        driverId,
+        helperId: (body.helperId && body.helperId !== '') ? parseInt(body.helperId) : null,
+        scheduledAt,
+        value,
         valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
         valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
         valor1aViagemAjudante: (body.valor1aViagemAjudante !== undefined && body.valor1aViagemAjudante !== '' && body.valor1aViagemAjudante !== null) ? parseFloat(body.valor1aViagemAjudante) : null,
@@ -64,8 +79,9 @@ export async function PUT(
         status: body.status,
         paid: body.paid,
         contract: body.contract,
+        odometer: (body.odometer !== undefined && body.odometer !== '' && body.odometer !== null) ? parseFloat(body.odometer.toString()) : null,
         romaneio: body.romaneio,
-        paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
+        paymentDate: (body.paymentDate && body.paymentDate !== '') ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
       include: {
         route: true,

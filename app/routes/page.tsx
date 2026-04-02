@@ -68,7 +68,7 @@ interface Trip {
   status: string;
   paid: string;
   contract?: string;
-  odometer?: number;
+  odometer?: number | string;
   romaneio?: string;
   paymentDate?: string;
   vehicle?: { plate: string };
@@ -152,6 +152,7 @@ function RoutesPageContent() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalRecords, setTotalRecords] = React.useState(0);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -465,10 +466,15 @@ function RoutesPageContent() {
             className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Número do Romaneio"
             type="text"
+            inputMode="numeric"
             value={formData.romaneio}
-            onChange={(e) => setFormData({...formData, romaneio: e.target.value})}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              setFormData({...formData, romaneio: value});
+            }}
             onKeyDown={(e) => e.key === 'Enter' && handleNextField(driverIdRef)}
             disabled={!formData.vehicleId}
+            required
           />
         </div>
       </div>
@@ -707,6 +713,12 @@ function RoutesPageContent() {
   }, [fetchData]);
 
   const handleSave = async () => {
+    if (!formData.romaneio || formData.romaneio.trim() === '') {
+      alert('O campo Romaneio é obrigatório e deve conter apenas números.');
+      romaneioRef.current?.focus();
+      return;
+    }
+
     setIsSaving(true);
     try {
       const url = selectedTrip ? `/api/trips/${selectedTrip.id}` : '/api/trips';
@@ -721,6 +733,10 @@ function RoutesPageContent() {
       if (response.ok) {
         if (user?.role === 'OPERATOR') {
           setShowSuccess(true);
+          // Scroll to top to see success message
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
           setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
           handleOpenDrawer(null, false);
@@ -865,7 +881,10 @@ function RoutesPageContent() {
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {user?.role === 'OPERATOR' ? (
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar"
+          >
             <div className="max-w-2xl mx-auto">
               <div className="mb-8 flex flex-col items-center gap-2">
                 <div className="flex flex-wrap justify-center gap-4">

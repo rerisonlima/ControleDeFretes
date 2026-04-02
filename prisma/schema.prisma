@@ -62,7 +62,7 @@ model Vehicle {
   capacity        Float
   status          String   @default("ACTIVE")
   lastMaintenance DateTime?
-  currentOdometer Int?
+  currentOdometer Float?
   categoriaId     Int?
   categoria       CategoriaVeiculos? @relation(fields: [categoriaId], references: [id])
   trips           Trip[]
@@ -116,7 +116,7 @@ model Trip {
   helper      Employee? @relation("HelperTrips", fields: [helperId], references: [id])
   scheduledAt DateTime
   value       Float
-  odometer    Int?
+  odometer    Float?
   valor1aViagemMotorista Float?
   valor2aViagemMotorista Float?
   valor1aViagemAjudante  Float?
@@ -135,8 +135,8 @@ model Maintenance {
   vehicleId       Int
   vehicle         Vehicle   @relation(fields: [vehicleId], references: [id])
   type            String
-  odometer        Int       // Intervalo de manutenção (ex: 10000km)
-  currentOdometer Int?      // Odometer no momento da última manutenção/registro
+  odometer        Float?    // Intervalo de manutenção (ex: 10000km)
+  currentOdometer Float?   // Odometer no momento da última manutenção/registro
   executionDate   DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

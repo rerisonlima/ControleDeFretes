@@ -6,6 +6,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    // Fix corrupted FLOAT8 data if it exists
+    try {
+      await prisma.$executeRawUnsafe('UPDATE "Trip" SET odometer = 0 WHERE odometer < 1 AND odometer > 0');
+    } catch (e) {
+      console.error('Data fix failed:', e);
+    }
+
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
@@ -73,17 +80,29 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     console.log('Creating trip with body:', body);
+
+    // Validate required fields
+    const vehicleId = parseInt(body.vehicleId);
+    const driverId = parseInt(body.driverId);
+    const value = parseFloat(body.value);
+    const scheduledAt = body.scheduledAt ? new Date(`${body.scheduledAt}T12:00:00Z`) : new Date();
+
+    if (isNaN(vehicleId)) return NextResponse.json({ error: 'Veículo é obrigatório' }, { status: 400 });
+    if (isNaN(driverId)) return NextResponse.json({ error: 'Motorista é obrigatório' }, { status: 400 });
+    if (isNaN(value)) return NextResponse.json({ error: 'Valor do frete inválido' }, { status: 400 });
+    if (isNaN(scheduledAt.getTime())) return NextResponse.json({ error: 'Data da viagem inválida' }, { status: 400 });
+
     const trip = await prisma.trip.create({
       data: {
         tripId: body.tripId || `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
-        routeId: body.routeId ? parseInt(body.routeId) : null,
-        freteId: body.freteId ? parseInt(body.freteId) : null,
-        contratanteId: body.contratanteId ? parseInt(body.contratanteId) : null,
-        vehicleId: parseInt(body.vehicleId),
-        driverId: parseInt(body.driverId),
-        helperId: body.helperId ? parseInt(body.helperId) : null,
-        scheduledAt: new Date(`${body.scheduledAt}T12:00:00Z`),
-        value: parseFloat(body.value),
+        routeId: (body.routeId && body.routeId !== '') ? parseInt(body.routeId) : null,
+        freteId: (body.freteId && body.freteId !== '') ? parseInt(body.freteId) : null,
+        contratanteId: (body.contratanteId && body.contratanteId !== '') ? parseInt(body.contratanteId) : null,
+        vehicleId,
+        driverId,
+        helperId: (body.helperId && body.helperId !== '') ? parseInt(body.helperId) : null,
+        scheduledAt,
+        value,
         valor1aViagemMotorista: (body.valor1aViagemMotorista !== undefined && body.valor1aViagemMotorista !== '' && body.valor1aViagemMotorista !== null) ? parseFloat(body.valor1aViagemMotorista) : null,
         valor2aViagemMotorista: (body.valor2aViagemMotorista !== undefined && body.valor2aViagemMotorista !== '' && body.valor2aViagemMotorista !== null) ? parseFloat(body.valor2aViagemMotorista) : null,
         valor1aViagemAjudante: (body.valor1aViagemAjudante !== undefined && body.valor1aViagemAjudante !== '' && body.valor1aViagemAjudante !== null) ? parseFloat(body.valor1aViagemAjudante) : null,
@@ -91,8 +110,9 @@ export async function POST(req: Request) {
         status: body.status || 'SCHEDULED',
         paid: body.paid || 'não',
         contract: body.contract || null,
+        odometer: (body.odometer !== undefined && body.odometer !== '' && body.odometer !== null) ? parseFloat(body.odometer.toString()) : null,
         romaneio: body.romaneio || null,
-        paymentDate: body.paymentDate ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
+        paymentDate: (body.paymentDate && body.paymentDate !== '') ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
       },
       include: {
         route: true,

@@ -37,6 +37,13 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Fix corrupted FLOAT8 data if it exists
+    try {
+      await prisma.$executeRawUnsafe('UPDATE "Trip" SET odometer = 0 WHERE odometer < 1 AND odometer > 0');
+    } catch (e) {
+      console.error('Data fix failed:', e);
+    }
+
     const fullMonthStart = startOfMonth(new Date(year, month - 1));
     const fullMonthEnd = endOfMonth(fullMonthStart);
     const prevStartDate = startOfMonth(new Date(year, month - 2));
@@ -162,11 +169,14 @@ export async function GET(request: Request) {
     const calculateKmInMemory = (trips: any[]) => {
       const vehicleKm = new Map<number, { min: number, max: number }>();
       trips.forEach(t => {
-        if (t.odometer === null) return;
-        const current = vehicleKm.get(t.vehicleId) || { min: t.odometer, max: t.odometer };
+        if (t.odometer === null || t.odometer === undefined) return;
+        const odo = typeof t.odometer === 'string' ? parseInt(t.odometer) : t.odometer;
+        if (isNaN(odo)) return;
+        
+        const current = vehicleKm.get(t.vehicleId) || { min: odo, max: odo };
         vehicleKm.set(t.vehicleId, {
-          min: Math.min(current.min, t.odometer),
-          max: Math.max(current.max, t.odometer)
+          min: Math.min(current.min, odo),
+          max: Math.max(current.max, odo)
         });
       });
       
@@ -185,13 +195,14 @@ export async function GET(request: Request) {
     maintenanceData.forEach((m: any) => {
       const vehicleKey = `${m.vehicle.model} (${m.vehicle.plate})`;
       if (!maintenanceByVehicle.has(vehicleKey)) {
-        const latestTripOdo = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || 0;
+        const latestTripOdoStr = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || '0';
+        const latestTripOdo = parseInt(latestTripOdoStr.toString());
         maintenanceByVehicle.set(vehicleKey, { name: vehicleKey, latestTripOdo, maintenances: [] });
       }
       
       const vehicleData = maintenanceByVehicle.get(vehicleKey)!;
-      const registeredOdo = m.currentOdometer || 0;
-      const interval = m.odometer;
+      const registeredOdo = parseInt((m.currentOdometer || '0').toString());
+      const interval = parseInt((m.odometer || '0').toString());
       const diff = vehicleData.latestTripOdo - registeredOdo;
       const remaining = interval - diff;
       const isOverdue = diff > interval;
