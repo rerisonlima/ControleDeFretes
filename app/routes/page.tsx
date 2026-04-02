@@ -892,7 +892,7 @@ function RoutesPageContent() {
               <div className="mb-8 flex flex-col items-center gap-2">
                 <div className="flex flex-wrap justify-center gap-4">
                   <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                    Usuário: {user?.name}
+                    Usuário: {user?.username}
                   </p>
                   <p className="text-[11px] text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
                     IP: {userIp}
@@ -1356,7 +1356,7 @@ function RoutesPageContent() {
                 {isOperator && (
                   <div className="mt-4 space-y-1">
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                      Usuário: {user?.name}
+                      Usuário: {user?.username}
                     </p>
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
                       IP: {userIp}
