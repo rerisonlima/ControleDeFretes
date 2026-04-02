@@ -111,9 +111,10 @@ export default function PaymentsPage() {
           fetch('/api/trips'),
           fetch('/api/vehicles')
         ]);
-        const tripsData = await tripsRes.json();
+        const tripsDataRaw = await tripsRes.json();
         const vehiclesData = await vehiclesRes.json();
         
+        const tripsData = tripsDataRaw.trips || tripsDataRaw || [];
         setTrips(tripsData);
         setVehicles(vehiclesData);
         if (vehiclesData.length > 0) {

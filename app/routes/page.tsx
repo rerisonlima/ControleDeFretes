@@ -227,7 +227,7 @@ function RoutesPageContent() {
     if (shouldOpen) {
       setIsDrawerOpen(true);
     }
-  }, []);
+  }, [user?.role]);
 
   const scheduledAtRef = React.useRef<HTMLInputElement>(null);
   const vehicleIdRef = React.useRef<HTMLSelectElement>(null);
