@@ -574,9 +574,16 @@ export default function RecebimentosPage() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
-                        {format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                          {format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}
+                        </p>
+                        {trip.romaneio && (
+                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-widest">
+                            ROM: {trip.romaneio}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm font-bold text-white mt-1">
                         {trip.contratante?.ContratanteNome || '-'}
                       </p>

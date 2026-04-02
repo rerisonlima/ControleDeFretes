@@ -737,6 +737,9 @@ function RoutesPageContent() {
           if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
           }
+          // Fallback for some mobile browsers
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
           setTimeout(() => setShowSuccess(false), 15000);
           // Reset form for next entry
           handleOpenDrawer(null, false);
@@ -1200,7 +1203,14 @@ function RoutesPageContent() {
                       <MapPin className="w-4 h-4 text-primary" />
                       {trip.frete?.cidade || trip.route?.destination || 'N/A'}
                     </h4>
-                    <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
+                      {trip.romaneio && (
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                          ROM: {trip.romaneio}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span className={cn(
                     "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
