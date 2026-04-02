@@ -1239,7 +1239,7 @@ function RoutesPageContent() {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por</span>
-                    <span className="text-xs text-white">{trip.createdBy?.name || 'Sistema'}</span>
+                    <span className="text-xs text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
                   </div>
                   
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>

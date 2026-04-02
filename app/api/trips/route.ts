@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,12 @@ export async function GET(req: Request) {
           vehicle: true,
           driver: true,
           helper: true,
+          createdBy: {
+            select: {
+              name: true,
+              username: true
+            }
+          }
         },
         orderBy: { scheduledAt: 'desc' },
         skip,
@@ -78,6 +85,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
     const body = await req.json();
     console.log('Creating trip with body:', body);
 
@@ -113,6 +121,7 @@ export async function POST(req: Request) {
         odometer: (body.odometer !== undefined && body.odometer !== '' && body.odometer !== null) ? parseFloat(body.odometer.toString()) : null,
         romaneio: body.romaneio || null,
         paymentDate: (body.paymentDate && body.paymentDate !== '') ? new Date(`${body.paymentDate}T12:00:00Z`) : null,
+        createdById: session?.id ? Number(session.id) : null,
       },
       include: {
         route: true,
@@ -121,6 +130,12 @@ export async function POST(req: Request) {
         vehicle: true,
         driver: true,
         helper: true,
+        createdBy: {
+          select: {
+            name: true,
+            username: true
+          }
+        }
       }
     });
     return NextResponse.json(trip);
