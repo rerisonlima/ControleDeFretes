@@ -18,8 +18,13 @@ export async function GET(req: Request) {
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     const paymentStatus = searchParams.get('paymentStatus');
+    const vehicleId = searchParams.get('vehicleId');
 
     const where: any = {};
+
+    if (vehicleId) {
+      where.vehicleId = parseInt(vehicleId);
+    }
 
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);

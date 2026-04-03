@@ -76,10 +76,10 @@ export default function LoginPage() {
               <Truck className="w-10 h-10" />
             </div>
             <h1 className="text-white text-4xl font-black leading-tight tracking-tight mb-4">
-              Conectando o <br/><span className="text-primary">Rio de Janeiro</span> ao futuro.
+              Uma empresa <br/><span className="text-primary">exigente</span> como você.
             </h1>
             <p className="text-slate-400 text-lg max-w-sm leading-relaxed">
-              Eficiência e agilidade no transporte de cargas. Gerencie suas operações com precisão cirúrgica.
+              Somos comprometidos com a agilidade e a excelência em suas entregas.
             </p>
           </div>
           <div className="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
@@ -95,8 +95,8 @@ export default function LoginPage() {
 
           <div className="w-full max-w-sm mx-auto">
             <div className="mb-10">
-              <h3 className="text-white text-3xl font-black mb-2 tracking-tight">Acesso ao Sistema</h3>
-              <p className="text-slate-500 text-sm font-medium">Insira suas credenciais para gerenciar suas cargas.</p>
+              <h2 className="text-white text-3xl font-black mb-2 tracking-tight">Acesso ao ERP</h2>
+              <p className="text-slate-500 text-sm font-medium">Insira suas credenciais para gerenciar suas entregas.</p>
             </div>
 
             <form className="space-y-6" onSubmit={handleLogin}>
@@ -161,26 +161,6 @@ export default function LoginPage() {
                   />
                   <span className="text-slate-500 text-xs font-bold uppercase tracking-tight group-hover:text-primary transition-colors">Lembrar</span>
                 </label>
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    const btn = document.getElementById('conn-test');
-                    if (btn) btn.innerText = 'Testando...';
-                    try {
-                      const res = await fetch('/api/health');
-                      if (res.ok) alert('Conexão com o servidor: OK');
-                      else alert('Erro na conexão com o servidor');
-                    } catch (e) {
-                      alert('Falha crítica de rede');
-                    } finally {
-                      if (btn) btn.innerText = 'Verificar Conexão';
-                    }
-                  }}
-                  id="conn-test"
-                  className="text-primary text-[10px] font-bold uppercase tracking-tight hover:underline"
-                >
-                  Verificar Conexão
-                </button>
               </div>
 
               <button 

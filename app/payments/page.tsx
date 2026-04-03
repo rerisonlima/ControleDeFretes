@@ -14,11 +14,14 @@ import {
   ChevronDown,
   Truck
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min } from 'date-fns';
+import { format, startOfWeek, endOfWeek, parseISO, eachWeekOfInterval, startOfMonth, endOfMonth, parse, addDays, max, min, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Trip {
   id: number;
+  tripId: string;
   vehicleId: number;
   scheduledAt: string;
   driverId?: number;
@@ -27,8 +30,15 @@ interface Trip {
   valor2aViagemMotorista?: number;
   valor1aViagemAjudante?: number;
   valor2aViagemAjudante?: number;
+  status: string;
+  contract?: string;
+  romaneio?: string;
   frete?: { cidade: string; valor1aViagemMotorista: number; valor2aViagemMotorista: number; valor1aViagemAjudante: number; valor2aViagemAjudante: number };
   route?: { destination: string; driverValue1: number; driverValue2: number; helperValue1: number; helperValue2: number };
+  driver?: { name: string; role: string; pix?: string };
+  helper?: { name: string; role: string; pix?: string };
+  vehicle?: { plate: string; model: string };
+  contratante?: { ContratanteNome: string };
 }
 
 interface Vehicle {
@@ -105,29 +115,211 @@ export default function PaymentsPage() {
   }, [trips, selectedVehicleId, selectedMonth]);
 
   React.useEffect(() => {
-    const fetchData = async () => {
+    const fetchVehicles = async () => {
       try {
-        const [tripsRes, vehiclesRes] = await Promise.all([
-          fetch('/api/trips'),
-          fetch('/api/vehicles')
-        ]);
+        const res = await fetch('/api/vehicles');
+        const data = await res.json();
+        setVehicles(data);
+        if (data.length > 0 && !selectedVehicleId) {
+          setSelectedVehicleId(data[0].id.toString());
+        }
+      } catch (error) {
+        console.error('Failed to fetch vehicles:', error);
+      }
+    };
+    fetchVehicles();
+  }, [selectedVehicleId]);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!selectedVehicleId || !selectedMonth) return;
+      setLoading(true);
+      try {
+        const [year, month] = selectedMonth.split('-');
+        const tripsRes = await fetch(`/api/trips?month=${month}&year=${year}&vehicleId=${selectedVehicleId}&limit=1000`);
         const tripsDataRaw = await tripsRes.json();
-        const vehiclesData = await vehiclesRes.json();
         
         const tripsData = tripsDataRaw.trips || tripsDataRaw || [];
         setTrips(tripsData);
-        setVehicles(vehiclesData);
-        if (vehiclesData.length > 0) {
-          setSelectedVehicleId(vehiclesData[0].id.toString());
-        }
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Failed to fetch trips:', error);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [selectedMonth, selectedVehicleId]);
+
+  const generatePDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    
+    // Group trips by employee ID
+    const employeeGroups: Record<number, { name: string, role: string, pix?: string, trips: Trip[] }> = {};
+    
+    trips.forEach(trip => {
+      if (trip.driverId && trip.driver) {
+        if (!employeeGroups[trip.driverId]) {
+          employeeGroups[trip.driverId] = { 
+            name: trip.driver.name, 
+            role: trip.driver.role, 
+            pix: trip.driver.pix, 
+            trips: [] 
+          };
+        }
+        employeeGroups[trip.driverId].trips.push(trip);
+      }
+      if (trip.helperId && trip.helper) {
+        if (!employeeGroups[trip.helperId]) {
+          employeeGroups[trip.helperId] = { 
+            name: trip.helper.name, 
+            role: trip.helper.role, 
+            pix: trip.helper.pix, 
+            trips: [] 
+          };
+        }
+        employeeGroups[trip.helperId].trips.push(trip);
+      }
+    });
+
+    const sortedEmployees = Object.entries(employeeGroups).sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+    if (sortedEmployees.length === 0) {
+      alert('Nenhuma viagem encontrada para gerar o PDF.');
+      return;
+    }
+
+    sortedEmployees.forEach(([empIdStr, emp], empIdx) => {
+      const empId = parseInt(empIdStr);
+      if (empIdx > 0) doc.addPage();
+      
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 297, 45, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.text('Relatório de Pagamentos', 14, 18);
+      
+      doc.setFontSize(12);
+      doc.text(`Funcionário: ${emp.name}`, 14, 28);
+      doc.setFontSize(10);
+      doc.text(`Função: ${emp.role} | PIX: ${emp.pix || 'Não informado'}`, 14, 35);
+      
+      doc.setFontSize(12);
+      doc.text(`Veículo: ${vehicles.find(v => v.id.toString() === selectedVehicleId)?.plate || 'N/A'}`, 140, 28);
+      doc.text(`Período: ${format(parse(selectedMonth, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}`, 240, 28);
+      
+      doc.setTextColor(0, 0, 0);
+
+      // Group by week (starting Monday)
+      const weeks: Record<string, Trip[]> = {};
+      emp.trips.forEach(trip => {
+        const date = new Date(trip.scheduledAt);
+        const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
+        if (!weeks[weekKey]) weeks[weekKey] = [];
+        weeks[weekKey].push(trip);
+      });
+
+      let currentY = 55;
+      Object.entries(weeks).sort().forEach(([weekKey, weekTrips]) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Semana: ${format(weekStart, 'dd/MM/yyyy')} a ${format(weekEnd, 'dd/MM/yyyy')}`, 14, currentY);
+        currentY += 6;
+
+        const sortedWeekTrips = weekTrips.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+        
+        // Track trip index per day to handle V1/V2 logic
+        const dayTripCounts: Record<string, number> = {};
+        
+        const tableBody = sortedWeekTrips.map(t => {
+          const dayKey = format(new Date(t.scheduledAt), 'yyyy-MM-dd');
+          const tripIndex = dayTripCounts[dayKey] || 0;
+          dayTripCounts[dayKey] = tripIndex + 1;
+          
+          const status = t.status === 'DELIVERED' ? 'ENTREGUE' : t.status;
+          
+          const v1Mot = t.valor1aViagemMotorista ?? t.frete?.valor1aViagemMotorista ?? t.route?.driverValue1 ?? 0;
+          const v2Mot = t.valor2aViagemMotorista ?? t.frete?.valor2aViagemMotorista ?? t.route?.driverValue2 ?? 0;
+          const v1Aju = t.valor1aViagemAjudante ?? t.frete?.valor1aViagemAjudante ?? t.route?.helperValue1 ?? 0;
+          const v2Aju = t.valor2aViagemAjudante ?? t.frete?.valor2aViagemAjudante ?? t.route?.helperValue2 ?? 0;
+
+          const row = [
+            format(new Date(t.scheduledAt), 'dd/MM/yyyy'),
+            t.vehicle?.plate || 'N/A',
+            t.contratante?.ContratanteNome || t.contract || '-',
+            t.frete?.cidade || t.route?.destination || 'N/A',
+            t.romaneio || '-',
+            status,
+          ];
+
+          if (emp.role.toUpperCase() === 'MOTORISTA') {
+            row.push(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tripIndex === 0 ? v1Mot : 0));
+            row.push(tripIndex > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v2Mot) : '-');
+          } else {
+            row.push(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tripIndex === 0 ? v1Aju : 0));
+            row.push(tripIndex > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v2Aju) : '-');
+          }
+          
+          return row;
+        });
+
+        const headers = emp.role.toUpperCase() === 'MOTORISTA' 
+          ? [['Data', 'Veículo', 'Contrato', 'Rota', 'Romaneio', 'Status', 'V1 Mot', 'V2 Mot']]
+          : [['Data', 'Veículo', 'Contrato', 'Rota', 'Romaneio', 'Status', 'V1 Aju', 'V2 Aju']];
+
+        autoTable(doc, {
+          startY: currentY,
+          head: headers,
+          body: tableBody,
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 2 },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 247, 250] },
+        });
+
+        let weekTotal = 0;
+        const tripsByDay: Record<string, Trip[]> = {};
+        weekTrips.forEach(t => {
+          const dayKey = format(new Date(t.scheduledAt), 'yyyy-MM-dd');
+          if (!tripsByDay[dayKey]) tripsByDay[dayKey] = [];
+          tripsByDay[dayKey].push(t);
+        });
+
+        Object.values(tripsByDay).forEach(dayTrips => {
+          dayTrips.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+          dayTrips.forEach((t, idx) => {
+            if (t.driverId === empId) {
+              weekTotal += idx === 0 
+                ? (t.valor1aViagemMotorista ?? t.frete?.valor1aViagemMotorista ?? t.route?.driverValue1 ?? 0)
+                : (t.valor2aViagemMotorista ?? t.frete?.valor2aViagemMotorista ?? t.route?.driverValue2 ?? 0);
+            }
+            if (t.helperId === empId) {
+              weekTotal += idx === 0
+                ? (t.valor1aViagemAjudante ?? t.frete?.valor1aViagemAjudante ?? t.route?.helperValue1 ?? 0)
+                : (t.valor2aViagemAjudante ?? t.frete?.valor2aViagemAjudante ?? t.route?.helperValue2 ?? 0);
+            }
+          });
+        });
+
+        const finalY = (doc as any).lastAutoTable.finalY;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total da Semana: ${weekTrips.length} viagens | Valor a Receber: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(weekTotal)}`, 14, finalY + 7);
+        
+        currentY = finalY + 18;
+        if (currentY > 180) {
+          doc.addPage();
+          currentY = 20;
+        }
+      });
+    });
+
+    doc.save(`Pagamentos_${selectedMonth}.pdf`);
+  };
 
   // Calculate weekly payments for the selected vehicle
   const weeklyPayments = React.useMemo(() => {
@@ -219,7 +411,6 @@ export default function PaymentsPage() {
     <AppLayout>
       <Header 
         title="Pagamentos" 
-        actionLabel="Finalizar e Gerar Relatório" 
       />
       
       <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
@@ -494,9 +685,12 @@ export default function PaymentsPage() {
             <p className="text-xs text-slate-500 max-w-md text-center md:text-right">
               Os valores acima contemplam taxas administrativas e bônus de performance calculados automaticamente pelo sistema.
             </p>
-            <button className="w-full md:w-auto bg-primary hover:bg-primary/90 text-background-dark px-8 py-4 rounded-lg text-base font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-3">
+            <button 
+              onClick={generatePDF}
+              className="w-full md:w-auto bg-primary hover:bg-primary/90 text-background-dark px-8 py-4 rounded-lg text-base font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-3"
+            >
               <FileText className="w-5 h-5" />
-              Finalizar e Enviar
+              Gerar PDF
             </button>
           </div>
 
