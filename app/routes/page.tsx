@@ -13,6 +13,7 @@ import {
   Trash2, 
   X,
   Check,
+  AlertCircle,
   Calendar,
   Truck,
   User,
@@ -130,6 +131,13 @@ function RoutesPageContent() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
+
+  React.useEffect(() => {
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
+    if (month) setSelectedMonth(parseInt(month));
+    if (year) setSelectedYear(parseInt(year));
+  }, [searchParams]);
   const [paymentFilter, setPaymentFilter] = React.useState('all');
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [trips, setTrips] = React.useState<Trip[]>([]);
@@ -145,7 +153,11 @@ function RoutesPageContent() {
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<number | null>(null);
   const [cloneConfirmId, setCloneConfirmId] = React.useState<number | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [errorId, setErrorId] = React.useState<number | null>(null);
   const [isNavigatingToExpenses, setIsNavigatingToExpenses] = React.useState(false);
+  const errorRef = React.useRef<HTMLDivElement>(null);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
@@ -771,6 +783,9 @@ function RoutesPageContent() {
   };
 
   const handleDelete = async (id: number) => {
+    setError('');
+    setErrorId(null);
+    setIsDeleting(true);
     try {
       const response = await fetch(`/api/trips/${id}`, { method: 'DELETE' });
       
@@ -781,17 +796,38 @@ function RoutesPageContent() {
       } else {
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const data = await response.json();
-          alert(data.error || 'Erro ao excluir viagem');
+          const errorMessage = data.error || 'Erro ao excluir viagem';
+          setError(errorMessage);
+          setErrorId(id);
+          setDeleteConfirmId(null);
+          setTimeout(() => {
+            const element = document.getElementById(`error-trip-${id}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
         } else {
           const text = await response.text();
           console.error('Non-JSON error response:', text);
-          alert('Erro no servidor ao excluir viagem');
+          setError('Erro no servidor ao excluir viagem');
+          setErrorId(id);
+          setDeleteConfirmId(null);
+          setTimeout(() => {
+            errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
         }
-        setDeleteConfirmId(null);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Erro de conexão ao excluir');
+      setError('Erro de conexão ao excluir');
+      setDeleteConfirmId(id);
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -881,6 +917,23 @@ function RoutesPageContent() {
         onAction={user?.role === 'OPERATOR' ? undefined : () => handleOpenDrawer()}
         onLogout={handleLogout}
       />
+      
+      {error && (
+        <div className="px-4 md:px-8 mt-4">
+          <div 
+            ref={errorRef}
+            className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-3 text-rose-400 animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+            <button onClick={() => setError('')} className="p-1 hover:bg-rose-500/10 rounded-lg transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {user?.role === 'OPERATOR' ? (
@@ -1066,113 +1119,136 @@ function RoutesPageContent() {
                     <td colSpan={9} className="px-6 py-12 text-center text-slate-500">Nenhuma viagem encontrada com os filtros aplicados.</td>
                   </tr>
                 ) : filteredTrips.map((trip) => (
-                  <tr 
-                    key={trip.id} 
-                    className="hover:bg-white/5 transition-colors group cursor-pointer"
-                    onClick={() => handleOpenDrawer(trip)}
-                  >
-                    <td className={cn(
-                      "px-6 py-4 transition-colors",
-                      (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
-                    )}>
-                      <span className={cn(
-                        "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
-                        trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                  <React.Fragment key={trip.id}>
+                    <tr 
+                      className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      onClick={() => handleOpenDrawer(trip)}
+                    >
+                      <td className={cn(
+                        "px-6 py-4 transition-colors",
+                        (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
                       )}>
-                        {trip.paid || 'não'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-white">{trip.romaneio || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Truck className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
-                        <span className="text-[10px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {deleteConfirmId === trip.id ? (
-                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              onClick={() => handleDelete(trip.id)}
-                              className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
-                            >
-                              Confirmar
-                            </button>
-                            <button 
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                            >
-                              Sair
-                            </button>
+                        <span className={cn(
+                          "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
+                          trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                        )}>
+                          {trip.paid || 'não'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-4 h-4 text-primary" />
+                          <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-bold text-white">{trip.romaneio || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Truck className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-mono font-medium text-slate-300">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
+                          <span className="text-[10px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {deleteConfirmId === trip.id ? (
+                            <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={() => handleDelete(trip.id)}
+                                disabled={isDeleting}
+                                className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                {isDeleting ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Excluindo...
+                                  </>
+                                ) : (
+                                  'Confirmar'
+                                )}
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setDeleteConfirmId(null);
+                                  setErrorId(null);
+                                }}
+                                disabled={isDeleting}
+                                className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
+                              >
+                                Sair
+                              </button>
+                            </div>
+                          ) : cloneConfirmId === trip.id ? (
+                            <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={() => handleClone(trip)}
+                                className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
+                              >
+                                Confirmar Clone
+                              </button>
+                              <button 
+                                onClick={() => setCloneConfirmId(null)}
+                                className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
+                              >
+                                Sair
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setCloneConfirmId(trip.id); setErrorId(null); }}
+                                className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                title="Clonar Viagem"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); setErrorId(null); }}
+                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(trip.id); setErrorId(null); }}
+                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {errorId === trip.id && (
+                      <tr id={`error-trip-${trip.id}`} className="bg-rose-500/5 animate-in slide-in-from-top-1 duration-200">
+                        <td colSpan={9} className="px-6 py-3">
+                          <div className="flex items-center gap-2 text-rose-400 text-xs font-medium">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{error}</span>
                           </div>
-                        ) : cloneConfirmId === trip.id ? (
-                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              onClick={() => handleClone(trip)}
-                              className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded hover:bg-amber-600 transition-colors"
-                            >
-                              Confirmar Clone
-                            </button>
-                            <button 
-                              onClick={() => setCloneConfirmId(null)}
-                              className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                            >
-                              Sair
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setCloneConfirmId(trip.id); }}
-                              className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
-                              title="Clonar Viagem"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleOpenDrawer(trip); }}
-                              className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(trip.id); }}
-                              className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -1187,101 +1263,125 @@ function RoutesPageContent() {
             ) : filteredTrips.map((trip) => (
               <div 
                 key={trip.id}
-                className={cn(
-                  "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
-                  (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
-                )}
-                onClick={() => handleOpenDrawer(trip)}
+                className="space-y-0"
               >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                <div 
+                  className={cn(
+                    "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
+                    (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+                  )}
+                  onClick={() => handleOpenDrawer(trip)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                      </div>
+                      <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        {trip.frete?.cidade || trip.route?.destination || 'N/A'}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
+                        {trip.romaneio && (
+                          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                            Romaneio: {trip.romaneio}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      {trip.frete?.cidade || trip.route?.destination || 'N/A'}
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
-                      {trip.romaneio && (
-                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
-                          Romaneio: {trip.romaneio}
-                        </span>
+                    <span className={cn(
+                      "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
+                      trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-background-dark text-slate-500 border border-border-dark"
+                    )}>
+                      {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <Truck className="w-3.5 h-3.5" />
+                        {trip.vehicle?.plate || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
+                      <p className="text-sm font-bold text-primary">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por</span>
+                      <span className="text-xs text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {deleteConfirmId === trip.id ? (
+                        <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                          <button 
+                            onClick={() => handleDelete(trip.id)}
+                            disabled={isDeleting}
+                            className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {isDeleting ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Excluindo...
+                              </>
+                            ) : (
+                              'Confirmar'
+                            )}
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setDeleteConfirmId(null);
+                              setErrorId(null);
+                            }}
+                            disabled={isDeleting}
+                            className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg disabled:opacity-50"
+                          >
+                            Sair
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => { setCloneConfirmId(trip.id); setErrorId(null); }}
+                            className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => { handleOpenDrawer(trip); setErrorId(null); }}
+                            className="p-2.5 bg-primary/10 text-primary rounded-xl"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => { setDeleteConfirmId(trip.id); setErrorId(null); }}
+                            className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
-                  <span className={cn(
-                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
-                    trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-background-dark text-slate-500 border border-border-dark"
-                  )}>
-                    {trip.paid === 'sim' ? 'Pago' : 'Pendente'}
-                  </span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
-                    <div className="flex items-center gap-2 text-sm text-slate-300">
-                      <Truck className="w-3.5 h-3.5" />
-                      {trip.vehicle?.plate || 'N/A'}
+                {errorId === trip.id && (
+                  <div id={`error-trip-${trip.id}`} className="px-4 pb-4 animate-in slide-in-from-top-1 duration-200">
+                    <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center gap-2 text-rose-400 text-xs font-medium">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{error}</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
-                    <p className="text-sm font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por</span>
-                    <span className="text-xs text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    {deleteConfirmId === trip.id ? (
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => handleDelete(trip.id)}
-                          className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
-                        >
-                          Confirmar
-                        </button>
-                        <button 
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
-                        >
-                          X
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => { setCloneConfirmId(trip.id); }}
-                          className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleOpenDrawer(trip)}
-                          className="p-2.5 bg-primary/10 text-primary rounded-xl"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => setDeleteConfirmId(trip.id)}
-                          className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

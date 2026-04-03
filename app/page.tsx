@@ -661,7 +661,12 @@ export default function Dashboard() {
           <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border-dark flex justify-between items-center">
               <h3 className="font-bold text-white">Viagens do Período</h3>
-              <button className="text-sm font-bold text-primary hover:underline">Ver Todas</button>
+              <button 
+                onClick={() => router.push(`/routes?month=${selectedMonth}&year=${selectedYear}`)}
+                className="text-sm font-bold text-primary hover:underline"
+              >
+                Ver Todas
+              </button>
             </div>
             <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left">

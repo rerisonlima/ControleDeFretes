@@ -14,7 +14,8 @@ import {
   Info,
   Loader2,
   Truck,
-  Trash2
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,7 @@ export default function VehiclesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form State
@@ -87,6 +89,7 @@ export default function VehiclesPage() {
   }, []);
 
   const handleOpenDrawer = (vehicle?: Vehicle) => {
+    setError('');
     if (vehicle) {
       setFormData({
         id: vehicle.id,
@@ -117,12 +120,13 @@ export default function VehiclesPage() {
 
   const handleSave = async () => {
     if (!formData.plate || !formData.brand || !formData.model) {
-      alert('Por favor, preencha os campos obrigatórios (Placa, Marca, Modelo).');
+      setError('Por favor, preencha os campos obrigatórios (Placa, Marca, Modelo).');
       return;
     }
 
     try {
       setIsSaving(true);
+      setError('');
       
       const url = formData.id ? `/api/vehicles/${formData.id}` : '/api/vehicles';
       const method = formData.id ? 'PUT' : 'POST';
@@ -132,8 +136,8 @@ export default function VehiclesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          year: parseInt(formData.year.toString()),
-          capacity: parseFloat(formData.capacity.toString()),
+          year: isNaN(parseInt(formData.year.toString())) ? new Date().getFullYear() : parseInt(formData.year.toString()),
+          capacity: isNaN(parseFloat(formData.capacity.toString())) ? 0 : parseFloat(formData.capacity.toString()),
           categoriaId: formData.categoriaId ? parseInt(formData.categoriaId) : null
         }),
       });
@@ -142,12 +146,12 @@ export default function VehiclesPage() {
         setIsDrawerOpen(false);
         fetchData();
       } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao salvar veículo');
+        const errData = await res.json();
+        setError(errData.error || 'Erro ao salvar veículo');
       }
     } catch (error) {
       console.error('Error saving vehicle:', error);
-      alert('Erro de conexão ao salvar veículo');
+      setError('Erro de conexão ao salvar veículo');
     } finally {
       setIsSaving(false);
     }
@@ -349,6 +353,12 @@ export default function VehiclesPage() {
             </div>
             
             <div className="flex-1 overflow-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+              {error && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</label>
@@ -366,7 +376,7 @@ export default function VehiclesPage() {
                     className="w-full px-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
                     placeholder="2024"
                     type="number"
-                    value={formData.year}
+                    value={isNaN(formData.year) ? '' : formData.year}
                     onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
                   />
                 </div>
@@ -419,7 +429,7 @@ export default function VehiclesPage() {
                     placeholder="Ex: 10.5"
                     type="number"
                     step="0.1"
-                    value={formData.capacity}
+                    value={isNaN(formData.capacity) ? '' : formData.capacity}
                     onChange={(e) => setFormData({ ...formData, capacity: parseFloat(e.target.value) })}
                   />
                 </div>

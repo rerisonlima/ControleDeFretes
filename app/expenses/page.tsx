@@ -69,8 +69,12 @@ export default function ExpensesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState('');
+  const [errorId, setErrorId] = useState<number | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showValues, setShowValues] = useState(false);
+  const errorRef = React.useRef<HTMLDivElement>(null);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -242,6 +246,9 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: number) => {
+    setError('');
+    setErrorId(null);
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/expenses/${id}`, {
         method: 'DELETE',
@@ -252,12 +259,28 @@ export default function ExpensesPage() {
         fetchData();
       } else {
         const data = await res.json();
-        alert(data.error || 'Erro ao excluir despesa');
+        const errorMessage = data.error || 'Erro ao excluir despesa';
+        setError(errorMessage);
+        setErrorId(id);
         setDeleteConfirmId(null);
+        setTimeout(() => {
+          const element = document.getElementById(`error-expense-${id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error deleting expense:', error);
-      alert('Erro de conexão ao excluir');
+      setError('Erro de conexão ao excluir');
+      setDeleteConfirmId(id);
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -282,6 +305,21 @@ export default function ExpensesPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         <div className="max-w-7xl mx-auto space-y-6">
           
+          {error && (
+            <div 
+              ref={errorRef}
+              className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-3 text-rose-400 animate-in fade-in slide-in-from-top-2 duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+              <button onClick={() => setError('')} className="p-1 hover:bg-rose-500/10 rounded-lg transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Filters Bar */}
           <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
@@ -422,66 +460,93 @@ export default function ExpensesPage() {
                 ) : expenses.map((exp, i) => {
                   const Icon = getIcon(exp.type);
                   return (
-                    <tr key={exp.id || i} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        {new Date(exp.date).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium text-white">{exp.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-500 font-mono">
-                        {exp.vehicle?.plate || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-white">
-                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-2 py-1 rounded-full text-[9px] font-bold uppercase border",
-                          exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                        )}>
-                          {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {deleteConfirmId === exp.id ? (
-                            <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
-                              <button 
-                                onClick={() => handleDelete(exp.id)}
-                                className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors"
-                              >
-                                Confirmar
-                              </button>
-                              <button 
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors"
-                              >
-                                Sair
-                              </button>
+                    <React.Fragment key={exp.id || i}>
+                      <tr className="hover:bg-white/5 transition-colors group">
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          {new Date(exp.date).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-white">{exp.type}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-500 font-mono">
+                          {exp.vehicle?.plate || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-white">
+                          {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={cn(
+                            "px-2 py-1 rounded-full text-[9px] font-bold uppercase border",
+                            exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          )}>
+                            {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {deleteConfirmId === exp.id ? (
+                              <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                                <button 
+                                  onClick={() => handleDelete(exp.id)}
+                                  disabled={isDeleting}
+                                  className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {isDeleting ? (
+                                    <>
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                      Excluindo...
+                                    </>
+                                  ) : (
+                                    'Confirmar'
+                                  )}
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    setDeleteConfirmId(null);
+                                    setErrorId(null);
+                                  }}
+                                  disabled={isDeleting}
+                                  className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
+                                >
+                                  Sair
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleOpenDrawer(exp)}
+                                  className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    setDeleteConfirmId(exp.id);
+                                    setErrorId(null);
+                                  }}
+                                  className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {errorId === exp.id && (
+                        <tr id={`error-expense-${exp.id}`} className="bg-rose-500/5 animate-in slide-in-from-top-1 duration-200">
+                          <td colSpan={10} className="px-6 py-3">
+                            <div className="flex items-center gap-2 text-rose-400 text-xs font-medium">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>{error}</span>
                             </div>
-                          ) : (
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                              <button 
-                                onClick={() => handleOpenDrawer(exp)}
-                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => setDeleteConfirmId(exp.id)}
-                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -499,68 +564,93 @@ export default function ExpensesPage() {
               ) : expenses.map((exp, i) => {
                 const Icon = getIcon(exp.type);
                 return (
-                  <div key={exp.id || i} className="p-4 space-y-3" onClick={() => handleOpenDrawer(exp)}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Icon className="w-5 h-5 text-primary" />
+                  <div key={exp.id || i} className="space-y-0" onClick={() => handleOpenDrawer(exp)}>
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Icon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white">{exp.type}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">{new Date(exp.date).toLocaleDateString('pt-BR')}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">{exp.type}</p>
-                          <p className="text-[10px] text-slate-500 font-mono">{new Date(exp.date).toLocaleDateString('pt-BR')}</p>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border",
+                          exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        )}>
+                          {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Truck className="w-3.5 h-3.5" />
+                          <span>{exp.vehicle?.plate || '-'}</span>
+                        </div>
+                        <p className="font-bold text-white">
+                          {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                        {deleteConfirmId === exp.id ? (
+                          <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                            <button 
+                              onClick={() => handleDelete(exp.id)}
+                              disabled={isDeleting}
+                              className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {isDeleting ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Excluindo...
+                                </>
+                              ) : (
+                                'Confirmar'
+                              )}
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setDeleteConfirmId(null);
+                                setErrorId(null);
+                              }}
+                              disabled={isDeleting}
+                              className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg disabled:opacity-50"
+                            >
+                              Sair
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleOpenDrawer(exp)}
+                              className="p-2 bg-primary/10 text-primary rounded-lg"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setDeleteConfirmId(exp.id);
+                                setErrorId(null);
+                              }}
+                              className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {errorId === exp.id && (
+                      <div id={`error-expense-${exp.id}`} className="px-4 pb-4 animate-in slide-in-from-top-1 duration-200">
+                        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center gap-2 text-rose-400 text-xs font-medium">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>{error}</span>
                         </div>
                       </div>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border",
-                        exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                      )}>
-                        {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Truck className="w-3.5 h-3.5" />
-                        <span>{exp.vehicle?.plate || '-'}</span>
-                      </div>
-                      <p className="font-bold text-white">
-                        {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                      {deleteConfirmId === exp.id ? (
-                        <div className="flex items-center gap-1">
-                          <button 
-                            onClick={() => handleDelete(exp.id)}
-                            className="px-3 py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg"
-                          >
-                            Confirmar
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
-                          >
-                            X
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleOpenDrawer(exp)}
-                            className="p-2 bg-primary/10 text-primary rounded-lg"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmId(exp.id)}
-                            className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 );
               })}
