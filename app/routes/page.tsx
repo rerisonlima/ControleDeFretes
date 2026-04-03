@@ -98,6 +98,7 @@ interface Vehicle {
   brand: string;
   model: string;
   categoriaId: number;
+  status: string;
 }
 
 interface Employee {
@@ -374,9 +375,11 @@ function RoutesPageContent() {
             }}
           >
             <option value="">Selecionar Veículo</option>
-            {vehicles.map(v => (
-              <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
-            ))}
+            {vehicles
+              .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
+              .map(v => (
+                <option key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</option>
+              ))}
           </select>
         </div>
       </div>
@@ -1069,9 +1072,11 @@ function RoutesPageContent() {
                   onChange={(e) => setVehicleFilter(e.target.value)}
                 >
                   <option value="">Todos os Veículos</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
-                  ))}
+                  {vehicles
+                    .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
+                    .map(v => (
+                      <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                    ))}
                 </select>
               </div>
               <div className="relative">

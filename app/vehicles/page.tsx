@@ -9,13 +9,15 @@ import {
   Edit, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   X,
   Plus,
   Info,
   Loader2,
   Truck,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +49,7 @@ export default function VehiclesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
   // Form State
   const [formData, setFormData] = useState({
@@ -157,11 +160,25 @@ export default function VehiclesPage() {
     }
   };
 
-  const filteredVehicles = vehicles.filter(v => 
-    v.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.model.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVehicles = vehicles.filter(v => {
+    const matchesSearch = v.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.model.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const status = v.status?.toUpperCase();
+    const matchesStatus = statusFilter === 'ALL' || 
+      (statusFilter === 'NON_ACTIVE' 
+        ? (status === 'INACTIVE' || status === 'INATIVO' || status === 'MAINTENANCE' || status === 'MANUTENCAO') 
+        : (statusFilter === 'INACTIVE' 
+            ? (status === 'INACTIVE' || status === 'INATIVO')
+            : (statusFilter === 'MAINTENANCE'
+                ? (status === 'MAINTENANCE' || status === 'MANUTENCAO')
+                : (statusFilter === 'ACTIVE'
+                    ? (status === 'ACTIVE' || status === 'ATIVO')
+                    : status === statusFilter))));
+    
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <AppLayout>
@@ -190,6 +207,23 @@ export default function VehiclesPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              
+              <div className="relative flex-1 sm:flex-initial">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <select 
+                  className="pl-10 pr-10 py-2 bg-surface-dark border border-border-dark rounded-lg text-sm text-white focus:ring-2 focus:ring-primary outline-none w-full sm:w-56 appearance-none cursor-pointer"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="ALL">Todos Status</option>
+                  <option value="ACTIVE">Ativos</option>
+                  <option value="NON_ACTIVE">Inativos / Manutenção</option>
+                  <option value="MAINTENANCE">Manutenção</option>
+                  <option value="INACTIVE">Inativos</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+              </div>
+
               <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300">
                 <Download className="w-4 h-4" />
                 Exportar
@@ -247,11 +281,13 @@ export default function VehiclesPage() {
                       <td className="px-6 py-4">
                         <span className={cn(
                           "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                          v.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
-                          v.status === 'MAINTENANCE' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                          (v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO') ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
+                          (v.status?.toUpperCase() === 'MAINTENANCE' || v.status?.toUpperCase() === 'MANUTENCAO') ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                           "bg-rose-500/10 text-rose-500 border-rose-500/20"
                         )}>
-                          {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : 'Inativo'}
+                          {(v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO') ? 'Ativo' : 
+                           (v.status?.toUpperCase() === 'MAINTENANCE' || v.status?.toUpperCase() === 'MANUTENCAO') ? 'Manutenção' : 
+                           'Inativo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -300,11 +336,13 @@ export default function VehiclesPage() {
                       </button>
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase border",
-                        v.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
-                        v.status === 'MAINTENANCE' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                        (v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO') ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
+                        (v.status?.toUpperCase() === 'MAINTENANCE' || v.status?.toUpperCase() === 'MANUTENCAO') ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                         "bg-rose-500/10 text-rose-500 border-rose-500/20"
                       )}>
-                        {v.status === 'ACTIVE' ? 'Ativo' : v.status === 'MAINTENANCE' ? 'Manutenção' : 'Inativo'}
+                        {(v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO') ? 'Ativo' : 
+                         (v.status?.toUpperCase() === 'MAINTENANCE' || v.status?.toUpperCase() === 'MANUTENCAO') ? 'Manutenção' : 
+                         'Inativo'}
                       </span>
                     </div>
                   </div>

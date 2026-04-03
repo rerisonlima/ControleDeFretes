@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 interface Vehicle {
   id: number;
   plate: string;
+  status: string;
 }
 
 interface Expense {
@@ -393,9 +394,11 @@ export default function ExpensesPage() {
                     }}
                   >
                     <option value="Todos">Todos os Veículos</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id.toString()}>{v.plate}</option>
-                    ))}
+                    {vehicles
+                      .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
+                      .map(v => (
+                        <option key={v.id} value={v.id.toString()}>{v.plate}</option>
+                      ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
                 </div>
@@ -791,9 +794,11 @@ export default function ExpensesPage() {
                     onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
                   >
                     <option value="">Selecione a placa</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.plate}</option>
-                    ))}
+                    {vehicles
+                      .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
+                      .map(v => (
+                        <option key={v.id} value={v.id}>{v.plate}</option>
+                      ))}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
                 </div>

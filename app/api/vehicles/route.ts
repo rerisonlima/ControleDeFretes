@@ -9,7 +9,9 @@ export async function GET(req: Request) {
     const showInactive = searchParams.get('showInactive') === 'true';
 
     const vehicles = await prisma.vehicle.findMany({
-      where: showInactive ? {} : { status: { not: 'INACTIVE' } },
+      include: {
+        categoria: true
+      },
       orderBy: { updatedAt: 'desc' }
     });
     return NextResponse.json(vehicles);
