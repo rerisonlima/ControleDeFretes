@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     const year = searchParams.get('year');
     const paymentStatus = searchParams.get('paymentStatus');
     const vehicleId = searchParams.get('vehicleId');
+    const days = searchParams.get('days');
 
     const where: any = {};
 
@@ -26,7 +27,13 @@ export async function GET(req: Request) {
       where.vehicleId = parseInt(vehicleId);
     }
 
-    if (month && year) {
+    if (days) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days));
+      where.scheduledAt = {
+        gte: startDate
+      };
+    } else if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
       where.scheduledAt = {

@@ -45,9 +45,13 @@ export async function PUT(
         date: new Date(`${body.date}T12:00:00Z`),
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
         status: body.status,
+        reimbursable: body.reimbursable || false,
+        reimbursementDate: body.reimbursementDate ? new Date(`${body.reimbursementDate}T12:00:00Z`) : null,
+        tripId: body.tripId ? parseInt(body.tripId) : null,
       },
       include: {
-        vehicle: true
+        vehicle: true,
+        trip: true
       }
     });
 

@@ -17,20 +17,37 @@ export async function GET(request: Request) {
   const endDate = endOfMonth(startDate);
 
   try {
-    // Fetch all trips in the period
-    const trips = await prisma.trip.findMany({
-      where: {
-        scheduledAt: { gte: startDate, lte: endDate }
-      },
-      include: {
-        contratante: { select: { id: true, ContratanteNome: true } }
-      }
-    });
+    // Fetch all trips and reimbursable expenses in the period
+    const [trips, reimbursableExpenses] = await Promise.all([
+      prisma.trip.findMany({
+        where: {
+          scheduledAt: { gte: startDate, lte: endDate }
+        },
+        include: {
+          contratante: { select: { id: true, ContratanteNome: true } }
+        }
+      }),
+      prisma.expense.findMany({
+        where: {
+          date: { gte: startDate, lte: endDate },
+          reimbursable: true
+        }
+      })
+    ]);
 
-    const totalRevenue = trips.reduce((sum, t) => sum + (t.value || 0), 0);
-    const received = trips
+    const totalTripRevenue = trips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const totalReimbursement = reimbursableExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
+    const totalRevenue = totalTripRevenue + totalReimbursement;
+
+    const receivedTrips = trips
       .filter(t => t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago')
       .reduce((sum, t) => sum + (t.value || 0), 0);
+    
+    const receivedReimbursement = reimbursableExpenses
+      .filter(e => e.status === 'PAID')
+      .reduce((sum, e) => sum + (e.value || 0), 0);
+    
+    const received = receivedTrips + receivedReimbursement;
     const toReceive = totalRevenue - received;
 
     // Group by contractor
@@ -55,11 +72,23 @@ export async function GET(request: Request) {
       }
     });
 
+    // Add Reimbursement as a virtual contractor or handle it in stats
+    if (totalReimbursement > 0) {
+      contractorStats.set(-1, {
+        name: 'Reembolso',
+        total: totalReimbursement,
+        received: receivedReimbursement,
+        toReceive: totalReimbursement - receivedReimbursement,
+        count: reimbursableExpenses.length
+      });
+    }
+
     const sortedContractors = Array.from(contractorStats.values()).sort((a, b) => b.total - a.total);
 
     // Chart data: Grouped by paymentDate
-    // Only for paid trips
+    // Only for paid trips and paid reimbursements
     const paidTrips = trips.filter(t => (t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago') && t.paymentDate);
+    const paidReimbursements = reimbursableExpenses.filter(e => e.status === 'PAID' && e.reimbursementDate);
     
     // Group by date and contractor for tooltip
     const chartDataMap = new Map<string, { date: string; total: number; contractors: { name: string; value: number }[] }>();
@@ -78,6 +107,23 @@ export async function GET(request: Request) {
         existingC.value += (t.value || 0);
       } else {
         data.contractors.push({ name: cName, value: (t.value || 0) });
+      }
+    });
+
+    paidReimbursements.forEach(e => {
+      const dateStr = format(new Date(e.reimbursementDate!), 'yyyy-MM-dd');
+      if (!chartDataMap.has(dateStr)) {
+        chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
+      }
+      const data = chartDataMap.get(dateStr)!;
+      data.total += (e.value || 0);
+      
+      const cName = 'Reembolso';
+      const existingC = data.contractors.find(c => c.name === cName);
+      if (existingC) {
+        existingC.value += (e.value || 0);
+      } else {
+        data.contractors.push({ name: cName, value: (e.value || 0) });
       }
     });
 

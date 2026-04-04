@@ -25,7 +25,8 @@ import {
   Ticket,
   Eye,
   EyeOff,
-  Truck
+  Truck,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,10 @@ interface Expense {
   status: 'PAID' | 'PENDING';
   vehicleId: number | null;
   vehicle: Vehicle | null;
+  reimbursable?: boolean;
+  reimbursementDate?: string | null;
+  tripId?: number | null;
+  trip?: any | null;
 }
 
 const months = [
@@ -90,21 +95,31 @@ export default function ExpensesPage() {
     value: '',
     date: new Date().toISOString().split('T')[0],
     vehicleId: '',
-    status: 'PAID'
+    status: 'PAID',
+    reimbursable: false,
+    reimbursementDate: '',
+    tripId: ''
   });
+
+  const [recentTrips, setRecentTrips] = useState<any[]>([]);
+  const [isTripsLoading, setIsTripsLoading] = useState(false);
+  const [tripDays, setTripDays] = useState(7);
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   // Filter State
   const [filters, setFilters] = useState({
     type: 'Todos',
-    vehicleId: 'Todos'
+    vehicleId: 'Todos',
+    reimbursable: 'Todos',
+    status: 'Todos'
   });
 
   const [user, setUser] = useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleOpenDrawer = useCallback((expense: Expense | null = null) => {
+    setTripDays(7);
     if (expense) {
       setSelectedExpense(expense);
       setFormData({
@@ -113,7 +128,10 @@ export default function ExpensesPage() {
         value: expense.value.toString(),
         date: new Date(expense.date).toISOString().split('T')[0],
         vehicleId: expense.vehicleId?.toString() || '',
-        status: expense.status
+        status: expense.status,
+        reimbursable: expense.reimbursable || false,
+        reimbursementDate: expense.reimbursementDate ? new Date(expense.reimbursementDate).toISOString().split('T')[0] : '',
+        tripId: expense.tripId?.toString() || ''
       });
     } else {
       setSelectedExpense(null);
@@ -123,11 +141,36 @@ export default function ExpensesPage() {
         value: '',
         date: new Date().toISOString().split('T')[0],
         vehicleId: '',
-        status: 'PAID'
+        status: 'PAID',
+        reimbursable: false,
+        reimbursementDate: '',
+        tripId: ''
       });
     }
     setIsDrawerOpen(true);
   }, []);
+
+  useEffect(() => {
+    const fetchRecentTrips = async () => {
+      if (formData.vehicleId && formData.reimbursable) {
+        try {
+          setIsTripsLoading(true);
+          const res = await fetch(`/api/trips?vehicleId=${formData.vehicleId}&days=${tripDays}`);
+          if (res.ok) {
+            const data = await res.json();
+            setRecentTrips(data.trips || []);
+          }
+        } catch (error) {
+          console.error('Error fetching recent trips:', error);
+        } finally {
+          setIsTripsLoading(false);
+        }
+      } else {
+        setRecentTrips([]);
+      }
+    };
+    fetchRecentTrips();
+  }, [formData.vehicleId, formData.reimbursable, tripDays]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -138,6 +181,8 @@ export default function ExpensesPage() {
         limit: limit.toString(),
         type: filters.type,
         vehicleId: filters.vehicleId,
+        reimbursable: filters.reimbursable,
+        status: filters.status,
         month: selectedMonth.toString(),
         year: selectedYear.toString()
       });
@@ -166,7 +211,7 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, limit, filters.type, filters.vehicleId, selectedMonth, selectedYear]);
+  }, [currentPage, limit, filters.type, filters.vehicleId, filters.reimbursable, filters.status, selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchData();
@@ -231,7 +276,10 @@ export default function ExpensesPage() {
             value: '',
             date: new Date().toISOString().split('T')[0],
             vehicleId: '',
-            status: 'PAID'
+            status: 'PAID',
+            reimbursable: false,
+            reimbursementDate: '',
+            tripId: ''
           });
           setTimeout(() => setShowSuccess(false), 15000);
         } else {
@@ -404,6 +452,44 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1.5 min-w-[150px]">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Reembolsáveis</label>
+                <div className="relative">
+                  <select 
+                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                    value={filters.reimbursable}
+                    onChange={(e) => {
+                      setFilters({ ...filters, reimbursable: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="Todos">Todos</option>
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 min-w-[150px]">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Status</label>
+                <div className="relative">
+                  <select 
+                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
+                    value={filters.status}
+                    onChange={(e) => {
+                      setFilters({ ...filters, status: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="Todos">Todos</option>
+                    <option value="PAID">Pago</option>
+                    <option value="PENDING">Pendente</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+                </div>
+              </div>
+
               <div className="flex items-end gap-2">
                 <div className="flex flex-col gap-1.5 flex-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
@@ -419,7 +505,12 @@ export default function ExpensesPage() {
                 
                 <button 
                   onClick={() => {
-                    setFilters({ type: 'Todos', vehicleId: 'Todos' });
+                    setFilters({ 
+                      type: 'Todos', 
+                      vehicleId: 'Todos',
+                      reimbursable: 'Todos',
+                      status: 'Todos'
+                    });
                     setCurrentPage(1);
                   }}
                   className="text-[10px] font-bold text-primary border border-primary/30 px-4 h-9 rounded-lg hover:bg-primary/10 transition-colors uppercase tracking-widest"
@@ -433,127 +524,205 @@ export default function ExpensesPage() {
           {/* Expense Table Container */}
           <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm">
             {/* Desktop Table */}
-            <table className="hidden md:table w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border-dark bg-background-dark/30">
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Despesa</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor (R$)</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-dark">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-sm text-slate-500">Carregando despesas...</p>
-                      </div>
-                    </td>
+            <div className="hidden md:block">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border-dark bg-background-dark/30">
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data / Tipo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Detalhes da Viagem</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reembolso</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor (R$)</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
                   </tr>
-                ) : expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
-                      Nenhuma despesa encontrada com os filtros selecionados.
-                    </td>
-                  </tr>
-                ) : expenses.map((exp, i) => {
-                  const Icon = getIcon(exp.type);
-                  return (
-                    <React.Fragment key={exp.id || i}>
-                      <tr className="hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-4 text-sm text-slate-400">
-                          {new Date(exp.date).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium text-white">{exp.type}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500 font-mono">
-                          {exp.vehicle?.plate || '-'}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-bold text-white">
-                          {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={cn(
-                            "px-2 py-1 rounded-full text-[9px] font-bold uppercase border",
-                            exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                          )}>
-                            {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {deleteConfirmId === exp.id ? (
-                              <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
-                                <button 
-                                  onClick={() => handleDelete(exp.id)}
-                                  disabled={isDeleting}
-                                  className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                  {isDeleting ? (
-                                    <>
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                      Excluindo...
-                                    </>
-                                  ) : (
-                                    'Confirmar'
-                                  )}
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    setDeleteConfirmId(null);
-                                    setErrorId(null);
-                                  }}
-                                  disabled={isDeleting}
-                                  className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
-                                >
-                                  Sair
-                                </button>
+                </thead>
+                <tbody className="divide-y divide-border-dark">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                          <p className="text-sm text-slate-500">Carregando despesas...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : expenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
+                        Nenhuma despesa encontrada com os filtros selecionados.
+                      </td>
+                    </tr>
+                  ) : expenses.map((exp, i) => {
+                    const Icon = getIcon(exp.type);
+                    return (
+                      <React.Fragment key={exp.id || i}>
+                        <tr className="hover:bg-white/5 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              <p className="text-xs text-slate-400">
+                                {new Date(exp.date).toLocaleDateString('pt-BR')}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Icon className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-sm font-medium text-white">{exp.type}</span>
                               </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-500 font-mono">
+                            {exp.vehicle?.plate || '-'}
+                          </td>
+                          <td className="px-6 py-4">
+                            {exp.tripId ? (
+                              <Link 
+                                href={`/routes?highlight=${exp.tripId}&month=${new Date(exp.date).getMonth() + 1}&year=${new Date(exp.date).getFullYear()}`}
+                                className="block space-y-1 hover:bg-primary/5 p-1 rounded-lg transition-colors group/trip"
+                              >
+                                <p className="text-sm text-white font-medium group-hover/trip:text-primary transition-colors">
+                                  {exp.trip?.frete?.cidade || '-'}
+                                </p>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                  {exp.trip?.romaneio && (
+                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                      ROMANEIO: {exp.trip.romaneio}
+                                    </span>
+                                  )}
+                                  {exp.trip?.contract && (
+                                    <span className="text-[10px] text-slate-500 font-mono">
+                                      CONTRATO: {exp.trip.contract}
+                                    </span>
+                                  )}
+                                  {!exp.trip?.romaneio && !exp.trip?.contract && <span className="text-[10px] text-slate-500">-</span>}
+                                </div>
+                              </Link>
                             ) : (
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                                <button 
-                                  onClick={() => handleOpenDrawer(exp)}
-                                  className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    setDeleteConfirmId(exp.id);
-                                    setErrorId(null);
-                                  }}
-                                  className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                              <div className="space-y-1">
+                                <p className="text-sm text-white font-medium">{exp.trip?.frete?.cidade || '-'}</p>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                                  {exp.trip?.romaneio && (
+                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                      ROMANEIO: {exp.trip.romaneio}
+                                    </span>
+                                  )}
+                                  {exp.trip?.contract && (
+                                    <span className="text-[10px] text-slate-500 font-mono">
+                                      CONTRATO: {exp.trip.contract}
+                                    </span>
+                                  )}
+                                  {!exp.trip?.romaneio && !exp.trip?.contract && <span className="text-[10px] text-slate-500">-</span>}
+                                </div>
                               </div>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                      {errorId === exp.id && (
-                        <tr id={`error-expense-${exp.id}`} className="bg-rose-500/5 animate-in slide-in-from-top-1 duration-200">
-                          <td colSpan={10} className="px-6 py-3">
-                            <div className="flex items-center gap-2 text-rose-400 text-xs font-medium">
-                              <AlertCircle className="w-4 h-4" />
-                              <span>{error}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                exp.reimbursable ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-500"
+                              )}>
+                                {exp.reimbursable ? 'REEMBOLSÁVEL' : 'NÃO'}
+                              </span>
+                              {exp.reimbursementDate && (
+                                <p className="text-[10px] text-slate-500">
+                                  Pago em: {new Date(exp.reimbursementDate).toLocaleDateString('pt-BR')}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-bold text-white">
+                            {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-[9px] font-bold uppercase border",
+                              exp.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                            )}>
+                              {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {deleteConfirmId === exp.id ? (
+                                <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                                  <button 
+                                    onClick={() => handleDelete(exp.id)}
+                                    disabled={isDeleting}
+                                    className="px-3 py-1 bg-rose-500 text-white text-[10px] font-bold rounded hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                  >
+                                    {isDeleting ? (
+                                      <>
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        Excluindo...
+                                      </>
+                                    ) : (
+                                      'Confirmar'
+                                    )}
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setDeleteConfirmId(null);
+                                      setErrorId(null);
+                                    }}
+                                    disabled={isDeleting}
+                                    className="px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
+                                  >
+                                    Sair
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-2">
+                                  <button 
+                                    onClick={() => handleOpenDrawer(exp)}
+                                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setDeleteConfirmId(exp.id);
+                                      setErrorId(null);
+                                    }}
+                                    className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {errorId === exp.id && (
+                          <tr id={`error-expense-${exp.id}`} className="bg-rose-500/5 animate-in slide-in-from-top-1 duration-200">
+                            <td colSpan={7} className="px-6 py-3">
+                              <div className="flex items-center gap-2 text-rose-400 text-xs font-medium">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>{error}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                  {/* Total Row */}
+                  {!isLoading && expenses.length > 0 && (
+                    <tr className="bg-background-dark/50 font-bold border-t border-border-dark">
+                      <td colSpan={4} className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">
+                        Total:
+                      </td>
+                      <td className="px-6 py-4 text-sm text-white">
+                        {showValues 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                              expenses.reduce((sum, exp) => sum + exp.value, 0)
+                            ) 
+                          : '******'}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-border-dark">
@@ -596,6 +765,37 @@ export default function ExpensesPage() {
                           {showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp.value) : '******'}
                         </p>
                       </div>
+
+                      {(exp.reimbursable || exp.trip) && (
+                        <div className="pt-2 border-t border-border-dark/50 space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            {exp.trip?.romaneio && (
+                              <div className="col-span-2 bg-primary/5 p-2 rounded border border-primary/10">
+                                <span className="text-primary uppercase font-bold text-[8px] block">Romaneio</span>
+                                <span className="text-white font-bold text-xs">{exp.trip.romaneio}</span>
+                              </div>
+                            )}
+                            {exp.trip?.frete?.cidade && (
+                              <div>
+                                <span className="text-slate-500 uppercase font-bold block">Destino</span>
+                                <span className="text-slate-300">{exp.trip.frete.cidade}</span>
+                              </div>
+                            )}
+                            {exp.reimbursable && (
+                              <div>
+                                <span className="text-slate-500 uppercase font-bold block">Reembolsável</span>
+                                <span className="text-emerald-500 font-bold">SIM</span>
+                              </div>
+                            )}
+                            {exp.reimbursementDate && (
+                              <div>
+                                <span className="text-slate-500 uppercase font-bold block">Data Pgto</span>
+                                <span className="text-slate-300">{new Date(exp.reimbursementDate).toLocaleDateString('pt-BR')}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-end gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                         {deleteConfirmId === exp.id ? (
@@ -657,6 +857,19 @@ export default function ExpensesPage() {
                   </div>
                 );
               })}
+              {/* Mobile Total Row */}
+              {!isLoading && expenses.length > 0 && (
+                <div className="p-4 bg-background-dark/50 border-t border-border-dark flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total</span>
+                  <span className="text-sm font-bold text-white">
+                    {showValues 
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          expenses.reduce((sum, exp) => sum + exp.value, 0)
+                        ) 
+                      : '******'}
+                  </span>
+                </div>
+              )}
             </div>
             
             <div className="px-6 py-4 bg-background-dark/30 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -803,6 +1016,71 @@ export default function ExpensesPage() {
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
                 </div>
               </div>
+
+              <div className={cn("flex items-center gap-2 py-2", !formData.vehicleId && "opacity-50 cursor-not-allowed")}>
+                <input 
+                  type="checkbox" 
+                  id="reimbursable"
+                  disabled={!formData.vehicleId}
+                  className="w-4 h-4 rounded border-border-dark bg-surface-dark text-primary focus:ring-primary focus:ring-offset-background-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                  checked={formData.reimbursable}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setFormData({ 
+                      ...formData, 
+                      reimbursable: isChecked,
+                      status: isChecked ? 'PENDING' : formData.status
+                    });
+                  }}
+                />
+                <label htmlFor="reimbursable" className={cn("text-sm font-bold text-white cursor-pointer", !formData.vehicleId && "cursor-not-allowed")}>
+                  Despesa Reembolsável?
+                </label>
+              </div>
+
+              {formData.reimbursable && (
+                <div className="p-4 bg-surface-dark/50 border border-border-dark rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Dados de Reembolso</h4>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Associar uma Viagem</label>
+                    <div className="relative">
+                      <select 
+                        className="w-full px-4 py-3 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white appearance-none disabled:opacity-50"
+                        value={formData.tripId}
+                        onChange={(e) => setFormData({ ...formData, tripId: e.target.value })}
+                        disabled={isTripsLoading}
+                      >
+                        <option value="">{isTripsLoading ? '...Carregando Viagens' : 'Selecione'}</option>
+                        {recentTrips.map(trip => (
+                          <option key={trip.id} value={trip.id}>
+                            {new Date(trip.scheduledAt).toLocaleDateString('pt-BR')} - {trip.romaneio || 'S/R'} - {trip.route?.destination || trip.frete?.cidade || 'S/D'} - {trip.contract || 'S/C'}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setTripDays(prev => prev + 7)}
+                      className="text-[8px] font-bold text-sky-400 hover:text-sky-300 hover:underline transition-all flex items-center gap-1 mt-1 w-fit"
+                    >
+                      <Plus className="w-2 h-2" />
+                      Carregar + 7 Dias
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data Pgto Reembolso</label>
+                    <input 
+                      className="w-full px-4 py-3 bg-background-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white [color-scheme:dark]"
+                      type="date"
+                      value={formData.reimbursementDate}
+                      onChange={(e) => setFormData({ ...formData, reimbursementDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status do Pagamento</label>

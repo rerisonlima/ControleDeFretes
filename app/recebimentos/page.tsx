@@ -190,19 +190,26 @@ export default function RecebimentosPage() {
           {showValues ? formatCurrency(value) : '******'}
         </p>
 
-        {showTripsCount && stats?.totalTrips !== undefined && (
-          <div className="mt-2 flex flex-col gap-1.5">
+        <div className="mt-2 flex flex-col gap-1.5">
+          {showTripsCount && stats?.totalTrips !== undefined && (
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">
                 {stats.totalTrips} Viagens Totais
               </span>
             </div>
-          </div>
-        )}
+          )}
+          {breakdown.find(b => b.name === 'Reembolso') && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                Reembolso: {showValues ? formatCurrency(breakdown.find(b => b.name === 'Reembolso')![breakdownType]) : '******'}
+              </span>
+            </div>
+          )}
+        </div>
         
         <div className="mt-6 pt-4 border-t border-border-dark space-y-3">
           <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Por Contratante</h4>
-          {breakdown.slice(0, 5).map((item, idx) => {
+          {breakdown.filter(b => b.name !== 'Reembolso').slice(0, 5).map((item, idx) => {
             const itemVal = item[breakdownType];
             const percentage = totalVal > 0 ? ((itemVal / totalVal) * 100).toFixed(1) + '%' : '0%';
             return (

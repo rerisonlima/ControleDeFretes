@@ -383,13 +383,20 @@ export default function Dashboard() {
                           </span>
                         </div>
                       )}
+                      {stat.label === 'RECEITA TOTAL' && stat.breakdown?.find(b => b.name === 'Reembolso') && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest">
+                            Reembolso: {showValues ? stat.breakdown.find(b => b.name === 'Reembolso')?.value : '******'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                   
                   {stat.breakdown && stat.breakdown.length > 0 && (
                     <div className="mt-6 pt-4 border-t border-border-dark space-y-3">
                       {stat.label === 'RECEITA TOTAL' && (
-                        <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Total Viagens</h4>
+                        <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Composição da Receita</h4>
                       )}
                       {stat.label === 'PRÓXIMAS MANUTENÇÕES' ? (
                         <div className="grid grid-cols-1 gap-4">

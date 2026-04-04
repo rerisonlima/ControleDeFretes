@@ -129,6 +129,7 @@ function RoutesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
+  const highlightId = searchParams.get('highlight');
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -166,6 +167,19 @@ function RoutesPageContent() {
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalRecords, setTotalRecords] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Scroll to highlight
+  React.useEffect(() => {
+    if (highlightId && !loading && trips.length > 0) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`trip-row-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, loading, trips]);
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -1126,7 +1140,11 @@ function RoutesPageContent() {
                 ) : filteredTrips.map((trip) => (
                   <React.Fragment key={trip.id}>
                     <tr 
-                      className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      id={`trip-row-${trip.id}`}
+                      className={cn(
+                        "hover:bg-white/5 transition-colors group cursor-pointer",
+                        trip.id.toString() === highlightId && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse duration-1000"
+                      )}
                       onClick={() => handleOpenDrawer(trip)}
                     >
                       <td className={cn(
@@ -1271,9 +1289,11 @@ function RoutesPageContent() {
                 className="space-y-0"
               >
                 <div 
+                  id={`trip-card-${trip.id}`}
                   className={cn(
                     "bg-surface-dark border border-border-dark rounded-2xl p-4 space-y-4 relative overflow-hidden",
-                    (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+                    (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : "",
+                    trip.id.toString() === highlightId && "ring-2 ring-primary animate-pulse"
                   )}
                   onClick={() => handleOpenDrawer(trip)}
                 >

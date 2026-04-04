@@ -10,6 +10,8 @@ export async function GET(request: Request) {
     const vehicleId = searchParams.get('vehicleId');
     const month = searchParams.get('month');
     const year = searchParams.get('year');
+    const reimbursable = searchParams.get('reimbursable');
+    const status = searchParams.get('status');
 
     const skip = (page - 1) * limit;
 
@@ -21,6 +23,14 @@ export async function GET(request: Request) {
 
     if (vehicleId && vehicleId !== 'Todos') {
       where.vehicleId = parseInt(vehicleId);
+    }
+
+    if (reimbursable && reimbursable !== 'Todos') {
+      where.reimbursable = reimbursable === 'Sim';
+    }
+
+    if (status && status !== 'Todos') {
+      where.status = status;
     }
 
     if (month && year) {
@@ -42,6 +52,18 @@ export async function GET(request: Request) {
               plate: true,
             },
           },
+          trip: {
+            select: {
+              id: true,
+              tripId: true,
+              scheduledAt: true,
+              romaneio: true,
+              contract: true,
+              frete: {
+                select: { cidade: true }
+              }
+            }
+          }
         },
         orderBy: { date: 'desc' },
         skip,
@@ -77,9 +99,13 @@ export async function POST(request: Request) {
         date: new Date(`${body.date}T12:00:00Z`),
         vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
         status: body.status || 'PAID',
+        reimbursable: body.reimbursable || false,
+        reimbursementDate: body.reimbursementDate ? new Date(`${body.reimbursementDate}T12:00:00Z`) : null,
+        tripId: body.tripId ? parseInt(body.tripId) : null,
       },
       include: {
-        vehicle: true
+        vehicle: true,
+        trip: true
       }
     });
 

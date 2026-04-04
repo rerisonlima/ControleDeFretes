@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       }),
       prisma.expense.findMany({
         where: { date: { gte: prevStartDate, lte: prevEndDate } },
-        select: { value: true }
+        select: { value: true, reimbursable: true }
       }),
       prisma.maintenance.findMany({
         where: { 
@@ -107,12 +107,19 @@ export async function GET(request: Request) {
     const filteredExpenses = currentMonthExpenses.filter(e => e.date >= startDate && e.date <= endDate);
 
     // Calculate Totals
-    const totalRevenue = filteredTrips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const totalReimbursement = filteredExpenses
+      .filter(e => e.reimbursable)
+      .reduce((sum, e) => sum + (e.value || 0), 0);
+    
+    const totalRevenue = filteredTrips.reduce((sum, t) => sum + (t.value || 0), 0) + totalReimbursement;
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
     const totalTripsCount = filteredTrips.length;
     const profit = totalRevenue - totalExpenses;
 
-    const prevRevenue = prevMonthTrips.reduce((sum, t) => sum + (t.value || 0), 0);
+    const prevReimbursement = prevMonthExpenses
+      .filter(e => e.reimbursable)
+      .reduce((sum, e) => sum + (e.value || 0), 0);
+    const prevRevenue = prevMonthTrips.reduce((sum, t) => sum + (t.value || 0), 0) + prevReimbursement;
     const prevExpensesVal = prevMonthExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
     const prevProfit = prevRevenue - prevExpensesVal;
 
@@ -135,6 +142,17 @@ export async function GET(request: Request) {
         rawCount: stats.count
       }))
       .sort((a, b) => b.rawCount - a.rawCount);
+
+    // Add Reimbursement to breakdown
+    if (totalReimbursement > 0) {
+      revenueBreakdown.push({
+        name: 'Reembolso',
+        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReimbursement),
+        percentage: totalRevenue > 0 ? ((totalReimbursement / totalRevenue) * 100).toFixed(1) + '%' : '0%',
+        rawVal: totalReimbursement,
+        rawCount: 0
+      });
+    }
 
     // Expense by Type
     const expenseByTypeMap = new Map<string, number>();
