@@ -99,6 +99,7 @@ interface Vehicle {
   model: string;
   categoriaId: number;
   status: string;
+  lastOdometer?: number;
 }
 
 interface Employee {
@@ -144,6 +145,10 @@ function RoutesPageContent() {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
+  const vehiclesRef = React.useRef<Vehicle[]>([]);
+  React.useEffect(() => {
+    vehiclesRef.current = vehicles;
+  }, [vehicles]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [contratantes, setContratantes] = React.useState<Contratante[]>([]);
   const [fretes, setFretes] = React.useState<Frete[]>([]);
@@ -159,6 +164,7 @@ function RoutesPageContent() {
   const [error, setError] = React.useState('');
   const [errorId, setErrorId] = React.useState<number | null>(null);
   const [isNavigatingToExpenses, setIsNavigatingToExpenses] = React.useState(false);
+  const [lastOdometer, setLastOdometer] = React.useState<number>(0);
   const errorRef = React.useRef<HTMLDivElement>(null);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
@@ -207,6 +213,8 @@ function RoutesPageContent() {
   const handleOpenDrawer = React.useCallback((trip: Trip | null = null, shouldOpen: boolean = true) => {
     if (trip) {
       setSelectedTrip(trip);
+      const selectedVehicle = vehiclesRef.current.find(v => v.id === trip.vehicleId);
+      setLastOdometer(selectedVehicle?.lastOdometer || 0);
       setFormData({
         tripId: trip.tripId,
         routeId: trip.routeId?.toString() || '',
@@ -230,6 +238,7 @@ function RoutesPageContent() {
       });
     } else {
       setSelectedTrip(null);
+      setLastOdometer(0);
       setFormData({
         tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
         routeId: '',
@@ -375,6 +384,9 @@ function RoutesPageContent() {
             value={formData.vehicleId}
             onChange={(e) => {
               const vehicleId = e.target.value;
+              const selectedVehicle = vehicles.find(v => v.id.toString() === vehicleId);
+              setLastOdometer(selectedVehicle?.lastOdometer || 0);
+              
               setFormData(prev => ({
                 ...prev, 
                 vehicleId,
@@ -405,7 +417,10 @@ function RoutesPageContent() {
             <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
             <input 
               ref={odometerRef}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(
+                "w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed",
+                formData.odometer && Number(formData.odometer) < lastOdometer && "border-rose-500 focus:ring-rose-500 focus:border-rose-500"
+              )}
               placeholder="Km Inicial"
               type="number"
               value={formData.odometer}
@@ -414,6 +429,11 @@ function RoutesPageContent() {
               disabled={!formData.vehicleId}
             />
           </div>
+          {formData.odometer && Number(formData.odometer) < lastOdometer && (
+            <p className="text-[10px] text-rose-500 font-bold animate-in fade-in slide-in-from-top-1">
+              Odômetro atual não pode ser menor do que o anterior ({lastOdometer} km)
+            </p>
+          )}
         </div>
 
         <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
@@ -719,6 +739,7 @@ function RoutesPageContent() {
       }
       
       setVehicles(vehiclesData);
+      vehiclesRef.current = vehiclesData;
       setEmployees(employeesData);
       setContratantes(contratantesData);
       setFretes(fretesData);
@@ -742,6 +763,12 @@ function RoutesPageContent() {
   }, [fetchData]);
 
   const handleSave = async () => {
+    if (formData.odometer && Number(formData.odometer) < lastOdometer) {
+      alert(`Odômetro atual não pode ser menor do que o anterior (${lastOdometer} km)`);
+      odometerRef.current?.focus();
+      return;
+    }
+
     if (!formData.romaneio || formData.romaneio.trim() === '') {
       alert('O campo Romaneio é obrigatório e deve conter apenas números.');
       romaneioRef.current?.focus();
@@ -1177,9 +1204,15 @@ function RoutesPageContent() {
                         <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <Truck className="w-4 h-4 text-slate-500" />
-                          <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Gauge className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 font-mono font-medium text-slate-300">
@@ -1327,9 +1360,15 @@ function RoutesPageContent() {
                   <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
-                      <div className="flex items-center gap-2 text-sm text-slate-300">
-                        <Truck className="w-3.5 h-3.5" />
-                        {trip.vehicle?.plate || 'N/A'}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-sm text-slate-300">
+                          <Truck className="w-3.5 h-3.5" />
+                          {trip.vehicle?.plate || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-3 h-3 text-primary" />
+                          <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-1">

@@ -10,11 +10,22 @@ export async function GET(req: Request) {
 
     const vehicles = await prisma.vehicle.findMany({
       include: {
-        categoria: true
+        categoria: true,
+        trips: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 1,
+          select: { odometer: true }
+        }
       },
       orderBy: { updatedAt: 'desc' }
     });
-    return NextResponse.json(vehicles);
+
+    const vehiclesWithLastOdometer = vehicles.map(v => ({
+      ...v,
+      lastOdometer: v.trips[0]?.odometer || 0
+    }));
+
+    return NextResponse.json(vehiclesWithLastOdometer);
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -979,13 +979,21 @@ export default function ExpensesPage() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold text-sm">R$</span>
                   <input 
-                    className="w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700"
+                    className={cn(
+                      "w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-lg focus:ring-2 focus:ring-primary outline-none text-white placeholder:text-slate-700",
+                      (formData.type === 'Combustível' || formData.type === 'Pedágio') && Number(formData.value) > 1000 && "border-yellow-500 focus:ring-yellow-500"
+                    )}
                     placeholder="0,00"
                     type="number"
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                   />
                 </div>
+                {(formData.type === 'Combustível' || formData.type === 'Pedágio') && Number(formData.value) > 1000 && (
+                  <p className="text-[10px] text-yellow-500 font-bold animate-in fade-in slide-in-from-top-1">
+                    Valor acima da média
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
