@@ -23,7 +23,9 @@ import {
   Loader2,
   Gauge,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -76,6 +78,7 @@ interface Trip {
   contratante?: { ContratanteNome: string };
   createdBy?: { name: string; username: string };
   createdAt: string;
+  expenses?: Expense[];
   frete?: { 
     cidade: string; 
     valorFrete: number; 
@@ -126,6 +129,19 @@ interface Frete {
   valor2aViagemAjudante: number;
 }
 
+interface Expense {
+  id: number;
+  date: string;
+  type: string;
+  description?: string | null;
+  value: number;
+  status: string;
+  vehicleId: number | null;
+  reimbursable?: boolean;
+  reimbursementDate?: string | null;
+  tripId?: number | null;
+}
+
 function RoutesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -165,6 +181,7 @@ function RoutesPageContent() {
   const [errorId, setErrorId] = React.useState<number | null>(null);
   const [isNavigatingToExpenses, setIsNavigatingToExpenses] = React.useState(false);
   const [lastOdometer, setLastOdometer] = React.useState<number>(0);
+  const [pendingReimbursements, setPendingReimbursements] = React.useState<Expense[]>([]);
   const errorRef = React.useRef<HTMLDivElement>(null);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
@@ -172,6 +189,7 @@ function RoutesPageContent() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalRecords, setTotalRecords] = React.useState(0);
+  const [showValues, setShowValues] = React.useState(false);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Scroll to highlight
@@ -207,14 +225,15 @@ function RoutesPageContent() {
     contract: '',
     odometer: '',
     romaneio: '',
-    paymentDate: ''
+    paymentDate: '',
+    reimbursementDate: '',
+    reimbursementPaid: 'não'
   });
 
-  const handleOpenDrawer = React.useCallback((trip: Trip | null = null, shouldOpen: boolean = true) => {
+  const handleOpenDrawer = React.useCallback(async (trip: Trip | null = null, shouldOpen: boolean = true) => {
     if (trip) {
       setSelectedTrip(trip);
-      const selectedVehicle = vehiclesRef.current.find(v => v.id === trip.vehicleId);
-      setLastOdometer(selectedVehicle?.lastOdometer || 0);
+      setPendingReimbursements([]);
       setFormData({
         tripId: trip.tripId,
         routeId: trip.routeId?.toString() || '',
@@ -234,11 +253,26 @@ function RoutesPageContent() {
         contract: trip.contract || '',
         odometer: trip.odometer?.toString() || '',
         romaneio: trip.romaneio || '',
-        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : ''
+        paymentDate: trip.paymentDate ? safeFormat(trip.paymentDate, 'yyyy-MM-dd') : '',
+        reimbursementDate: '',
+        reimbursementPaid: 'não'
       });
+
+      // Fetch full trip details to get pending reimbursements
+      try {
+        const res = await fetch(`/api/trips/${trip.id}`);
+        if (res.ok) {
+          const fullTrip = await res.json();
+          if (fullTrip.expenses) {
+            setPendingReimbursements(fullTrip.expenses);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching trip details:', error);
+      }
     } else {
       setSelectedTrip(null);
-      setLastOdometer(0);
+      setPendingReimbursements([]);
       setFormData({
         tripId: `TRIP-${Math.floor(1000 + Math.random() * 9000)}`,
         routeId: '',
@@ -258,7 +292,9 @@ function RoutesPageContent() {
         contract: '',
         odometer: '',
         romaneio: '',
-        paymentDate: ''
+        paymentDate: '',
+        reimbursementDate: '',
+        reimbursementPaid: 'não'
       });
     }
     if (shouldOpen) {
@@ -384,8 +420,6 @@ function RoutesPageContent() {
             value={formData.vehicleId}
             onChange={(e) => {
               const vehicleId = e.target.value;
-              const selectedVehicle = vehicles.find(v => v.id.toString() === vehicleId);
-              setLastOdometer(selectedVehicle?.lastOdometer || 0);
               
               setFormData(prev => ({
                 ...prev, 
@@ -663,10 +697,10 @@ function RoutesPageContent() {
           <hr className="border-border-dark" />
 
           {/* Payment Info */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-emerald-500" />
-              <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento</h4>
+              <h4 className="font-bold text-[10px] uppercase tracking-widest text-emerald-500">Informações de Pagamento da Viagem</h4>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -695,6 +729,79 @@ function RoutesPageContent() {
               </div>
             </div>
           </div>
+
+          {pendingReimbursements.length > 0 && (
+            <div className="space-y-6 pt-6 border-t border-border-dark/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-amber-500" />
+                  <h4 className="font-bold text-[10px] uppercase tracking-widest text-amber-500">Informações de Reembolso</h4>
+                </div>
+                {formData.paymentDate && !formData.reimbursementDate && (
+                  <button 
+                    onClick={() => setFormData(prev => ({ ...prev, reimbursementDate: formData.paymentDate, reimbursementPaid: 'sim' }))}
+                    className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Copy className="w-3 h-3" /> Repetir data da viagem
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 space-y-3">
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Despesas Pendentes</p>
+                  <div className="space-y-2">
+                    {pendingReimbursements.map((expense) => (
+                      <div key={expense.id} className="flex items-center justify-between text-xs py-2 border-b border-amber-500/10 last:border-0">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-white">{expense.type}</span>
+                          <span className="text-slate-500">{expense.description || 'Sem descrição'}</span>
+                        </div>
+                        <span className="font-mono font-bold text-amber-500">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.value)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-2 border-t border-amber-500/20">
+                      <span className="text-xs font-bold text-amber-500 uppercase">Total a Reembolsar</span>
+                      <span className="text-sm font-bold text-amber-500">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          pendingReimbursements.reduce((acc, curr) => acc + curr.value, 0)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Reembolso Pago</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none"
+                      value={formData.reimbursementPaid}
+                      onChange={(e) => setFormData({...formData, reimbursementPaid: e.target.value})}
+                    >
+                      <option value="não">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2" title={formData.reimbursementPaid === 'não' ? "Primeiro altere o status para 'Sim'" : ""}>
+                    <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pgto Reembolso</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                      <input 
+                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
+                        type="date"
+                        value={formData.reimbursementDate}
+                        onChange={(e) => setFormData({...formData, reimbursementDate: e.target.value})}
+                        disabled={formData.reimbursementPaid === 'não'}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -705,6 +812,26 @@ function RoutesPageContent() {
       handleOpenDrawer(null, false);
     }
   }, [user, formData.tripId, handleOpenDrawer]);
+
+  React.useEffect(() => {
+    const fetchPreviousOdometer = async () => {
+      if (formData.vehicleId && formData.scheduledAt) {
+        try {
+          const res = await fetch(`/api/trips/previous-odometer?vehicleId=${formData.vehicleId}&date=${formData.scheduledAt}${selectedTrip ? `&excludeTripId=${selectedTrip.tripId}` : ''}`);
+          if (res.ok) {
+            const data = await res.json();
+            setLastOdometer(data.odometer);
+          }
+        } catch (error) {
+          console.error('Error fetching previous odometer:', error);
+        }
+      }
+    };
+
+    if (isDrawerOpen) {
+      fetchPreviousOdometer();
+    }
+  }, [formData.vehicleId, formData.scheduledAt, isDrawerOpen, selectedTrip]);
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -783,7 +910,11 @@ function RoutesPageContent() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          reimbursementDate: formData.reimbursementDate,
+          reimbursementPaid: formData.reimbursementPaid
+        })
       });
 
       if (response.ok) {
@@ -1092,6 +1223,15 @@ function RoutesPageContent() {
                   <option value="unpaid">Não Pagos</option>
                 </select>
               </div>
+
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="flex items-center justify-center px-3 py-1.5 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px] w-full lg:w-auto"
+                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+              >
+                {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1216,7 +1356,9 @@ function RoutesPageContent() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-mono font-medium text-slate-300">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                        {showValues 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)
+                          : '******'}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -1374,7 +1516,9 @@ function RoutesPageContent() {
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
                       <p className="text-sm font-bold text-primary">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)}
+                        {showValues 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)
+                          : '******'}
                       </p>
                     </div>
                   </div>

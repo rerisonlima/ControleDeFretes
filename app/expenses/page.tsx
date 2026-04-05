@@ -1065,7 +1065,7 @@ export default function ExpensesPage() {
                         <option value="">{isTripsLoading ? '...Carregando Viagens' : 'Selecione'}</option>
                         {recentTrips.map(trip => (
                           <option key={trip.id} value={trip.id}>
-                            {new Date(trip.scheduledAt).toLocaleDateString('pt-BR')} - {trip.romaneio || 'S/R'} - {trip.route?.destination || trip.frete?.cidade || 'S/D'} - {trip.contract || 'S/C'}
+                            {new Date(trip.scheduledAt).toLocaleDateString('pt-BR')} - {trip.contratante?.ContratanteNome || 'S/C'} - {trip.romaneio || 'S/R'} - {trip.route?.destination || trip.frete?.cidade || 'S/D'}
                           </option>
                         ))}
                       </select>
@@ -1074,7 +1074,7 @@ export default function ExpensesPage() {
                     <button 
                       type="button"
                       onClick={() => setTripDays(prev => prev + 7)}
-                      className="text-[8px] font-bold text-sky-400 hover:text-sky-300 hover:underline transition-all flex items-center gap-1 mt-1 w-fit"
+                      className="text-[10px] font-bold text-sky-400 hover:text-sky-300 hover:underline transition-all flex items-center gap-1 mt-1 w-fit"
                     >
                       <Plus className="w-2 h-2" />
                       Carregar + 7 Dias
