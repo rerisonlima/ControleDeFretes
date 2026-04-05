@@ -71,6 +71,19 @@ export async function DELETE(
 ) {
   try {
     const id = parseInt(params.id);
+    
+    // Check if expense has a payment date
+    const expense = await prisma.expense.findUnique({
+      where: { id },
+      select: { reimbursementDate: true }
+    });
+
+    if (expense?.reimbursementDate) {
+      return NextResponse.json({ 
+        error: 'Não é possível apagar uma despesa que possui data de pagamento. Por favor, apague a data do pagamento primeiro.' 
+      }, { status: 400 });
+    }
+
     await prisma.expense.delete({
       where: { id },
     });

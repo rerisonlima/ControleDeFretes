@@ -295,6 +295,22 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: number) => {
+    const expenseToDelete = expenses.find(e => e.id === id);
+    if (expenseToDelete?.reimbursementDate) {
+      setError('Não é possível apagar uma despesa que possui data de pagamento. Por favor, apague a data do pagamento primeiro.');
+      setErrorId(id);
+      setDeleteConfirmId(null);
+      setTimeout(() => {
+        const element = document.getElementById(`error-expense-${id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
+
     setError('');
     setErrorId(null);
     setIsDeleting(true);
@@ -557,7 +573,7 @@ export default function ExpensesPage() {
                     const Icon = getIcon(exp.type);
                     return (
                       <React.Fragment key={exp.id || i}>
-                        <tr className="hover:bg-white/5 transition-colors group">
+                        <tr className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => handleOpenDrawer(exp)}>
                           <td className="px-6 py-4">
                             <div className="space-y-1">
                               <p className="text-xs text-slate-400">
@@ -577,6 +593,7 @@ export default function ExpensesPage() {
                               <Link 
                                 href={`/routes?highlight=${exp.tripId}&month=${new Date(exp.date).getMonth() + 1}&year=${new Date(exp.date).getFullYear()}`}
                                 className="block space-y-1 hover:bg-primary/5 p-1 rounded-lg transition-colors group/trip"
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <p className="text-sm text-white font-medium group-hover/trip:text-primary transition-colors">
                                   {exp.trip?.frete?.cidade || '-'}
@@ -640,7 +657,7 @@ export default function ExpensesPage() {
                               {exp.status === 'PAID' ? 'PAGO' : 'PENDENTE'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
                               {deleteConfirmId === exp.id ? (
                                 <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">

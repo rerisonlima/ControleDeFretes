@@ -165,9 +165,35 @@ export async function DELETE(
 ) {
   try {
     const id = parseInt(params.id);
-    await prisma.trip.delete({
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'ID de viagem inválido' }, { status: 400 });
+    }
+
+    // Check if trip has a payment date
+    const trip = await prisma.trip.findUnique({
       where: { id },
+      select: { paymentDate: true }
     });
+
+    if (trip?.paymentDate) {
+      return NextResponse.json({ 
+        error: 'Não é possível apagar uma viagem que possui data de pagamento. Por favor, apague a data do pagamento primeiro.' 
+      }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Unlink expenses from this trip before deleting it
+      await tx.expense.updateMany({
+        where: { tripId: id },
+        data: { tripId: null }
+      });
+
+      // Delete the trip
+      await tx.trip.delete({
+        where: { id },
+      });
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete trip:', error);

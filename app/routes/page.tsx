@@ -960,6 +960,22 @@ function RoutesPageContent() {
   };
 
   const handleDelete = async (id: number) => {
+    const tripToDelete = trips.find(t => t.id === id);
+    if (tripToDelete?.paymentDate) {
+      setError('Não é possível apagar uma viagem que possui data de pagamento. Por favor, apague a data do pagamento primeiro.');
+      setErrorId(id);
+      setDeleteConfirmId(null);
+      setTimeout(() => {
+        const element = document.getElementById(`error-trip-${id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
+
     setError('');
     setErrorId(null);
     setIsDeleting(true);
