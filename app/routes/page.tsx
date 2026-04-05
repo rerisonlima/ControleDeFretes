@@ -825,13 +825,15 @@ function RoutesPageContent() {
         } catch (error) {
           console.error('Error fetching previous odometer:', error);
         }
+      } else {
+        setLastOdometer(0);
       }
     };
 
-    if (isDrawerOpen) {
+    if (isDrawerOpen || user?.role === 'OPERATOR') {
       fetchPreviousOdometer();
     }
-  }, [formData.vehicleId, formData.scheduledAt, isDrawerOpen, selectedTrip]);
+  }, [formData.vehicleId, formData.scheduledAt, isDrawerOpen, selectedTrip, user?.role]);
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);

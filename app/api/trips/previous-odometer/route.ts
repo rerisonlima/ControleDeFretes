@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       ];
     } else {
       where.scheduledAt = {
-        lt: scheduledAt
+        lte: scheduledAt
       };
     }
 
