@@ -61,6 +61,7 @@ interface DashboardStat {
       value: string; 
       percentage: string; 
       isOverdue: boolean;
+      isClose?: boolean;
       remainingKms?: number;
       overdueKms?: number;
     }[];
@@ -433,9 +434,11 @@ export default function Dashboard() {
                                             </p>
                                             <div className={cn(
                                               "px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider",
-                                              item.isOverdue ? "bg-rose-500/20 text-rose-500" : "bg-emerald-500/20 text-emerald-500"
+                                              item.isOverdue ? "bg-rose-500/20 text-rose-500" : 
+                                              item.isClose ? "bg-amber-500/20 text-amber-500" :
+                                              "bg-emerald-500/20 text-emerald-500"
                                             )}>
-                                              {item.isOverdue ? "Atrasado" : "No Prazo"}
+                                              {item.isOverdue ? "Atrasado" : item.isClose ? "Próxima" : "No Prazo"}
                                             </div>
                                           </div>
                                           
@@ -481,7 +484,9 @@ export default function Dashboard() {
                                               <div 
                                                 className={cn(
                                                   "h-full rounded-full transition-all duration-500",
-                                                  item.isOverdue ? "bg-rose-500" : "bg-primary"
+                                                  item.isOverdue ? "bg-rose-500" : 
+                                                  item.isClose ? "bg-amber-500" :
+                                                  "bg-primary"
                                                 )}
                                                 style={{ width: item.percentage }}
                                               />

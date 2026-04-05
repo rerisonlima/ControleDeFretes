@@ -224,18 +224,37 @@ export async function GET(request: Request) {
       const diff = vehicleData.latestTripOdo - registeredOdo;
       const remaining = interval - diff;
       const isOverdue = diff > interval;
+      const isClose = !isOverdue && remaining <= 500;
       
       vehicleData.maintenances.push({
         type: m.type,
-        value: isOverdue ? `Ultrapassada em ${(diff - interval).toLocaleString('pt-BR')} km` : `Faltam ${remaining.toLocaleString('pt-BR')} km`,
+        value: isOverdue ? `Manutenção Atrasada (${(diff - interval).toLocaleString('pt-BR')} km)` : `Faltam ${remaining.toLocaleString('pt-BR')} km`,
         remainingKms: isOverdue ? 0 : remaining,
         overdueKms: isOverdue ? (diff - interval) : 0,
         percentage: isOverdue ? '100%' : `${Math.max(0, Math.min(100, (diff / interval) * 100)).toFixed(1)}%`,
-        isOverdue
+        isOverdue,
+        isClose
       });
     });
 
     const maintenanceBreakdown = Array.from(maintenanceByVehicle.values());
+    const overdueCount = maintenanceData.filter((m: any) => {
+      const latestTripOdoStr = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || '0';
+      const latestTripOdo = parseInt(latestTripOdoStr.toString());
+      const registeredOdo = parseInt((m.currentOdometer || '0').toString());
+      const interval = parseInt((m.odometer || '0').toString());
+      return (latestTripOdo - registeredOdo) > interval;
+    }).length;
+
+    const closeCount = maintenanceData.filter((m: any) => {
+      const latestTripOdoStr = m.vehicle.trips[0]?.odometer || m.vehicle.currentOdometer || '0';
+      const latestTripOdo = parseInt(latestTripOdoStr.toString());
+      const registeredOdo = parseInt((m.currentOdometer || '0').toString());
+      const interval = parseInt((m.odometer || '0').toString());
+      const diff = latestTripOdo - registeredOdo;
+      const remaining = interval - diff;
+      return diff <= interval && remaining <= 500;
+    }).length;
 
     // Recent Trips
     const recentTrips = [...filteredTrips]
@@ -319,11 +338,13 @@ export async function GET(request: Request) {
         },
         { 
           label: 'PRÓXIMAS MANUTENÇÕES', 
-          value: `${maintenanceData.length} Programadas`, 
+          value: overdueCount > 0 ? `${overdueCount} Atrasada${overdueCount > 1 ? 's' : ''}` : 
+                 closeCount > 0 ? `${closeCount} Próxima${closeCount > 1 ? 's' : ''}` :
+                 `${maintenanceData.length} Programadas`, 
           change: '', 
-          trend: 'down',
+          trend: overdueCount > 0 ? 'up' : 'down',
           icon: 'Wrench',
-          color: 'text-amber-500',
+          color: overdueCount > 0 ? 'text-rose-500' : closeCount > 0 ? 'text-amber-500' : 'text-primary',
           percentage: null,
           breakdown: maintenanceBreakdown
         },

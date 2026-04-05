@@ -1017,7 +1017,10 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
-              <div className={cn("flex items-center gap-2 py-2", !formData.vehicleId && "opacity-50 cursor-not-allowed")}>
+              <div 
+                className={cn("flex items-center gap-2 py-2", !formData.vehicleId && "opacity-50 cursor-not-allowed")}
+                title={!formData.vehicleId ? "Primeiro selecione a placa do veículo" : ""}
+              >
                 <input 
                   type="checkbox" 
                   id="reimbursable"

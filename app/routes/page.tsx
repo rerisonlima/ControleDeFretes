@@ -353,7 +353,7 @@ function RoutesPageContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Data da Viagem</label>
-          <div className="relative">
+          <div className="relative" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
             <input 
               ref={scheduledAtRef}
@@ -401,7 +401,7 @@ function RoutesPageContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Odômetro</label>
-          <div className="relative">
+          <div className="relative" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
             <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4" />
             <input 
               ref={odometerRef}
@@ -416,7 +416,7 @@ function RoutesPageContent() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
           <select 
             ref={contratanteIdRef}
@@ -438,7 +438,7 @@ function RoutesPageContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : !formData.contratanteId ? "Primeiro selecione o contrato" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Rota / Destino</label>
           <select 
             ref={freteIdRef}
@@ -488,7 +488,7 @@ function RoutesPageContent() {
           </select>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Romaneio</label>
           <input 
             ref={romaneioRef}
@@ -509,7 +509,7 @@ function RoutesPageContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Motorista</label>
           <select 
             ref={driverIdRef}
@@ -528,7 +528,7 @@ function RoutesPageContent() {
             ))}
           </select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Ajudante</label>
           <select 
             ref={helperIdRef}
@@ -562,7 +562,7 @@ function RoutesPageContent() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
               <select 
                 className="w-full px-4 py-3 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -660,7 +660,7 @@ function RoutesPageContent() {
                   <option value="sim">Sim</option>
                 </select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" title={formData.paid === 'não' ? "Primeiro altere o status para 'Sim'" : ""}>
                 <label className="text-[10px] text-slate-500 uppercase tracking-widest block">Data Pagamento</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
