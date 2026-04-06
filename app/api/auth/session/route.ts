@@ -13,7 +13,7 @@ export async function GET() {
 
   // Fetch latest data from DB to get current lastLogin
   const user = await prisma.user.findUnique({
-    where: { id: session.id },
+    where: { id: Number(session.id) },
     select: {
       id: true,
       name: true,
