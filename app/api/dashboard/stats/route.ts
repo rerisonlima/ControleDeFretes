@@ -60,11 +60,23 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       prisma.trip.findMany({
         where: { scheduledAt: { gte: fullMonthStart, lte: fullMonthEnd } },
-        include: { 
-          route: { select: { destination: true } },
-          frete: { select: { cidade: true } },
-          contratante: { select: { ContratanteNome: true } },
-          vehicle: { select: { plate: true } }
+        include: {
+          route: true,
+          frete: {
+            include: {
+              categoria: true
+            }
+          },
+          contratante: true,
+          vehicle: true,
+          driver: true,
+          helper: true,
+          createdBy: {
+            select: {
+              name: true,
+              username: true
+            }
+          }
         }
       }),
       prisma.expense.findMany({
@@ -258,18 +270,7 @@ export async function GET(request: Request) {
 
     // Recent Trips
     const recentTrips = [...filteredTrips]
-      .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
-      .slice(0, 5)
-      .map(t => ({
-        route: t.frete?.cidade || t.route?.destination || 'Rota ' + t.routeId,
-        plate: t.vehicle?.plate || 'Veículo ' + t.vehicleId,
-        id: t.id,
-        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value),
-        status: t.status,
-        romaneio: t.romaneio,
-        contract: t.contratante?.ContratanteNome || t.contract || '-',
-        date: format(t.scheduledAt, "dd MMM, HH:mm", { locale: ptBR })
-      }));
+      .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';

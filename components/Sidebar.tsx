@@ -18,7 +18,8 @@ import {
   FileText,
   Wallet,
   User as UserIcon,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -70,14 +71,15 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     const r = role?.toUpperCase();
     switch (r) {
       case 'ADMIN': return 'Administrador';
+      case 'GERENTE': return 'Gerente';
       case 'OPERATOR': return 'Operador';
       default: return 'Operador';
     }
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-screen">
-      <div className="p-6 flex items-center justify-between">
+    <aside className="w-64 flex-shrink-0 border-r border-border-dark bg-background-dark flex flex-col h-[100dvh] lg:h-screen">
+      <div className="p-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="bg-primary rounded-lg p-1.5 flex items-center justify-center">
             <TruckIcon className="w-6 h-6 text-background-dark" />
@@ -97,17 +99,31 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         )}
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 mt-4">
+      <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar">
         {menuItems
           .filter(item => {
-            if (!user) return false; // Não mostra nada enquanto carrega a sessão
-            if (user.role === 'ADMIN') return true; // Admin vê tudo
-            // Operador vê apenas Viagens e Despesas (Dashboard é removido pois redireciona para Viagens)
+            if (!user) return false;
+            if (user.role === 'ADMIN' || user.role === 'GERENTE') return true;
             return item.href === '/routes' || item.href === '/expenses';
           })
           .map((item) => {
           const isActive = pathname === item.href;
+          const isDisabled = user?.role === 'GERENTE' && (item.href === '/employees' || item.href === '/users');
           const label = (user?.role === 'OPERATOR' && item.href === '/routes') ? 'Nova Viagem' : item.label;
+          
+          if (isDisabled) {
+            return (
+              <div
+                key={item.href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed text-slate-600"
+                title="Acessível apenas para o administrador do sistema"
+              >
+                <item.icon className="w-5 h-5 text-slate-600" />
+                <span className="text-sm font-medium">{label}</span>
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.href}
@@ -127,7 +143,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-border-dark">
+      <div className="p-4 pb-8 lg:pb-4 mt-auto border-t border-border-dark shrink-0 bg-background-dark">
         <div className="flex items-center gap-3 p-2">
           <div className="w-10 h-10 rounded-full bg-surface-dark border border-border-dark flex items-center justify-center text-slate-500 shrink-0">
             <UserIcon className="w-6 h-6" />
@@ -145,10 +161,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </button>
         </div>
         {user?.lastLogin && (
-          <div className="px-2 pb-1">
-            <p className="text-[8px] text-slate-600 truncate">
-              Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-            </p>
+          <div className="px-2 mt-1">
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <Clock className="w-2.5 h-2.5" />
+              <p className="text-[9px] font-medium uppercase tracking-tight truncate">
+                Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -11,14 +11,21 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Baseline data from the session token
-  const userData = {
-    id: session.id,
-    name: session.name || session.username,
-    username: session.username,
-    role: session.role,
-    lastLogin: session.lastLogin,
-  };
+  // Fetch latest data from DB to get current lastLogin
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      role: true,
+      lastLogin: true,
+    }
+  });
 
-  return NextResponse.json(userData);
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  return NextResponse.json(user);
 }

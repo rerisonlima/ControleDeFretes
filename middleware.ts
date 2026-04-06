@@ -30,6 +30,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/routes', request.url));
       }
 
+      // Restringir gerente das páginas de funcionários e usuários
+      if (role === 'GERENTE' && (pathname === '/employees' || pathname === '/users')) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+
       // Se está logado e tenta acessar o login, manda pra home
       if (isAuthPage) {
         if (role === 'OPERATOR') {

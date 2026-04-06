@@ -8,11 +8,12 @@ export async function PUT(
 ) {
   try {
     const id = parseInt(params.id);
-    const { username, password, role } = await request.json();
+    const { username, password, role, name } = await request.json();
 
     const data: any = {
       username,
       role,
+      name,
     };
 
     if (password) {

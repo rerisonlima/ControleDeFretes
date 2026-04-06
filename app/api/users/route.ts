@@ -8,7 +8,9 @@ export async function GET() {
       select: {
         id: true,
         username: true,
+        name: true,
         role: true,
+        lastLogin: true,
       },
       orderBy: {
         id: 'asc',
@@ -23,7 +25,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { username, password, role } = await request.json();
+    const { username, password, role, name } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json({ error: 'Usuário e senha são obrigatórios' }, { status: 400 });
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
         username,
         password: hashedPassword,
         role: role || 'OPERATOR',
-        name: username, // Defaulting name to username
+        name: name || username,
         email: `${username}@example.com`, // Defaulting email
       },
     });

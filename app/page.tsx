@@ -26,7 +26,10 @@ import {
   CircleDot,
   Zap,
   Activity,
-  Loader2
+  Loader2,
+  MapPin,
+  Gauge,
+  Map
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -39,6 +42,8 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface DashboardStat {
   label: string;
@@ -87,12 +92,30 @@ interface ChartData {
 }
 
 interface RecentTrip {
-  route: string;
-  date: string;
-  contract: string;
-  plate: string;
-  value: string;
+  id: number;
+  tripId: string;
+  routeId?: number;
+  freteId?: number;
+  contratanteId?: number;
+  vehicleId: number;
+  driverId: number;
+  helperId?: number;
+  scheduledAt: string;
+  value: number;
   status: string;
+  paid: string;
+  contract?: string;
+  odometer?: number | string;
+  romaneio?: string;
+  paymentDate?: string;
+  vehicle?: { plate: string };
+  contratante?: { ContratanteNome: string };
+  createdBy?: { name: string; username: string };
+  createdAt: string;
+  frete?: { 
+    cidade: string; 
+  };
+  route?: { destination: string };
 }
 
 interface DashboardData {
@@ -184,6 +207,25 @@ export default function Dashboard() {
   const [showValues, setShowValues] = React.useState(false);
   const [isCheckingSession, setIsCheckingSession] = React.useState(true);
   const [user, setUser] = React.useState<{ role: string } | null>(null);
+  const [isNavigating, setIsNavigating] = React.useState(false);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return format(date, 'dd/MM/yyyy', { locale: ptBR });
+    } catch (e) {
+      return '-';
+    }
+  };
+
+  const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
+    if (!dateString) return fallback;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return fallback;
+    return format(date, formatStr);
+  };
 
   const handleLogout = async () => {
     try {
@@ -680,59 +722,93 @@ export default function Dashboard() {
                 Ver Todas
               </button>
             </div>
-            <div className="overflow-x-auto hidden md:block">
-              <table className="w-full text-left">
-                <thead className="bg-background-dark/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+            
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-background-dark/50 border-b border-border-dark">
                   <tr>
-                    <th className="px-6 py-4">Rota</th>
-                    <th className="px-6 py-4">Contrato</th>
-                    <th className="px-6 py-4">Placa</th>
-                    <th className="px-6 py-4">Valor</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Ações</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Pago</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Romaneio</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastrado por:</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-dark">
                   {loading ? (
                     [1, 2, 3].map(i => (
                       <tr key={i} className="animate-pulse">
-                      <td colSpan={6} className="px-6 py-8 bg-white/5"></td>
+                        <td colSpan={9} className="px-6 py-8 bg-white/5"></td>
                       </tr>
                     ))
                   ) : trips.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 text-sm italic">
+                      <td colSpan={9} className="px-6 py-12 text-center text-slate-500 text-sm italic">
                         Nenhuma viagem encontrada para este período.
                       </td>
                     </tr>
-                  ) : trips.map((trip, i) => (
-                    <tr key={i} className="hover:bg-white/5 transition-colors group">
+                  ) : trips.map((trip) => (
+                    <tr 
+                      key={trip.id} 
+                      className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      onClick={() => router.push(`/routes?edit=${trip.id}&month=${selectedMonth}&year=${selectedYear}`)}
+                    >
+                      <td className={cn(
+                        "px-6 py-4 transition-colors",
+                        (trip.paid === 'sim' && trip.paymentDate) ? "bg-emerald-500/30" : ""
+                      )}>
+                        <span className={cn(
+                          "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-colors",
+                          trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                        )}>
+                          {trip.paid || 'não'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                            <Navigation className="w-4 h-4" />
+                          <Calendar className="w-4 h-4 text-primary" />
+                          <span className="font-mono text-sm text-slate-300">{formatDate(trip.scheduledAt)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-bold text-white">{trip.romaneio || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <span className="font-semibold text-white">{trip.frete?.cidade || trip.route?.destination || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-400">{trip.contratante?.ContratanteNome || trip.contract || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-400">{trip.vehicle?.plate || 'N/A'}</span>
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-white">{trip.route}</p>
-                            <p className="text-[10px] text-slate-500">{trip.date}</p>
+                          <div className="flex items-center gap-2">
+                            <Gauge className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">{trip.contract || '-'}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-300">{trip.plate}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-white">{showValues ? trip.value : '******'}</td>
+                      <td className="px-6 py-4 font-mono font-medium text-slate-300">
+                        {showValues 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)
+                          : '******'}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border",
-                          trip.status === 'DELIVERED' || trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                          trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
-                          "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        )}>
-                          {trip.status === 'DELIVERED' ? 'Entregue' : 
-                           trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
-                           trip.status === 'PENDING' ? 'Pendente' : 
-                           trip.status}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
+                          <span className="text-[10px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button className="text-slate-500 hover:text-primary transition-colors">
@@ -758,56 +834,73 @@ export default function Dashboard() {
                 <div className="p-8 text-center text-slate-500 text-sm italic">
                   Nenhuma viagem encontrada para este período.
                 </div>
-              ) : trips.map((trip, i) => (
-                <div key={i} className="p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                        <Navigation className="w-4 h-4" />
+              ) : trips.map((trip) => (
+                <div 
+                  key={trip.id} 
+                  className={cn(
+                    "p-4 space-y-4 relative overflow-hidden cursor-pointer",
+                    (trip.paid === 'sim' && trip.paymentDate) ? "border-emerald-500/30 bg-emerald-500/5" : ""
+                  )}
+                  onClick={() => router.push(`/routes?edit=${trip.id}&month=${selectedMonth}&year=${selectedYear}`)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-xs font-mono text-slate-300">{formatDate(trip.scheduledAt)}</span>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-white">{trip.route}</p>
-                        <p className="text-[10px] text-slate-500">{trip.date}</p>
-                      </div>
+                      <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        {trip.frete?.cidade || trip.route?.destination || 'N/A'}
+                      </h4>
                     </div>
-                    <button className="text-slate-500 hover:text-primary transition-colors">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
+                    <span className={cn(
+                      "px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-colors",
+                      trip.paid === 'sim' ? "bg-emerald-500 text-background-dark" : "bg-surface-dark text-slate-500 border border-border-dark"
+                    )}>
+                      {trip.paid || 'não'}
+                    </span>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Contrato</p>
-                      <p className="text-xs text-slate-300">{trip.contract || '-'}</p>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Romaneio</p>
+                      <p className="text-xs font-bold text-white">{trip.romaneio || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Placa</p>
-                      <p className="text-xs text-slate-300">{trip.plate}</p>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Contrato</p>
+                      <p className="text-xs text-slate-300">{trip.contratante?.ContratanteNome || trip.contract || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Veículo</p>
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-3 h-3 text-slate-500" />
+                        <span className="text-xs text-slate-300">{trip.vehicle?.plate || 'N/A'}</span>
+                      </div>
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Valor</p>
-                      <p className="text-xs font-bold text-white">{showValues ? trip.value : '******'}</p>
+                      <p className="text-xs font-bold text-white">
+                        {showValues 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)
+                          : '******'}
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Status</p>
-                      <span className={cn(
-                        "inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border",
-                        trip.status === 'DELIVERED' || trip.status === 'Entregue' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                        trip.status === 'IN_TRANSIT' || trip.status === 'Em Trânsito' ? "bg-primary/10 text-primary border-primary/20" :
-                        "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                      )}>
-                        {trip.status === 'DELIVERED' ? 'Entregue' : 
-                         trip.status === 'IN_TRANSIT' ? 'Em Trânsito' : 
-                         trip.status === 'PENDING' ? 'Pendente' : 
-                         trip.status}
-                      </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border-dark/50">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-white">{trip.createdBy?.name || trip.createdBy?.username || 'Sistema'}</span>
+                      <span className="text-[9px] text-slate-500">{safeFormat(trip.createdAt, 'dd/MM/yy HH:mm')}</span>
                     </div>
+                    <button className="text-slate-500">
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </AppLayout>

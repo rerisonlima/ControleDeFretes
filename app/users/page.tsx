@@ -13,14 +13,20 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Lock
+  Lock,
+  Clock,
+  User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface User {
   id: number;
   username: string;
+  name: string;
   role: string;
+  lastLogin?: string;
 }
 
 export default function UsersPage() {
@@ -165,16 +171,29 @@ export default function UsersPage() {
                     <Shield className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-white font-bold truncate">{user.username}</h4>
+                    <h4 className="text-white font-bold truncate">{user.name || user.username}</h4>
+                    <p className="text-[10px] text-slate-500 font-medium truncate mb-1">@{user.username}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
-                        user.role === 'ADMIN' ? "bg-primary/10 text-primary" : "bg-slate-500/10 text-slate-400"
+                        user.role === 'ADMIN' ? "bg-primary/10 text-primary" : 
+                        user.role === 'GERENTE' ? "bg-amber-500/10 text-amber-500" :
+                        "bg-slate-500/10 text-slate-400"
                       )}>
-                        {user.role === 'ADMIN' ? 'Admin' : 'Operador'}
+                        {user.role === 'ADMIN' ? 'Admin' : 
+                         user.role === 'GERENTE' ? 'Gerente' : 
+                         'Operador'}
                       </span>
                       <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">#{user.id}</span>
                     </div>
+                    {user.lastLogin && (
+                      <div className="flex items-center gap-1.5 mt-2 px-2 py-1 bg-background-dark/50 rounded-lg border border-border-dark/30 w-fit">
+                        <Clock className="w-3 h-3 text-primary/60" />
+                        <span className="text-[9px] font-medium text-slate-500 uppercase tracking-tight">
+                          Último acesso: <span className="text-slate-300">{format(new Date(user.lastLogin), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -202,20 +221,28 @@ export default function UsersPage() {
       {/* Modal Create/Edit */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface-dark border border-border-dark rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-border-dark">
-              <h2 className="text-xl font-bold text-white">
-                {modalMode === 'create' ? 'Novo Usuário' : 'Editar Usuário'}
-              </h2>
+          <div className="bg-surface-dark border border-border-dark rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-border-dark bg-background-dark/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  {modalMode === 'create' ? <UserPlus className="w-6 h-6" /> : <Edit2 className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {modalMode === 'create' ? 'Novo Usuário' : 'Editar Usuário'}
+                  </h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Gestão de Acessos</p>
+                </div>
+              </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
+                className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 space-y-8">
               {error && (
                 <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -223,46 +250,83 @@ export default function UsersPage() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Nome de Usuário</label>
-                  <input 
-                    required
-                    name="username"
-                    defaultValue={selectedUser?.username || ''}
-                    className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
-                    placeholder="Ex: joao.silva" 
-                    type="text"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">
-                    {modalMode === 'create' ? 'Senha' : 'Nova Senha (deixe em branco para manter)'}
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+              <div className="space-y-6">
+                {/* Section: Profile Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border-dark/50">
+                    <UserIcon className="w-4 h-4 text-primary" />
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Informações de Perfil</h3>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">Nome de Exibição no Sistema</label>
                     <input 
-                      required={modalMode === 'create'}
-                      name="password"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
-                      placeholder="••••••••" 
-                      type="password"
+                      required
+                      name="name"
+                      defaultValue={selectedUser?.name || ''}
+                      className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
+                      placeholder="Ex: João Silva" 
+                      type="text"
                     />
+                    <p className="text-[9px] text-slate-600 ml-1 italic">Como o nome aparecerá nos relatórios e dashboard.</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest ml-1">Nível de Acesso</label>
-                  <select 
-                    required
-                    name="role"
-                    defaultValue={selectedUser?.role || 'OPERATOR'}
-                    className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none"
-                  >
-                    <option value="OPERATOR">Operador</option>
-                    <option value="ADMIN">Administrador</option>
-                  </select>
+                {/* Section: Credentials */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border-dark/50">
+                    <Lock className="w-4 h-4 text-primary" />
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Credenciais de Acesso</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">Nome de Usuário (Login)</label>
+                      <input 
+                        required
+                        name="username"
+                        defaultValue={selectedUser?.username || ''}
+                        className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
+                        placeholder="Ex: joao.silva" 
+                        type="text"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">Nível de Acesso</label>
+                      <div className="relative">
+                        <select 
+                          required
+                          name="role"
+                          defaultValue={selectedUser?.role || 'OPERATOR'}
+                          className="w-full px-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none cursor-pointer"
+                        >
+                          <option value="OPERATOR">Operador</option>
+                          <option value="GERENTE">Gerente</option>
+                          <option value="ADMIN">Administrador</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                          <Shield className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">
+                      {modalMode === 'create' ? 'Senha de Acesso' : 'Nova Senha'}
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                      <input 
+                        required={modalMode === 'create'}
+                        name="password"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-border-dark bg-background-dark text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-700 text-sm" 
+                        placeholder={modalMode === 'create' ? "Defina uma senha" : "Deixe em branco para manter a atual"} 
+                        type="password"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -270,22 +334,22 @@ export default function UsersPage() {
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 px-4 bg-background-dark hover:bg-white/5 text-white font-bold rounded-xl border border-border-dark transition-colors"
+                  className="flex-1 py-3.5 px-4 bg-background-dark hover:bg-white/5 text-slate-400 hover:text-white font-bold rounded-xl border border-border-dark transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                  className="flex-[2] py-3.5 px-4 bg-primary hover:bg-primary/90 text-background-dark font-black rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Salvando...</span>
+                      <span>Processando...</span>
                     </>
                   ) : (
-                    modalMode === 'create' ? 'Criar Usuário' : 'Salvar Alterações'
+                    modalMode === 'create' ? 'Criar Novo Usuário' : 'Salvar Alterações'
                   )}
                 </button>
               </div>
