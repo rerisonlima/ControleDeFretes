@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get('limit') || '30');
     const skip = (page - 1) * limit;
 
-    const [trips, total] = await Promise.all([
+    const [trips, total, totalForVehicle] = await Promise.all([
       prisma.trip.findMany({
         where,
         include: {
@@ -77,14 +77,16 @@ export async function GET(req: Request) {
         skip,
         take: limit,
       }),
-      prisma.trip.count({ where })
+      prisma.trip.count({ where }),
+      vehicleId ? prisma.trip.count({ where: { vehicleId: parseInt(vehicleId) } }) : Promise.resolve(0)
     ]);
 
     return NextResponse.json({
       trips,
       total,
       totalPages: Math.ceil(total / limit),
-      currentPage: page
+      currentPage: page,
+      hasMore: vehicleId && days ? total < totalForVehicle : undefined
     });
   } catch (error) {
     console.error('Failed to fetch trips:', error);

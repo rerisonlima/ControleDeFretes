@@ -104,6 +104,7 @@ export default function ExpensesPage() {
   const [recentTrips, setRecentTrips] = useState<any[]>([]);
   const [isTripsLoading, setIsTripsLoading] = useState(false);
   const [tripDays, setTripDays] = useState(7);
+  const [hasMoreTrips, setHasMoreTrips] = useState(true);
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
@@ -159,6 +160,7 @@ export default function ExpensesPage() {
           if (res.ok) {
             const data = await res.json();
             setRecentTrips(data.trips || []);
+            setHasMoreTrips(data.hasMore ?? true);
           }
         } catch (error) {
           console.error('Error fetching recent trips:', error);
@@ -1079,7 +1081,12 @@ export default function ExpensesPage() {
                         onChange={(e) => setFormData({ ...formData, tripId: e.target.value })}
                         disabled={isTripsLoading}
                       >
-                        <option value="">{isTripsLoading ? '...Carregando Viagens' : 'Selecione'}</option>
+                        <option value="">{isTripsLoading ? '' : 'Selecione'}</option>
+                        {isTripsLoading && (
+                          <option value="" disabled className="flex items-center gap-2">
+                            Carregando...
+                          </option>
+                        )}
                         {recentTrips.map(trip => (
                           <option key={trip.id} value={trip.id}>
                             {new Date(trip.scheduledAt).toLocaleDateString('pt-BR')} - {trip.contratante?.ContratanteNome || 'S/C'} - {trip.romaneio || 'S/R'} - {trip.route?.destination || trip.frete?.cidade || 'S/D'}
@@ -1087,14 +1094,36 @@ export default function ExpensesPage() {
                         ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
+                      {isTripsLoading && (
+                        <div className="absolute inset-0 bg-surface-dark/50 flex items-center justify-center rounded-lg pointer-events-none">
+                          <div className="flex items-center gap-3">
+                            <motion.div
+                              animate={{ 
+                                x: [-20, 20],
+                                opacity: [0, 1, 1, 0]
+                              }}
+                              transition={{ 
+                                duration: 1.5,
+                                repeat: Infinity,
+                                ease: "linear"
+                              }}
+                              className="text-primary"
+                            >
+                              <Truck className="w-6 h-6" />
+                            </motion.div>
+                            <span className="text-xs font-bold text-primary animate-pulse">Carregando viagens...</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <button 
                       type="button"
                       onClick={() => setTripDays(prev => prev + 7)}
-                      className="text-[10px] font-bold text-sky-400 hover:text-sky-300 hover:underline transition-all flex items-center gap-1 mt-1 w-fit"
+                      disabled={!hasMoreTrips || isTripsLoading}
+                      className="text-[10px] font-bold text-sky-400 hover:text-sky-300 hover:underline transition-all flex items-center gap-1 mt-1 w-fit disabled:opacity-30 disabled:cursor-not-allowed disabled:no-underline"
                     >
                       <Plus className="w-2 h-2" />
-                      Carregar + 7 Dias
+                      {hasMoreTrips ? 'Carregar + 7 Dias' : 'Não há mais viagens'}
                     </button>
                   </div>
 
