@@ -122,6 +122,7 @@ interface DashboardData {
   stats: DashboardStat[];
   chart: ChartData[];
   recentTrips: RecentTrip[];
+  lastTripKm?: number;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -713,8 +714,23 @@ export default function Dashboard() {
 
           {/* Recent Trips Table */}
           <div className="bg-surface-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-border-dark flex justify-between items-center">
-              <h3 className="font-bold text-white">Viagens do Período</h3>
+            <div className="p-6 border-b border-border-dark flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <h3 className="font-bold text-white">Viagens do Período</h3>
+                {dashboardData?.lastTripKm !== undefined && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                      <Gauge className="w-4 h-4" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Km Última Viagem</span>
+                      <span className="text-lg font-black text-white tracking-tighter">
+                        {showValues ? dashboardData.lastTripKm.toLocaleString('pt-BR') : '******'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button 
                 onClick={() => router.push(`/routes?month=${selectedMonth}&year=${selectedYear}`)}
                 className="text-sm font-bold text-primary hover:underline"

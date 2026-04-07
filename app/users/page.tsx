@@ -88,7 +88,8 @@ export default function UsersPage() {
       if (res.ok) {
         fetchUsers();
       } else {
-        alert('Erro ao excluir usuário');
+        const data = await res.json();
+        alert(data.error || 'Erro ao excluir usuário');
       }
     } catch (err) {
       console.error('Error deleting user:', err);

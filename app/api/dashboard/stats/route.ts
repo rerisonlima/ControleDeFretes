@@ -272,6 +272,28 @@ export async function GET(request: Request) {
     const recentTrips = [...filteredTrips]
       .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
 
+    // Calculate Km Última Viagem
+    let lastTripKm = 0;
+    const absoluteLastTrip = await prisma.trip.findFirst({
+      orderBy: { scheduledAt: 'desc' },
+      select: { id: true, odometer: true, vehicleId: true, scheduledAt: true }
+    });
+
+    if (absoluteLastTrip && absoluteLastTrip.odometer) {
+      const penultimateTrip = await prisma.trip.findFirst({
+        where: {
+          vehicleId: absoluteLastTrip.vehicleId,
+          scheduledAt: { lt: absoluteLastTrip.scheduledAt }
+        },
+        orderBy: { scheduledAt: 'desc' },
+        select: { odometer: true }
+      });
+
+      if (penultimateTrip && penultimateTrip.odometer) {
+        lastTripKm = absoluteLastTrip.odometer - penultimateTrip.odometer;
+      }
+    }
+
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';
       const change = ((current - previous) / previous) * 100;
@@ -351,7 +373,8 @@ export async function GET(request: Request) {
         },
       ],
       chart: finalChartData,
-      recentTrips: recentTrips
+      recentTrips: recentTrips,
+      lastTripKm: lastTripKm
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
