@@ -165,7 +165,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             <div className="flex items-center gap-1.5 text-slate-600">
               <Clock className="w-2.5 h-2.5" />
               <p className="text-[9px] font-medium uppercase tracking-tight truncate">
-                Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                Último Acesso: {new Date(user.lastLogin).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
