@@ -37,6 +37,7 @@ import {
   Cell,
   PieChart,
   Pie,
+  Legend,
   LineChart,
   Line,
   AreaChart,
@@ -53,6 +54,7 @@ interface Trip {
   scheduledAt: string;
   value: number;
   odometer: number | null;
+  distance?: number;
   vehicle: { plate: string; brand: string; model: string };
   frete?: { cidade: string };
   expenses: Expense[];
@@ -104,7 +106,7 @@ export default function ReportsPage() {
           id: t.tripId,
           data: t.scheduledAt,
           valor: t.value,
-          km: t.odometer,
+          km_percorrido: t.distance || 0,
           veiculo: t.vehicle.plate,
           destino: t.frete?.cidade,
           custo_despesas: t.expenses.reduce((acc, e) => acc + e.value, 0)
@@ -148,7 +150,7 @@ export default function ReportsPage() {
   // Process data for charts
   const revenueByVehicle = data.trips.reduce((acc: any, trip) => {
     const plate = trip.vehicle.plate;
-    if (!acc[plate]) acc[plate] = { name: plate, value: 0, trips: 0 };
+    if (!acc[plate]) acc[plate] = { name: `Veículo ${plate}`, value: 0, trips: 0 };
     acc[plate].value += trip.value;
     acc[plate].trips += 1;
     return acc;
@@ -398,6 +400,12 @@ export default function ReportsPage() {
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
                         />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          formatter={(value) => <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{value}</span>}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -459,6 +467,12 @@ export default function ReportsPage() {
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
                         />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          formatter={(value) => <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{value}</span>}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -491,7 +505,8 @@ export default function ReportsPage() {
                 <tbody className="divide-y divide-border-dark">
                   {data.trips.map((trip) => {
                     const tripExpenses = trip.expenses.reduce((acc, e) => acc + e.value, 0);
-                    const efficiency = trip.odometer && trip.odometer > 0 ? (trip.value / trip.odometer).toFixed(2) : 'N/A';
+                    const distance = trip.distance || 0;
+                    const efficiency = distance > 0 ? (trip.value / distance).toFixed(2) : '0.00';
                     
                     return (
                       <tr key={trip.id} className="hover:bg-white/5 transition-colors group">
@@ -511,7 +526,7 @@ export default function ReportsPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <Gauge className="w-3 h-3 text-slate-500" />
-                            <span className="text-xs font-mono text-slate-300">{trip.odometer || '---'}</span>
+                            <span className="text-xs font-mono text-slate-300">{distance || '---'}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
