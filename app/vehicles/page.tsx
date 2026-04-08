@@ -52,6 +52,20 @@ interface Vehicle {
   };
   trips?: Trip[];
   maintenances?: Maintenance[];
+  crew?: {
+    id: number;
+    driverId: number;
+    helperId: number | null;
+    driver?: { name: string };
+    helper?: { name: string };
+  }[];
+}
+
+interface Employee {
+  id: number;
+  name: string;
+  role: string;
+  active: boolean;
 }
 
 interface Category {
@@ -63,6 +77,7 @@ export default function VehiclesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,15 +97,17 @@ export default function VehiclesPage() {
     capacity: 0,
     status: 'ACTIVE',
     categoriaId: '',
-    maintenances: [] as Maintenance[]
+    maintenances: [] as Maintenance[],
+    crew: [] as { driverId: string; helperId: string }[]
   });
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [vehiclesRes, categoriesRes] = await Promise.all([
+      const [vehiclesRes, categoriesRes, employeesRes] = await Promise.all([
         fetch('/api/vehicles'),
-        fetch('/api/categorias')
+        fetch('/api/categorias'),
+        fetch('/api/employees?active=true')
       ]);
 
       if (vehiclesRes.ok) {
@@ -100,6 +117,10 @@ export default function VehiclesPage() {
       if (categoriesRes.ok) {
         const data = await categoriesRes.json();
         setCategories(data);
+      }
+      if (employeesRes.ok) {
+        const data = await employeesRes.json();
+        setEmployees(data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -135,7 +156,11 @@ export default function VehiclesPage() {
               type: m.type,
               odometer: m.odometer?.toString() || '',
               executionDate: m.executionDate ? m.executionDate.split('T')[0] : ''
-            }))
+            })),
+            crew: detailedVehicle.crew?.map((c: any) => ({
+              driverId: c.driverId.toString(),
+              helperId: c.helperId?.toString() || ''
+            })) || []
           });
           setSelectedVehicleDetails(detailedVehicle);
         }
@@ -155,7 +180,8 @@ export default function VehiclesPage() {
         capacity: 0,
         status: 'ACTIVE',
         categoriaId: '',
-        maintenances: []
+        maintenances: [],
+        crew: []
       });
       setSelectedVehicleDetails(null);
     }
@@ -528,6 +554,83 @@ export default function VehiclesPage() {
                       <option key={cat.id} value={cat.id}>{cat.CategoriaNome}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Vincular Funcionários Section */}
+              <div className="p-4 bg-surface-dark/50 border border-border-dark rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-primary" />
+                    <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest">Vincular funcionários ao carro</h4>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        crew: [...formData.crew, { driverId: '', helperId: '' }]
+                      });
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Vincular
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {formData.crew.map((c, index) => (
+                    <div key={index} className="flex items-end gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Motorista</label>
+                        <select 
+                          className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                          value={c.driverId}
+                          onChange={(e) => {
+                            const newCrew = [...formData.crew];
+                            newCrew[index].driverId = e.target.value;
+                            setFormData({ ...formData, crew: newCrew });
+                          }}
+                        >
+                          <option value="">Selecionar</option>
+                          {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
+                            <option key={e.id} value={e.id}>{e.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Ajudante</label>
+                        <select 
+                          className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                          value={c.helperId}
+                          onChange={(e) => {
+                            const newCrew = [...formData.crew];
+                            newCrew[index].helperId = e.target.value;
+                            setFormData({ ...formData, crew: newCrew });
+                          }}
+                        >
+                          <option value="">Selecionar</option>
+                          {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
+                            <option key={e.id} value={e.id}>{e.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newCrew = formData.crew.filter((_, i) => i !== index);
+                          setFormData({ ...formData, crew: newCrew });
+                        }}
+                        className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all mb-0.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.crew.length === 0 && (
+                    <p className="text-[10px] text-slate-600 italic text-center py-2">Nenhum funcionário vinculado.</p>
+                  )}
                 </div>
               </div>
 

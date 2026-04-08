@@ -15,7 +15,8 @@ export async function GET(req: Request) {
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { odometer: true }
-        }
+        },
+        crew: true
       },
       orderBy: { updatedAt: 'desc' }
     });
@@ -58,6 +59,18 @@ export async function POST(req: Request) {
             currentOdometer: 0, // New vehicle has no trips yet
             executionDate: m.executionDate ? new Date(m.executionDate) : null
           }))
+        });
+      }
+
+      if (body.crew && body.crew.length > 0) {
+        await tx.vehicleCrew.createMany({
+          data: body.crew
+            .filter((c: any) => c.driverId)
+            .map((c: any) => ({
+              vehicleId: vehicle.id,
+              driverId: parseInt(c.driverId),
+              helperId: c.helperId ? parseInt(c.helperId) : null
+            }))
         });
       }
 

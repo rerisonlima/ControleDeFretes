@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const active = searchParams.get('active');
+
+    const where: any = {};
+    if (active === 'true') where.active = true;
+    if (active === 'false') where.active = false;
+
     const employees = await prisma.employee.findMany({
+      where,
       include: {
         _count: {
           select: {
@@ -26,7 +34,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, role, phone, pix, cnh, cnhCategory } = body;
+    const { name, role, phone, pix, cnh, cnhCategory, active } = body;
 
     if (!name || !role) {
       return NextResponse.json({ error: 'Name and role are required' }, { status: 400 });
@@ -40,6 +48,7 @@ export async function POST(request: Request) {
         pix,
         cnh,
         cnhCategory,
+        active: active !== undefined ? active : true,
       },
     });
 

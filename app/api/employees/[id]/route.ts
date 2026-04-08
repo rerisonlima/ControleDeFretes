@@ -8,7 +8,7 @@ export async function PUT(
   try {
     const id = parseInt(params.id);
     const body = await request.json();
-    const { name, role, phone, pix, cnh, cnhCategory } = body;
+    const { name, role, phone, pix, cnh, cnhCategory, active } = body;
 
     if (!name || !role) {
       return NextResponse.json({ error: 'Name and role are required' }, { status: 400 });
@@ -23,6 +23,7 @@ export async function PUT(
         pix,
         cnh,
         cnhCategory,
+        active: active !== undefined ? active : undefined,
       },
     });
 

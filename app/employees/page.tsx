@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -21,6 +21,7 @@ interface Employee {
   id: number;
   name: string;
   role: string;
+  active: boolean;
   phone: string | null;
   pix: string | null;
   cnh: string | null;
@@ -36,12 +37,14 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   
   // Form State
   const [formData, setFormData] = useState({
     id: 0,
     name: '',
     role: '',
+    active: true,
     phone: '',
     pix: '',
     cnh: '',
@@ -49,10 +52,14 @@ export default function EmployeesPage() {
     totalTrips: 0
   });
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/employees');
+      let url = '/api/employees';
+      if (statusFilter === 'active') url += '?active=true';
+      if (statusFilter === 'inactive') url += '?active=false';
+      
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setEmployees(data);
@@ -62,11 +69,11 @@ export default function EmployeesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   const formatPhone = (value: string) => {
     // Remove tudo que não é dígito
@@ -92,6 +99,7 @@ export default function EmployeesPage() {
         id: employee.id,
         name: employee.name,
         role: employee.role,
+        active: employee.active,
         phone: employee.phone || '',
         pix: employee.pix || '',
         cnh: employee.cnh || '',
@@ -103,6 +111,7 @@ export default function EmployeesPage() {
         id: 0,
         name: '',
         role: '',
+        active: true,
         phone: '',
         pix: '',
         cnh: '',
@@ -162,10 +171,41 @@ export default function EmployeesPage() {
               <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2 text-white uppercase">Funcionários</h2>
               <p className="text-sm text-slate-500">Listagem completa da equipe operacional e motoristas ativos.</p>
             </div>
-            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300 w-full sm:w-auto">
-              <Download className="w-4 h-4" />
-              Exportar CSV
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="flex bg-surface-dark border border-border-dark rounded-lg p-1">
+                <button 
+                  onClick={() => setStatusFilter('all')}
+                  className={cn(
+                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                    statusFilter === 'all' ? "bg-primary text-background-dark" : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Todos
+                </button>
+                <button 
+                  onClick={() => setStatusFilter('active')}
+                  className={cn(
+                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                    statusFilter === 'active' ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Ativos
+                </button>
+                <button 
+                  onClick={() => setStatusFilter('inactive')}
+                  className={cn(
+                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                    statusFilter === 'inactive' ? "bg-rose-500 text-white" : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Inativos
+                </button>
+              </div>
+              <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-surface-dark border border-border-dark rounded-lg hover:bg-border-dark transition-colors text-slate-300 w-full sm:w-auto">
+                <Download className="w-4 h-4" />
+                Exportar CSV
+              </button>
+            </div>
           </div>
 
           {/* Table Card */}
@@ -176,6 +216,7 @@ export default function EmployeesPage() {
                   <tr className="bg-background-dark/50">
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Nome</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Função</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-center">Status</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Telefone</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark">Viagens</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-border-dark text-right">Ações</th>
@@ -184,7 +225,7 @@ export default function EmployeesPage() {
                 <tbody className="divide-y divide-border-dark">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center">
+                      <td colSpan={6} className="px-6 py-10 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-8 h-8 text-primary animate-spin" />
                           <p className="text-sm text-slate-500">Carregando funcionários...</p>
@@ -193,18 +234,23 @@ export default function EmployeesPage() {
                     </tr>
                   ) : employees.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                        Nenhum funcionário cadastrado.
+                      <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                        Nenhum funcionário encontrado.
                       </td>
                     </tr>
                   ) : employees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-background-dark flex items-center justify-center text-[10px] font-bold text-slate-400 border border-border-dark">
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border",
+                            emp.active ? "bg-background-dark text-slate-400 border-border-dark" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                          )}>
                             {emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-sm font-semibold text-white">{emp.name}</span>
+                          <div className="flex flex-col">
+                            <span className={cn("text-sm font-semibold", emp.active ? "text-white" : "text-slate-500 line-through")}>{emp.name}</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -213,6 +259,14 @@ export default function EmployeesPage() {
                           emp.role.toLowerCase() === 'motorista' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
                         )}>
                           {emp.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase border",
+                          emp.active ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                        )}>
+                          {emp.active ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-400">{emp.phone || '-'}</td>
@@ -328,6 +382,27 @@ export default function EmployeesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-surface-dark border border-border-dark rounded-xl">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Status da Conta</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest">Ativar ou desativar funcionário</span>
+                </div>
+                <button
+                  onClick={() => setFormData({ ...formData, active: !formData.active })}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                    formData.active ? "bg-emerald-500" : "bg-slate-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                      formData.active ? "translate-x-6" : "translate-x-1"
+                    )}
+                  />
+                </button>
               </div>
               
               <div className="space-y-2">

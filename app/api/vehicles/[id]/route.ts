@@ -21,6 +21,12 @@ export async function GET(
         },
         maintenances: {
           orderBy: { executionDate: 'desc' }
+        },
+        crew: {
+          include: {
+            driver: true,
+            helper: true
+          }
         }
       }
     });
@@ -104,6 +110,27 @@ export async function PUT(
               }
             });
           }
+        }
+      }
+
+      // Handle crew
+      if (body.crew) {
+        // Delete existing crew
+        await tx.vehicleCrew.deleteMany({
+          where: { vehicleId: id }
+        });
+
+        // Create new crew
+        if (body.crew.length > 0) {
+          await tx.vehicleCrew.createMany({
+            data: body.crew
+              .filter((c: any) => c.driverId)
+              .map((c: any) => ({
+                vehicleId: id,
+                driverId: parseInt(c.driverId),
+                helperId: c.helperId ? parseInt(c.helperId) : null
+              }))
+          });
         }
       }
 

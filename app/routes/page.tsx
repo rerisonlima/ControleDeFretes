@@ -103,12 +103,17 @@ interface Vehicle {
   categoriaId: number;
   status: string;
   lastOdometer?: number;
+  crew?: {
+    driverId: number;
+    helperId: number | null;
+  }[];
 }
 
 interface Employee {
   id: number;
   name: string;
   role: string;
+  active: boolean;
 }
 
 interface Contratante {
@@ -220,7 +225,7 @@ function RoutesPageContent() {
     valor2aViagemMotorista: '',
     valor1aViagemAjudante: '',
     valor2aViagemAjudante: '',
-    status: 'SCHEDULED',
+    status: 'DELIVERED',
     paid: 'não',
     contract: '',
     odometer: '',
@@ -287,7 +292,7 @@ function RoutesPageContent() {
         valor2aViagemMotorista: '',
         valor1aViagemAjudante: '',
         valor2aViagemAjudante: '',
-        status: 'SCHEDULED',
+        status: 'DELIVERED',
         paid: 'não',
         contract: '',
         odometer: '',
@@ -420,10 +425,22 @@ function RoutesPageContent() {
             value={formData.vehicleId}
             onChange={(e) => {
               const vehicleId = e.target.value;
+              const selectedVehicle = vehicles.find(v => v.id.toString() === vehicleId);
               
+              let driverId = formData.driverId;
+              let helperId = formData.helperId;
+              
+              if (isOperator && selectedVehicle?.crew && selectedVehicle.crew.length > 0) {
+                const crew = selectedVehicle.crew[0];
+                driverId = crew.driverId.toString();
+                helperId = crew.helperId?.toString() || '';
+              }
+
               setFormData(prev => ({
                 ...prev, 
                 vehicleId,
+                driverId,
+                helperId,
                 freteId: '',
                 value: '',
                 valor1aViagemMotorista: '',
@@ -577,9 +594,14 @@ function RoutesPageContent() {
             disabled={!formData.vehicleId}
           >
             <option value="">Selecionar</option>
-            {employees.filter(e => e.role.toLowerCase() === 'motorista').map(e => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))}
+            {employees.filter(e => e.role.toLowerCase() === 'motorista' && e.active).length === 0 && (
+              <option disabled>Não há motoristas ativos</option>
+            )}
+            {employees
+              .filter(e => e.role.toLowerCase() === 'motorista' && (e.active || e.id.toString() === formData.driverId))
+              .map(e => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
           </select>
         </div>
         <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
@@ -592,9 +614,14 @@ function RoutesPageContent() {
             disabled={!formData.vehicleId}
           >
             <option value="">Selecionar</option>
-            {employees.filter(e => e.role.toLowerCase() === 'ajudante').map(e => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))}
+            {employees.filter(e => e.role.toLowerCase() === 'ajudante' && e.active).length === 0 && (
+              <option disabled>Não há ajudantes ativos</option>
+            )}
+            {employees
+              .filter(e => e.role.toLowerCase() === 'ajudante' && (e.active || e.id.toString() === formData.helperId))
+              .map(e => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
           </select>
         </div>
       </div>
