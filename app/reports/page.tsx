@@ -317,7 +317,17 @@ export default function ReportsPage() {
             </div>
 
             <div className="prose prose-invert max-w-none">
-              {analyzing ? (
+              {!process.env.NEXT_PUBLIC_GEMINI_API_KEY ? (
+                <div className="flex items-center gap-3 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm font-medium">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <p>
+                    A chave da API Gemini não foi configurada. 
+                    Para habilitar a análise de IA no Vercel, adicione a variável de ambiente 
+                    <code className="bg-rose-500/20 px-1.5 py-0.5 rounded mx-1">NEXT_PUBLIC_GEMINI_API_KEY</code> 
+                    nas configurações do seu projeto.
+                  </p>
+                </div>
+              ) : analyzing ? (
                 <div className="space-y-4">
                   <div className="h-4 bg-white/5 rounded w-3/4 animate-pulse" />
                   <div className="h-4 bg-white/5 rounded w-full animate-pulse" />
