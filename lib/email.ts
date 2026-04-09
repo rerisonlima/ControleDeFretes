@@ -26,7 +26,7 @@ export async function sendEmailNotification(tripData: any) {
   });
 
   const destination = tripData.frete?.cidade || tripData.route?.destination || 'N/A';
-  const subject = `🚚 Nova Viagem Cadastrada - Destino: ${destination}`;
+  const subject = `🚚 Nova Viagem - Destino: ${destination}`;
   
   const htmlContent = `
     <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
