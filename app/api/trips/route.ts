@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getSession } from '@/lib/auth';
+import { sendWhatsAppNotification } from '@/lib/whatsapp';
+import { sendEmailNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,11 +149,35 @@ export async function POST(req: Request) {
         createdBy: {
           select: {
             name: true,
-            username: true
+            username: true,
+            role: true
           }
         }
       }
     });
+
+    // Send notifications if the creator is an OPERATOR
+    if (trip.createdBy?.role === 'OPERATOR') {
+      let notificationsEnabled = true;
+      try {
+        // Check if notifications are enabled in system settings
+        const notificationSetting = await prisma.systemSetting.findUnique({
+          where: { key: 'notifications_enabled' }
+        });
+        if (notificationSetting) {
+          notificationsEnabled = notificationSetting.value === 'true';
+        }
+      } catch (err) {
+        console.warn('SystemSetting table might be missing, defaulting to notifications enabled:', err);
+      }
+
+      if (notificationsEnabled) {
+        // We don't await these to avoid blocking the response
+        sendWhatsAppNotification(trip).catch(err => console.error('WhatsApp background error:', err));
+        sendEmailNotification(trip).catch(err => console.error('Email background error:', err));
+      }
+    }
+
     return NextResponse.json(trip);
   } catch (error) {
     console.error('Failed to create trip:', error);
