@@ -5,11 +5,13 @@ const smtpPort = parseInt(process.env.SMTP_PORT || '587');
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
 const emailFrom = process.env.EMAIL_FROM || 'noreply@fleetmanagement.com';
-const emailTo = process.env.NOTIFICATION_EMAIL_RECIPIPIENT;
+const emailTo = process.env.NOTIFICATION_EMAIL_RECIPIENT;
 
 export async function sendEmailNotification(tripData: any) {
+  console.log('Attempting to send email notification to:', emailTo);
+  
   if (!smtpHost || !smtpUser || !smtpPass || !emailTo) {
-    console.warn('Email notification skipped: SMTP credentials or recipient not configured.');
+    console.warn('Email notification skipped: Missing configuration.');
     return;
   }
 
@@ -23,7 +25,8 @@ export async function sendEmailNotification(tripData: any) {
     },
   });
 
-  const subject = `🚚 Nova Viagem Cadastrada - ${tripData.tripId}`;
+  const destination = tripData.frete?.cidade || tripData.route?.destination || 'N/A';
+  const subject = `🚚 Nova Viagem Cadastrada - Destino: ${destination}`;
   
   const htmlContent = `
     <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
@@ -40,6 +43,10 @@ export async function sendEmailNotification(tripData: any) {
           <tr>
             <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-weight: bold;">Data:</td>
             <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${new Date(tripData.scheduledAt).toLocaleDateString('pt-BR')}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-weight: bold;">Contratante:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${tripData.contratante?.ContratanteNome || 'N/A'}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-weight: bold;">Veículo:</td>

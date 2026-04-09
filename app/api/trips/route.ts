@@ -156,8 +156,8 @@ export async function POST(req: Request) {
       }
     });
 
-    // Send notifications if the creator is an OPERATOR
-    if (trip.createdBy?.role === 'OPERATOR') {
+    // Send notifications if the creator is an OPERATOR or ADMIN
+    if (trip.createdBy?.role === 'OPERATOR' || trip.createdBy?.role === 'ADMIN') {
       let notificationsEnabled = true;
       try {
         // Check if notifications are enabled in system settings

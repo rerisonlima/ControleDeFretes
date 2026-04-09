@@ -63,7 +63,7 @@ export function Header({ title, icon: Icon, actionLabel, onAction, onLogout }: H
           className={cn(
             "p-2 transition-all relative hidden sm:block rounded-lg",
             notificationsEnabled 
-              ? "text-primary hover:bg-primary/10" 
+              ? "text-blue-500 hover:bg-blue-500/10" 
               : "text-slate-500 hover:bg-slate-500/10"
           )}
           title={notificationsEnabled ? "Desativar notificações" : "Ativar notificações"}
@@ -73,7 +73,7 @@ export function Header({ title, icon: Icon, actionLabel, onAction, onLogout }: H
           ) : notificationsEnabled ? (
             <>
               <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-background-dark animate-pulse"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border-2 border-background-dark animate-pulse"></span>
             </>
           ) : (
             <BellOff className="w-5 h-5" />
