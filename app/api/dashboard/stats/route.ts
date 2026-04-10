@@ -269,8 +269,37 @@ export async function GET(request: Request) {
     }).length;
 
     // Recent Trips
-    const recentTrips = [...filteredTrips]
+    const recentTripsRaw = [...filteredTrips]
       .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
+
+    // Calculate distance for each recent trip
+    const recentTrips = await Promise.all(recentTripsRaw.map(async (trip) => {
+      const nextTrip = await prisma.trip.findFirst({
+        where: {
+          vehicleId: trip.vehicleId,
+          OR: [
+            { scheduledAt: { gt: trip.scheduledAt } },
+            { 
+              scheduledAt: trip.scheduledAt,
+              id: { gt: trip.id }
+            }
+          ]
+        },
+        orderBy: [
+          { scheduledAt: 'asc' },
+          { id: 'asc' }
+        ],
+        select: { odometer: true }
+      });
+
+      const nextOdometer = nextTrip?.odometer || null;
+      const distance = (trip.odometer !== null && nextOdometer !== null) ? Math.max(0, nextOdometer - Number(trip.odometer)) : 0;
+
+      return {
+        ...trip,
+        distance
+      };
+    }));
 
     // Calculate Km Última Viagem
     let lastTripKm = 0;

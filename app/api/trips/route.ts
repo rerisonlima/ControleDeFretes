@@ -91,8 +91,38 @@ export async function GET(req: Request) {
       vehicleId ? prisma.trip.count({ where: { vehicleId: parseInt(vehicleId) } }) : Promise.resolve(0)
     ]);
 
+    // Calculate distance for each trip
+    const tripsWithDistance = await Promise.all(trips.map(async (trip) => {
+      // Find the next trip for this vehicle to calculate distance
+      const nextTrip = await prisma.trip.findFirst({
+        where: {
+          vehicleId: trip.vehicleId,
+          OR: [
+            { scheduledAt: { gt: trip.scheduledAt } },
+            { 
+              scheduledAt: trip.scheduledAt,
+              id: { gt: trip.id }
+            }
+          ]
+        },
+        orderBy: [
+          { scheduledAt: 'asc' },
+          { id: 'asc' }
+        ],
+        select: { odometer: true }
+      });
+
+      const nextOdometer = nextTrip?.odometer || null;
+      const distance = (trip.odometer !== null && nextOdometer !== null) ? Math.max(0, nextOdometer - Number(trip.odometer)) : 0;
+
+      return {
+        ...trip,
+        distance
+      };
+    }));
+
     return NextResponse.json({
-      trips,
+      trips: tripsWithDistance,
       total,
       totalPages: Math.ceil(total / limit),
       currentPage: page,

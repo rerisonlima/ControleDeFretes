@@ -80,6 +80,7 @@ interface Trip {
   contratante?: { ContratanteNome: string };
   createdBy?: { name: string; username: string };
   createdAt: string;
+  distance?: number;
   expenses?: Expense[];
   frete?: { 
     cidade: string; 
@@ -1347,6 +1348,7 @@ function RoutesPageContent() {
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Destino</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contrato</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Veículo</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Km rodados</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Frete</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastrado por:</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
@@ -1410,6 +1412,12 @@ function RoutesPageContent() {
                             <Gauge className="w-3 h-3 text-primary" />
                             <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold text-white">{trip.distance || 0} km</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 font-mono font-medium text-slate-300">
@@ -1556,7 +1564,7 @@ function RoutesPageContent() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dark/50">
+                  <div className="grid grid-cols-3 gap-4 py-3 border-y border-border-dark/50">
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Veículo</p>
                       <div className="flex flex-col gap-1">
@@ -1571,8 +1579,15 @@ function RoutesPageContent() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Frete</p>
-                      <p className="text-sm font-bold text-primary">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Km rodados</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Gauge className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-sm font-bold text-white">{trip.distance || 0} km</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Valor Frete</p>
+                      <p className="text-sm font-bold text-primary text-right mt-1">
                         {showValues 
                           ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(trip.value)
                           : '******'}

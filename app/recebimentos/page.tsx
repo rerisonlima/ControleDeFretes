@@ -22,7 +22,8 @@ import {
   TrendingDown,
   Navigation,
   User,
-  Receipt
+  Receipt,
+  Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -64,6 +65,7 @@ interface Trip {
   contract?: string;
   romaneio?: string;
   paymentDate?: string;
+  distance?: number;
   vehicle?: { plate: string; model: string };
   contratante?: { ContratanteNome: string };
   frete?: { cidade: string };
@@ -489,6 +491,7 @@ export default function RecebimentosPage() {
                     <th className="px-6 py-4">Contratante</th>
                     <th className="px-6 py-4">Rota</th>
                     <th className="px-6 py-4">Veículo</th>
+                    <th className="px-6 py-4">Km rodados</th>
                     <th className="px-6 py-4">Valor Frete</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4">Pagamento</th>
@@ -532,6 +535,12 @@ export default function RecebimentosPage() {
                         <div className="flex items-center gap-2">
                           <Truck className="w-4 h-4 text-primary/60" />
                           <span className="text-sm font-medium text-slate-300">{trip.vehicle?.plate || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-bold text-white">{trip.distance || 0} km</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -619,12 +628,19 @@ export default function RecebimentosPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rota</p>
                       <div className="flex items-center gap-1 text-xs text-slate-300 mt-1">
                         <MapPin className="w-3 h-3 text-primary/60" />
                         {trip.frete?.cidade || '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Km rodados</p>
+                      <div className="flex items-center gap-1 text-xs font-bold text-white mt-1">
+                        <Gauge className="w-3 h-3 text-primary" />
+                        {trip.distance || 0} km
                       </div>
                     </div>
                     <div>
