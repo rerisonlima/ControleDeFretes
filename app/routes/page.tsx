@@ -24,6 +24,7 @@ import {
   Gauge,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Eye,
   EyeOff,
   ArrowUpDown
@@ -1207,131 +1208,127 @@ function RoutesPageContent() {
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="p-4 md:p-8 md:pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-slate-500 mt-1">Gerencie os valores de frete, motoristas e ajudantes por viagem.</p>
-            </div>
-          </div>
 
           {/* Filter Bar */}
-          <div className="mt-4 md:mt-8 space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
-                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={selectedMonth}
-                    onChange={(e) => {
-                      setSelectedMonth(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                  >
-                    {months.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
+          <div className="mt-1 md:mt-8 space-y-3">
+            {/* Search Bar - Top priority */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <input 
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none shadow-sm" 
+                placeholder="Busque por cidade, romaneio ou contrato" 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => {
-                      setSelectedYear(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                  >
-                    {[2024, 2025, 2026].map(y => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+            {/* Filters Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 md:gap-3">
+              {/* Period - 2 columns on mobile */}
+              <div className="col-span-2 lg:col-span-2 flex items-center gap-2 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+                <div className="flex items-center gap-2 px-2 text-slate-400">
+                  <Calendar className="w-4 h-4" />
                 </div>
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    setSelectedMonth(parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="flex-1 bg-background-dark border border-border-dark text-white text-[11px] font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {months.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedYear}
+                  onChange={(e) => {
+                    setSelectedYear(parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="w-20 bg-background-dark border border-border-dark text-white text-[11px] font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                >
+                  {[2024, 2025, 2026].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex items-center gap-3 bg-surface-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
-                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
-                  <Receipt className="w-4 h-4" />
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Pagamento:</span>
-                </div>
-                
+              {/* Payment Status */}
+              <div className="relative col-span-1 lg:col-span-1">
+                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <select 
                   value={paymentFilter}
                   onChange={(e) => {
                     setPaymentFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="bg-background-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  className="w-full pl-9 pr-4 py-2.5 bg-surface-dark border border-border-dark text-white text-[11px] font-bold rounded-xl focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer appearance-none h-[42px]"
                 >
-                  <option value="all">Todos</option>
+                  <option value="all">Pagamento</option>
                   <option value="paid">Pagos</option>
-                  <option value="unpaid">Não Pagos</option>
+                  <option value="unpaid">Pendentes</option>
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
 
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="flex items-center justify-center px-3 py-1.5 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px] w-full lg:w-auto"
-                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-              >
-                {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  const nextSort = sortMode === 'scheduled_asc' ? 'created_desc' : 'scheduled_asc';
-                  setSortMode(nextSort);
-                  setCurrentPage(1);
-                }}
-                className="flex items-center justify-center px-3 py-1.5 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px] w-full lg:w-auto"
-                title={sortMode === 'scheduled_asc' ? "Ordenar por Data de Registro (Desc)" : "Ordenar por Data da Viagem (Asc)"}
-              >
-                <ArrowUpDown className={cn("w-4 h-4 mr-2", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
-                <span className="text-[10px] font-bold uppercase">Ordenar</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none" 
-                  placeholder="Busque por cidade, romaneio ou contrato" 
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              {/* Vehicle Filter */}
+              <div className="relative col-span-1 lg:col-span-1">
+                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <select 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  className="w-full pl-9 pr-8 py-2.5 bg-surface-dark border border-border-dark text-white text-[11px] font-bold rounded-xl focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none h-[42px] truncate"
                   value={vehicleFilter}
                   onChange={(e) => setVehicleFilter(e.target.value)}
                 >
-                  <option value="">Todos os Veículos</option>
+                  <option value="">Veículos</option>
                   {vehicles
                     .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
                     .map(v => (
-                      <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                      <option key={v.id} value={v.id}>{v.plate}</option>
                     ))}
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+
+              {/* Contract Filter */}
+              <div className="relative col-span-1 lg:col-span-1">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <select 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-dark bg-surface-dark focus:ring-primary focus:border-primary text-sm text-white outline-none appearance-none"
+                  className="w-full pl-9 pr-8 py-2.5 bg-surface-dark border border-border-dark text-white text-[11px] font-bold rounded-xl focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none h-[42px] truncate"
                   value={contratanteFilter}
                   onChange={(e) => setContratanteFilter(e.target.value)}
                 >
-                  <option value="">Todos os Contratos</option>
+                  <option value="">Contratos</option>
                   {contratantes.map(c => (
                     <option key={c.id} value={c.id}>{c.ContratanteNome}</option>
                   ))}
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+              </div>
+
+              {/* Action Buttons - Grouped */}
+              <div className="col-span-1 lg:col-span-1 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="flex items-center justify-center bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px]"
+                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                >
+                  {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    const nextSort = sortMode === 'scheduled_asc' ? 'created_desc' : 'scheduled_asc';
+                    setSortMode(nextSort);
+                    setCurrentPage(1);
+                  }}
+                  className="flex items-center justify-center bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px]"
+                  title="Ordenar"
+                >
+                  <ArrowUpDown className={cn("w-4 h-4", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
+                </button>
               </div>
             </div>
           </div>

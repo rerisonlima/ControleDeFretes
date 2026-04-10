@@ -419,44 +419,35 @@ export default function PaymentsPage() {
             <RefreshCw className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : (
-          <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
+          <div className="max-w-6xl mx-auto space-y-4 md:space-y-8">
           
-          {/* Welcome & Filters */}
-          <div className="flex flex-col lg:flex-row lg:items-end gap-6">
-            <div className="flex-1">
-              <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Pagamentos</h3>
-              <p className="text-slate-400 text-sm mt-1">Gestão de pagamentos e ganhos dos motoristas.</p>
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full mt-1 md:mt-0">
+            <div className="flex flex-col gap-1.5 flex-1 sm:min-w-[240px]">
+              <div className="relative">
+                <select 
+                  className="w-full bg-surface-dark border border-border-dark text-slate-200 rounded-xl h-11 pl-10 pr-10 focus:ring-primary focus:border-primary appearance-none outline-none text-sm shadow-sm"
+                  value={selectedVehicleId}
+                  onChange={(e) => setSelectedVehicleId(e.target.value)}
+                >
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                  ))}
+                </select>
+                <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+              </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-              <div className="flex flex-col gap-1.5 flex-1 sm:min-w-[240px]">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Veículo</label>
-                <div className="relative">
-                  <select 
-                    className="w-full bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary appearance-none outline-none text-sm"
-                    value={selectedVehicleId}
-                    onChange={(e) => setSelectedVehicleId(e.target.value)}
-                  >
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
-                    ))}
-                  </select>
-                  <Truck className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
-                  <ChevronDown className="absolute right-3 top-3 text-slate-500 w-4 h-4" />
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-1.5 flex-1 sm:w-auto">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Mês</label>
-                <div className="relative">
-                  <input 
-                    className="bg-surface-dark border border-border-dark text-slate-200 rounded-lg h-11 pl-10 pr-4 focus:ring-primary focus:border-primary w-full sm:w-[240px] text-sm outline-none" 
-                    type="month" 
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  />
-                  <Calendar className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
-                </div>
+            <div className="flex flex-col gap-1.5 flex-1 sm:w-auto">
+              <div className="relative">
+                <input 
+                  className="bg-surface-dark border border-border-dark text-slate-200 rounded-xl h-11 pl-10 pr-4 focus:ring-primary focus:border-primary w-full sm:w-[240px] text-sm outline-none shadow-sm" 
+                  type="month" 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
               </div>
             </div>
           </div>

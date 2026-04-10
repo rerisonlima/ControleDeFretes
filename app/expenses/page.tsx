@@ -373,7 +373,7 @@ export default function ExpensesPage() {
       />
       
       <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
           
           {error && (
             <div 
@@ -391,11 +391,12 @@ export default function ExpensesPage() {
           )}
 
           {/* Filters Bar */}
-          <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col lg:flex-row lg:items-center gap-4">
-            <div className="flex flex-wrap items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm">
+          <div className="bg-surface-dark border border-border-dark rounded-xl p-3 md:p-4 flex flex-col gap-3 md:gap-4 mt-1 md:mt-0">
+            {/* Row 1: Period */}
+            <div className="flex items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
               <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
                 <Calendar className="w-4 h-4" />
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">Período:</span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:inline">Período:</span>
               </div>
               
               <div className="flex items-center gap-2">
@@ -427,134 +428,116 @@ export default function ExpensesPage() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-1 gap-4">
-              <div className="flex flex-col gap-1.5 min-w-[150px]">
-                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Tipo de Despesa</label>
-                <div className="relative">
-                  <select 
-                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                    value={filters.type}
-                    onChange={(e) => {
-                      setFilters({ ...filters, type: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="Todos">Todos os Tipos</option>
-                    <option value="Combustível">Combustível</option>
-                    <option value="Pagamento Motorista">Pagamento Motorista</option>
-                    <option value="Pagamento Ajudante">Pagamento Ajudante</option>
-                    <option value="Manutenção">Manutenção</option>
-                    <option value="Pedágio">Pedágio</option>
-                    <option value="Extra">Extra</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-1.5 min-w-[150px]">
-                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Veículo</label>
-                <div className="relative">
-                  <select 
-                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                    value={filters.vehicleId}
-                    onChange={(e) => {
-                      setFilters({ ...filters, vehicleId: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="Todos">Todos os Veículos</option>
-                    {vehicles
-                      .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
-                      .map(v => (
-                        <option key={v.id} value={v.id.toString()}>{v.plate}</option>
-                      ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5 min-w-[150px]">
-                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Reembolsáveis</label>
-                <div className="relative">
-                  <select 
-                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                    value={filters.reimbursable}
-                    onChange={(e) => {
-                      setFilters({ ...filters, reimbursable: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="Todos">Todos</option>
-                    <option value="Sim">Sim</option>
-                    <option value="Não">Não</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5 min-w-[150px]">
-                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest ml-1">Status</label>
-                <div className="relative">
-                  <select 
-                    className="bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-xs text-slate-300 w-full focus:ring-1 focus:ring-primary appearance-none outline-none"
-                    value={filters.status}
-                    onChange={(e) => {
-                      setFilters({ ...filters, status: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="Todos">Todos</option>
-                    <option value="PAID">Pago</option>
-                    <option value="PENDING">Pendente</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="flex items-end gap-2">
-                <div className="flex flex-col gap-1.5 flex-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Privacidade</label>
-                  <button
-                    onClick={() => setShowValues(!showValues)}
-                    className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none w-full"
-                    title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-                  >
-                    {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                    <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-1.5 flex-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ordenação</label>
-                  <button
-                    onClick={() => {
-                      const nextSort = sortMode === 'date_asc' ? 'created_desc' : 'date_asc';
-                      setSortMode(nextSort);
-                      setCurrentPage(1);
-                    }}
-                    className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none w-full"
-                    title={sortMode === 'date_asc' ? "Ordenar por Data de Registro (Desc)" : "Ordenar por Data da Despesa (Asc)"}
-                  >
-                    <ArrowUpDown className={cn("w-4 h-4 mr-2", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
-                    <span className="text-[10px] font-bold uppercase">Ordenar</span>
-                  </button>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    setFilters({ 
-                      type: 'Todos', 
-                      vehicleId: 'Todos',
-                      reimbursable: 'Todos',
-                      status: 'Todos'
-                    });
+            {/* Row 2: Filters Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+              <div className="relative">
+                <select 
+                  className="w-full bg-background-dark border border-border-dark rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-300 focus:ring-1 focus:ring-primary appearance-none outline-none h-[42px]"
+                  value={filters.type}
+                  onChange={(e) => {
+                    setFilters({ ...filters, type: e.target.value });
                     setCurrentPage(1);
                   }}
-                  className="text-[10px] font-bold text-primary border border-primary/30 px-4 h-9 rounded-lg hover:bg-primary/10 transition-colors uppercase tracking-widest"
                 >
-                  Limpar
-                </button>
+                  <option value="Todos">Tipos</option>
+                  <option value="Combustível">Combustível</option>
+                  <option value="Pagamento Motorista">Pagamento Motorista</option>
+                  <option value="Pagamento Ajudante">Pagamento Ajudante</option>
+                  <option value="Manutenção">Manutenção</option>
+                  <option value="Pedágio">Pedágio</option>
+                  <option value="Extra">Extra</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
+              
+              <div className="relative">
+                <select 
+                  className="w-full bg-background-dark border border-border-dark rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-300 focus:ring-1 focus:ring-primary appearance-none outline-none h-[42px]"
+                  value={filters.vehicleId}
+                  onChange={(e) => {
+                    setFilters({ ...filters, vehicleId: e.target.value });
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="Todos">Veículos</option>
+                  {vehicles
+                    .filter(v => v.status?.toUpperCase() === 'ACTIVE' || v.status?.toUpperCase() === 'ATIVO')
+                    .map(v => (
+                      <option key={v.id} value={v.id.toString()}>{v.plate}</option>
+                    ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+              </div>
+
+              <div className="relative">
+                <select 
+                  className="w-full bg-background-dark border border-border-dark rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-300 focus:ring-1 focus:ring-primary appearance-none outline-none h-[42px]"
+                  value={filters.reimbursable}
+                  onChange={(e) => {
+                    setFilters({ ...filters, reimbursable: e.target.value });
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="Todos">Reembolso</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+              </div>
+
+              <div className="relative">
+                <select 
+                  className="w-full bg-background-dark border border-border-dark rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-300 focus:ring-1 focus:ring-primary appearance-none outline-none h-[42px]"
+                  value={filters.status}
+                  onChange={(e) => {
+                    setFilters({ ...filters, status: e.target.value });
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="Todos">Status</option>
+                  <option value="PAID">Pago</option>
+                  <option value="PENDING">Pendente</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Row 3: Action Buttons */}
+            <div className="flex items-center justify-center gap-2 md:justify-start pt-1">
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-6 flex items-center justify-center transition-all outline-none shadow-sm"
+                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+              >
+                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+
+              <button
+                onClick={() => {
+                  const nextSort = sortMode === 'date_asc' ? 'created_desc' : 'date_asc';
+                  setSortMode(nextSort);
+                  setCurrentPage(1);
+                }}
+                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-6 flex items-center justify-center transition-all outline-none shadow-sm"
+                title="Ordenar"
+              >
+                <ArrowUpDown className={cn("w-4 h-4", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
+              </button>
+
+              <button 
+                onClick={() => {
+                  setFilters({ 
+                    type: 'Todos', 
+                    vehicleId: 'Todos',
+                    reimbursable: 'Todos',
+                    status: 'Todos'
+                  });
+                  setCurrentPage(1);
+                }}
+                className="bg-background-dark border border-border-dark text-primary hover:bg-primary/10 rounded-xl h-10 px-6 text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
+              >
+                Limpar
+              </button>
             </div>
           </div>
 
