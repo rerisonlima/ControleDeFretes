@@ -392,39 +392,63 @@ export default function ExpensesPage() {
 
           {/* Filters Bar */}
           <div className="bg-surface-dark border border-border-dark rounded-xl p-3 md:p-4 flex flex-col gap-3 md:gap-4 mt-1 md:mt-0">
-            {/* Row 1: Period */}
-            <div className="flex items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
-              <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
-                <Calendar className="w-4 h-4" />
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:inline">Período:</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <select 
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(parseInt(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
-                >
-                  {months.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+            {/* Row 1: Period and Actions */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 md:gap-3 bg-background-dark border border-border-dark rounded-xl p-1.5 shadow-sm w-fit">
+                <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:inline">Período:</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {months.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
 
-                <select 
-                  value={selectedYear}
-                  onChange={(e) => {
-                    setSelectedYear(parseInt(e.target.value));
+                  <select 
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    {[2024, 2025, 2026].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-4 md:px-6 flex items-center justify-center transition-all outline-none shadow-sm"
+                  title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
+                >
+                  {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    const nextSort = sortMode === 'date_asc' ? 'created_desc' : 'date_asc';
+                    setSortMode(nextSort);
                     setCurrentPage(1);
                   }}
-                  className="bg-surface-dark border border-border-dark text-white text-[10px] md:text-xs font-bold rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-4 md:px-6 flex items-center justify-center transition-all outline-none shadow-sm"
+                  title="Ordenar"
                 >
-                  {[2024, 2025, 2026].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                  <ArrowUpDown className={cn("w-4 h-4", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
+                </button>
               </div>
             </div>
             
@@ -500,44 +524,6 @@ export default function ExpensesPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
               </div>
-            </div>
-
-            {/* Row 3: Action Buttons */}
-            <div className="flex items-center justify-center gap-2 md:justify-start pt-1">
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-6 flex items-center justify-center transition-all outline-none shadow-sm"
-                title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
-              >
-                {showValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  const nextSort = sortMode === 'date_asc' ? 'created_desc' : 'date_asc';
-                  setSortMode(nextSort);
-                  setCurrentPage(1);
-                }}
-                className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-xl h-10 px-6 flex items-center justify-center transition-all outline-none shadow-sm"
-                title="Ordenar"
-              >
-                <ArrowUpDown className={cn("w-4 h-4", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
-              </button>
-
-              <button 
-                onClick={() => {
-                  setFilters({ 
-                    type: 'Todos', 
-                    vehicleId: 'Todos',
-                    reimbursable: 'Todos',
-                    status: 'Todos'
-                  });
-                  setCurrentPage(1);
-                }}
-                className="bg-background-dark border border-border-dark text-primary hover:bg-primary/10 rounded-xl h-10 px-6 text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
-              >
-                Limpar
-              </button>
             </div>
           </div>
 
