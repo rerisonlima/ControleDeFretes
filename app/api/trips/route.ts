@@ -53,6 +53,14 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '30');
     const skip = (page - 1) * limit;
+    const sort = searchParams.get('sort') || 'scheduled_desc';
+
+    let orderBy: any = { scheduledAt: 'desc' };
+    if (sort === 'scheduled_asc') {
+      orderBy = { scheduledAt: 'asc' };
+    } else if (sort === 'created_desc') {
+      orderBy = { createdAt: 'desc' };
+    }
 
     const [trips, total, totalForVehicle] = await Promise.all([
       prisma.trip.findMany({
@@ -75,7 +83,7 @@ export async function GET(req: Request) {
             }
           }
         },
-        orderBy: { scheduledAt: 'desc' },
+        orderBy,
         skip,
         take: limit,
       }),

@@ -33,6 +33,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sessionHours, setSessionHours] = useState(24);
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false);
+  const [sessionSuccess, setSessionSuccess] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,19 +47,23 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/users');
-      if (res.ok) {
-        const data = await res.json();
-        console.log('Fetched users:', data);
+      const [usersRes, sessionRes] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/settings/session')
+      ]);
+
+      if (usersRes.ok) {
+        const data = await usersRes.json();
         setUsers(data);
-      } else {
-        const errData = await res.json();
-        console.error('Error fetching users:', errData);
-        setError(`Erro ao buscar usuários: ${errData.error || res.statusText}`);
+      }
+
+      if (sessionRes.ok) {
+        const data = await sessionRes.json();
+        setSessionHours(data.hours);
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Erro de conexão ao buscar usuários');
+      console.error('Error fetching data:', err);
+      setError('Erro de conexão ao buscar dados');
     } finally {
       setLoading(false);
     }
@@ -132,6 +139,26 @@ export default function UsersPage() {
     u.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleUpdateSession = async () => {
+    try {
+      setIsUpdatingSession(true);
+      const res = await fetch('/api/settings/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hours: sessionHours }),
+      });
+
+      if (res.ok) {
+        setSessionSuccess(true);
+        setTimeout(() => setSessionSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error('Error updating session:', err);
+    } finally {
+      setIsUpdatingSession(false);
+    }
+  };
+
   return (
     <AppLayout>
       <Header 
@@ -144,15 +171,47 @@ export default function UsersPage() {
         <div className="max-w-5xl mx-auto space-y-6">
           
           {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <input 
-              className="w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-white placeholder:text-slate-600"
-              placeholder="Pesquisar por nome de usuário..."
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+              <input 
+                className="w-full pl-12 pr-4 py-3 bg-surface-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-white placeholder:text-slate-600"
+                placeholder="Pesquisar por nome de usuário..."
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="bg-surface-dark border border-border-dark rounded-xl p-3 flex items-center gap-4 min-w-[300px]">
+              <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                <Clock className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Sessão (h):</span>
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <input 
+                  type="number"
+                  min="1"
+                  max="720"
+                  value={sessionHours}
+                  onChange={(e) => setSessionHours(parseInt(e.target.value))}
+                  className="w-16 bg-background-dark border border-border-dark rounded-lg px-2 py-1.5 text-xs text-white focus:ring-1 focus:ring-primary outline-none"
+                />
+                <button
+                  onClick={handleUpdateSession}
+                  disabled={isUpdatingSession}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-2",
+                    sessionSuccess 
+                      ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" 
+                      : "bg-primary text-background-dark hover:bg-primary/90"
+                  )}
+                >
+                  {isUpdatingSession ? <Loader2 className="w-3 h-3 animate-spin" /> : sessionSuccess ? <CheckCircle2 className="w-3 h-3" /> : null}
+                  {sessionSuccess ? 'Salvo' : 'Salvar'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Users List */}

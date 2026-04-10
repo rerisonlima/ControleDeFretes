@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const year = searchParams.get('year');
     const reimbursable = searchParams.get('reimbursable');
     const status = searchParams.get('status');
+    const sort = searchParams.get('sort') || 'date_desc';
 
     const skip = (page - 1) * limit;
 
@@ -42,6 +43,13 @@ export async function GET(request: Request) {
       };
     }
 
+    let orderBy: any = { date: 'desc' };
+    if (sort === 'date_asc') {
+      orderBy = { date: 'asc' };
+    } else if (sort === 'created_desc') {
+      orderBy = { createdAt: 'desc' };
+    }
+
     const [expenses, total] = await Promise.all([
       prisma.expense.findMany({
         where,
@@ -65,7 +73,7 @@ export async function GET(request: Request) {
             }
           }
         },
-        orderBy: { date: 'desc' },
+        orderBy,
         skip,
         take: limit,
       }),

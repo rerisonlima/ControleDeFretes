@@ -33,6 +33,11 @@ export async function loginAction(formData: FormData) {
     }
 
     // 3. Criar sessão
+    const sessionSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'session_expiration_hours' }
+    });
+    const expirationHours = sessionSetting ? parseInt(sessionSetting.value) : 24;
+
     const sessionData = {
       id: user.id,
       username: user.username,
@@ -40,14 +45,14 @@ export async function loginAction(formData: FormData) {
       name: user.name,
     };
 
-    const encryptedSessionData = await encrypt(sessionData);
+    const encryptedSessionData = await encrypt(sessionData, expirationHours);
     
     const cookieStore = cookies();
     cookieStore.set('session', encryptedSessionData, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 60 * 60 * 24, // 24 horas
+      maxAge: 60 * 60 * expirationHours,
       path: '/',
     });
 

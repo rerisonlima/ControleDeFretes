@@ -26,7 +26,8 @@ import {
   Eye,
   EyeOff,
   Truck,
-  Plus
+  Plus,
+  ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,7 @@ export default function ExpensesPage() {
   const [errorId, setErrorId] = useState<number | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showValues, setShowValues] = useState(false);
+  const [sortMode, setSortMode] = useState<'date_asc' | 'created_desc'>('date_asc');
   const errorRef = React.useRef<HTMLDivElement>(null);
   
   // Pagination State
@@ -186,7 +188,8 @@ export default function ExpensesPage() {
         reimbursable: filters.reimbursable,
         status: filters.status,
         month: selectedMonth.toString(),
-        year: selectedYear.toString()
+        year: selectedYear.toString(),
+        sort: sortMode
       });
 
       const [expRes, vehRes] = await Promise.all([
@@ -213,7 +216,7 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, limit, filters.type, filters.vehicleId, filters.reimbursable, filters.status, selectedMonth, selectedYear]);
+  }, [currentPage, limit, filters.type, filters.vehicleId, filters.reimbursable, filters.status, selectedMonth, selectedYear, sortMode]);
 
   useEffect(() => {
     fetchData();
@@ -518,6 +521,22 @@ export default function ExpensesPage() {
                   >
                     {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                     <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ordenação</label>
+                  <button
+                    onClick={() => {
+                      const nextSort = sortMode === 'date_asc' ? 'created_desc' : 'date_asc';
+                      setSortMode(nextSort);
+                      setCurrentPage(1);
+                    }}
+                    className="bg-background-dark border border-border-dark text-slate-400 hover:text-white rounded-lg h-9 px-3 flex items-center justify-center transition-all outline-none w-full"
+                    title={sortMode === 'date_asc' ? "Ordenar por Data de Registro (Desc)" : "Ordenar por Data da Despesa (Asc)"}
+                  >
+                    <ArrowUpDown className={cn("w-4 h-4 mr-2", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
+                    <span className="text-[10px] font-bold uppercase">Ordenar</span>
                   </button>
                 </div>
                 

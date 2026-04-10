@@ -25,7 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -195,6 +196,7 @@ function RoutesPageContent() {
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalRecords, setTotalRecords] = React.useState(0);
   const [showValues, setShowValues] = React.useState(false);
+  const [sortMode, setSortMode] = React.useState<'scheduled_asc' | 'created_desc'>('scheduled_asc');
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Scroll to highlight
@@ -878,7 +880,7 @@ function RoutesPageContent() {
       };
 
       const [tripsResponse, , vehiclesData, employeesData, contratantesData, fretesData] = await Promise.all([
-        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`, 'Trips'),
+        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30&sort=${sortMode}`, 'Trips'),
         fetchJson('/api/routes', 'Routes'),
         fetchJson('/api/vehicles', 'Vehicles'),
         fetchJson('/api/employees', 'Employees'),
@@ -912,7 +914,7 @@ function RoutesPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, paymentFilter, currentPage, editId, handleOpenDrawer, user?.role]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage, editId, handleOpenDrawer, user?.role, sortMode]);
 
   React.useEffect(() => {
     fetchData();
@@ -1276,6 +1278,19 @@ function RoutesPageContent() {
               >
                 {showValues ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                 <span className="text-[10px] font-bold uppercase">{showValues ? "Ocultar" : "Mostrar"}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const nextSort = sortMode === 'scheduled_asc' ? 'created_desc' : 'scheduled_asc';
+                  setSortMode(nextSort);
+                  setCurrentPage(1);
+                }}
+                className="flex items-center justify-center px-3 py-1.5 bg-surface-dark border border-border-dark rounded-xl text-slate-400 hover:text-white transition-all shadow-sm h-[42px] w-full lg:w-auto"
+                title={sortMode === 'scheduled_asc' ? "Ordenar por Data de Registro (Desc)" : "Ordenar por Data da Viagem (Asc)"}
+              >
+                <ArrowUpDown className={cn("w-4 h-4 mr-2", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
+                <span className="text-[10px] font-bold uppercase">Ordenar</span>
               </button>
             </div>
 

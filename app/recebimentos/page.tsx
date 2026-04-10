@@ -16,6 +16,7 @@ import {
   Wallet,
   Eye,
   EyeOff,
+  ArrowUpDown,
   TrendingUp,
   TrendingDown,
   Navigation,
@@ -103,6 +104,7 @@ export default function RecebimentosPage() {
   const [vehicleFilter, setVehicleFilter] = React.useState('');
   const [contratanteFilter, setContratanteFilter] = React.useState('');
   const [showValues, setShowValues] = React.useState(false);
+  const [sortMode, setSortMode] = React.useState<'scheduled_asc' | 'created_desc'>('scheduled_asc');
   
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
@@ -131,7 +133,7 @@ export default function RecebimentosPage() {
 
       // Fetch trips with same filters as routes page
       const [tripsData, statsData, vehiclesData, contratantesData] = await Promise.all([
-        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30`),
+        fetchJson(`/api/trips?month=${selectedMonth}&year=${selectedYear}&paymentStatus=${paymentFilter}&page=${currentPage}&limit=30&sort=${sortMode}`),
         fetchJson(`/api/recebimentos/stats?month=${selectedMonth}&year=${selectedYear}`),
         fetchJson('/api/vehicles'),
         fetchJson('/api/contratantes')
@@ -153,7 +155,7 @@ export default function RecebimentosPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, paymentFilter, currentPage]);
+  }, [selectedMonth, selectedYear, paymentFilter, currentPage, sortMode]);
 
   React.useEffect(() => {
     fetchData();
@@ -309,6 +311,18 @@ export default function RecebimentosPage() {
                 title={showValues ? "Ocultar Valores" : "Mostrar Valores"}
               >
                 {showValues ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+
+              <button
+                onClick={() => {
+                  const nextSort = sortMode === 'scheduled_asc' ? 'created_desc' : 'scheduled_asc';
+                  setSortMode(nextSort);
+                  setCurrentPage(1);
+                }}
+                className="p-2.5 bg-surface-dark border border-border-dark text-slate-400 hover:text-white rounded-xl transition-all shadow-sm"
+                title={sortMode === 'scheduled_asc' ? "Ordenar por Data de Registro (Desc)" : "Ordenar por Data da Viagem (Asc)"}
+              >
+                <ArrowUpDown className={cn("w-5 h-5", sortMode === 'created_desc' ? "text-primary" : "text-slate-400")} />
               </button>
             </div>
 
