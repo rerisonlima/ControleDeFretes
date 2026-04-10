@@ -26,7 +26,7 @@ import {
   Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   AreaChart, 
@@ -517,7 +517,7 @@ export default function RecebimentosPage() {
                       onClick={() => router.push(`/routes?edit=${trip.id}`)}
                     >
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-white">{format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}</p>
+                        <p className="text-sm font-bold text-white">{format(parseISO(trip.scheduledAt.split('T')[0]), 'dd/MM/yyyy')}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold text-white">{trip.romaneio || '-'}</p>
@@ -608,7 +608,7 @@ export default function RecebimentosPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
-                          {format(new Date(trip.scheduledAt), 'dd/MM/yyyy')}
+                          {format(parseISO(trip.scheduledAt.split('T')[0]), 'dd/MM/yyyy')}
                         </p>
                         {trip.romaneio && (
                           <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-widest">

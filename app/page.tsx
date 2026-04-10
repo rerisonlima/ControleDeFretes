@@ -42,7 +42,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface DashboardStat {
@@ -214,7 +214,8 @@ export default function Dashboard() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
-      const date = new Date(dateString);
+      // Use only the date part to avoid timezone shifts
+      const date = parseISO(dateString.split('T')[0]);
       if (isNaN(date.getTime())) return '-';
       return format(date, 'dd/MM/yyyy', { locale: ptBR });
     } catch (e) {
@@ -224,9 +225,16 @@ export default function Dashboard() {
 
   const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
     if (!dateString) return fallback;
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return fallback;
-    return format(date, formatStr);
+    try {
+      // Use only the date part to avoid timezone shifts for dates, 
+      // but keep full string for timestamps if needed. 
+      // For scheduledAt, we definitely want the date part.
+      const date = dateString.includes('T') ? parseISO(dateString.split('T')[0]) : parseISO(dateString);
+      if (isNaN(date.getTime())) return fallback;
+      return format(date, formatStr);
+    } catch (e) {
+      return fallback;
+    }
   };
 
   const handleLogout = async () => {

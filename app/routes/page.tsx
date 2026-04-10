@@ -30,7 +30,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const months = [
@@ -50,9 +50,13 @@ const months = [
 
 const safeFormat = (dateString: string | null | undefined, formatStr: string, fallback: string = '') => {
   if (!dateString) return fallback;
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return fallback;
-  return format(date, formatStr);
+  try {
+    const date = dateString.includes('T') ? parseISO(dateString.split('T')[0]) : parseISO(dateString);
+    if (isNaN(date.getTime())) return fallback;
+    return format(date, formatStr);
+  } catch (e) {
+    return fallback;
+  }
 };
 
 interface Trip {

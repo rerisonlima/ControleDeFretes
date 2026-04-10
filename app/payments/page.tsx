@@ -60,9 +60,11 @@ export default function PaymentsPage() {
     const tripsByDay: Record<string, Trip[]> = {};
     trips.forEach(trip => {
       if (trip.vehicleId.toString() !== selectedVehicleId) return;
-      const tripDate = new Date(trip.scheduledAt);
-      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
-      const dayKey = format(tripDate, 'yyyy-MM-dd');
+      
+      // Use the date part directly from the ISO string to avoid timezone shifts
+      const dayKey = trip.scheduledAt.split('T')[0];
+      if (dayKey.substring(0, 7) !== selectedMonth) return;
+      
       if (!tripsByDay[dayKey]) tripsByDay[dayKey] = [];
       tripsByDay[dayKey].push(trip);
     });
@@ -101,7 +103,8 @@ export default function PaymentsPage() {
 
       const firstTrip = dayTrips[0];
       return {
-        date: format(new Date(dayKey), 'dd MMM, yyyy', { locale: ptBR }),
+        dayKey,
+        date: format(parseISO(dayKey), 'dd MMM, yyyy', { locale: ptBR }),
         route: firstTrip.frete?.cidade || firstTrip.route?.destination || 'N/A',
         trips: dayTrips.length,
         unitValue: val1,
@@ -111,7 +114,7 @@ export default function PaymentsPage() {
       };
     });
 
-    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return result.sort((a, b) => b.dayKey.localeCompare(a.dayKey));
   }, [trips, selectedVehicleId, selectedMonth]);
 
   React.useEffect(() => {
@@ -213,7 +216,8 @@ export default function PaymentsPage() {
       // Group by week (starting Monday)
       const weeks: Record<string, Trip[]> = {};
       emp.trips.forEach(trip => {
-        const date = new Date(trip.scheduledAt);
+        const dayKey = trip.scheduledAt.split('T')[0];
+        const date = parseISO(dayKey);
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
         const weekKey = format(weekStart, 'yyyy-MM-dd');
         if (!weeks[weekKey]) weeks[weekKey] = [];
@@ -236,7 +240,7 @@ export default function PaymentsPage() {
         const dayTripCounts: Record<string, number> = {};
         
         const tableBody = sortedWeekTrips.map(t => {
-          const dayKey = format(new Date(t.scheduledAt), 'yyyy-MM-dd');
+          const dayKey = t.scheduledAt.split('T')[0];
           const tripIndex = dayTripCounts[dayKey] || 0;
           dayTripCounts[dayKey] = tripIndex + 1;
           
@@ -248,7 +252,7 @@ export default function PaymentsPage() {
           const v2Aju = t.valor2aViagemAjudante ?? t.frete?.valor2aViagemAjudante ?? t.route?.helperValue2 ?? 0;
 
           const row = [
-            format(new Date(t.scheduledAt), 'dd/MM/yyyy'),
+            format(parseISO(dayKey), 'dd/MM/yyyy'),
             t.vehicle?.plate || 'N/A',
             t.contratante?.ContratanteNome || t.contract || '-',
             t.frete?.cidade || t.route?.destination || 'N/A',
@@ -284,7 +288,7 @@ export default function PaymentsPage() {
         let weekTotal = 0;
         const tripsByDay: Record<string, Trip[]> = {};
         weekTrips.forEach(t => {
-          const dayKey = format(new Date(t.scheduledAt), 'yyyy-MM-dd');
+          const dayKey = t.scheduledAt.split('T')[0];
           if (!tripsByDay[dayKey]) tripsByDay[dayKey] = [];
           tripsByDay[dayKey].push(t);
         });
@@ -357,16 +361,17 @@ export default function PaymentsPage() {
       // Only consider trips for the selected vehicle
       if (trip.vehicleId.toString() !== selectedVehicleId) return;
       
-      const tripDate = new Date(trip.scheduledAt);
+      // Use the date part directly from the ISO string to avoid timezone shifts
+      const dayKey = trip.scheduledAt.split('T')[0];
       
       // Only consider trips in the selected month
-      if (format(tripDate, 'yyyy-MM') !== selectedMonth) return;
+      if (dayKey.substring(0, 7) !== selectedMonth) return;
       
+      const tripDate = parseISO(dayKey);
       const dayOfWeek = tripDate.getDay();
       
       // Only consider Monday (1) to Friday (5)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        const dayKey = format(tripDate, 'yyyy-MM-dd');
         if (!tripsByDay[dayKey]) {
           tripsByDay[dayKey] = [];
         }
