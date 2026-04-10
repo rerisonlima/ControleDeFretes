@@ -23,6 +23,10 @@ export async function sendEmailNotification(tripData: any) {
       user: smtpUser,
       pass: smtpPass,
     },
+    // Add timeouts to prevent hanging
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   const destination = tripData.frete?.cidade || tripData.route?.destination || 'N/A';

@@ -164,8 +164,9 @@ export async function POST(req: Request) {
       }
     });
 
-    // Send notifications if the creator is an OPERATOR or ADMIN
-    if (trip.createdBy?.role === 'OPERATOR' || trip.createdBy?.role === 'ADMIN') {
+    // Send notifications if the creator is an OPERATOR, GERENTE or ADMIN
+    const creatorRole = trip.createdBy?.role?.toUpperCase();
+    if (creatorRole === 'OPERATOR' || creatorRole === 'ADMIN' || creatorRole === 'GERENTE') {
       let notificationsEnabled = true;
       try {
         // Check if notifications are enabled in system settings
@@ -180,9 +181,18 @@ export async function POST(req: Request) {
       }
 
       if (notificationsEnabled) {
-        // We don't await these to avoid blocking the response
-        sendWhatsAppNotification(trip).catch(err => console.error('WhatsApp background error:', err));
-        sendEmailNotification(trip).catch(err => console.error('Email background error:', err));
+        console.log(`Sending notifications for trip ${trip.tripId}. Creator role: ${creatorRole}`);
+        // We await these to ensure they are sent before the process is suspended/terminated
+        // using Promise.all to send them in parallel
+        try {
+          await Promise.all([
+            sendWhatsAppNotification(trip).catch(err => console.error('WhatsApp background error:', err)),
+            sendEmailNotification(trip).catch(err => console.error('Email background error:', err))
+          ]);
+          console.log(`Notifications sent for trip ${trip.tripId}`);
+        } catch (notifErr) {
+          console.error('Error in notification Promise.all:', notifErr);
+        }
       }
     }
 
