@@ -94,7 +94,10 @@ export async function GET(request: Request) {
     const chartDataMap = new Map<string, { date: string; total: number; contractors: { name: string; value: number }[] }>();
 
     paidTrips.forEach(t => {
-      const dateStr = format(new Date(t.paymentDate!), 'yyyy-MM-dd');
+      const dateStr = t.paymentDate instanceof Date 
+        ? t.paymentDate.toISOString().split('T')[0] 
+        : new Date(t.paymentDate!).toISOString().split('T')[0];
+      
       if (!chartDataMap.has(dateStr)) {
         chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
       }
@@ -111,7 +114,10 @@ export async function GET(request: Request) {
     });
 
     paidReimbursements.forEach(e => {
-      const dateStr = format(new Date(e.reimbursementDate!), 'yyyy-MM-dd');
+      const dateStr = e.reimbursementDate instanceof Date 
+        ? e.reimbursementDate.toISOString().split('T')[0] 
+        : new Date(e.reimbursementDate!).toISOString().split('T')[0];
+        
       if (!chartDataMap.has(dateStr)) {
         chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
       }

@@ -418,7 +418,7 @@ export default function RecebimentosPage() {
                       tickLine={false} 
                       axisLine={false}
                       dy={10}
-                      tickFormatter={(val) => format(new Date(val), 'dd/MM')}
+                      tickFormatter={(val) => format(parseISO(val), 'dd/MM')}
                     />
                     <YAxis 
                       stroke="#5A5A40" 
@@ -434,7 +434,7 @@ export default function RecebimentosPage() {
                           return (
                             <div className="bg-[#27211b] border border-[#393028] p-3 rounded-lg shadow-xl">
                               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">
-                                {format(new Date(data.date), "dd 'de' MMMM", { locale: ptBR })}
+                                {format(parseISO(data.date), "dd 'de' MMMM", { locale: ptBR })}
                               </p>
                               <p className="text-sm font-bold text-emerald-500 mb-2">
                                 Total: {showValues ? formatCurrency(data.total) : '******'}
