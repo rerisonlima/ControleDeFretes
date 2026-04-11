@@ -1421,11 +1421,13 @@ function RoutesPageContent() {
                             <div className="flex items-center gap-2 text-emerald-500">
                               <Ticket className="w-3 h-3" />
                               <span className="text-[10px] font-mono">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                  trip.expenses
-                                    .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
-                                    .reduce((sum, e) => sum + e.value, 0)
-                                )}
+                                {showValues 
+                                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                      trip.expenses
+                                        .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                        .reduce((sum, e) => sum + e.value, 0)
+                                    )
+                                  : '******'}
                               </span>
                             </div>
                           )}
@@ -1597,11 +1599,13 @@ function RoutesPageContent() {
                           <div className="flex items-center gap-2 text-emerald-500">
                             <Ticket className="w-3 h-3" />
                             <span className="text-[10px] font-mono">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                trip.expenses
-                                  .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
-                                  .reduce((sum, e) => sum + e.value, 0)
-                              )}
+                              {showValues 
+                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                    trip.expenses
+                                      .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                      .reduce((sum, e) => sum + e.value, 0)
+                                  )
+                                : '******'}
                             </span>
                           </div>
                         )}
