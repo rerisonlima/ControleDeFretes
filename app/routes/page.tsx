@@ -27,7 +27,8 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
-  ArrowUpDown
+  ArrowUpDown,
+  Ticket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -1416,6 +1417,18 @@ function RoutesPageContent() {
                             <Gauge className="w-3 h-3 text-primary" />
                             <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
                           </div>
+                          {trip.expenses?.some(e => e.type.toUpperCase() === 'PEDÁGIO') && (
+                            <div className="flex items-center gap-2 text-emerald-500">
+                              <Ticket className="w-3 h-3" />
+                              <span className="text-[10px] font-mono">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                  trip.expenses
+                                    .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                    .reduce((sum, e) => sum + e.value, 0)
+                                )}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -1580,6 +1593,18 @@ function RoutesPageContent() {
                           <Gauge className="w-3 h-3 text-primary" />
                           <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
                         </div>
+                        {trip.expenses?.some(e => e.type.toUpperCase() === 'PEDÁGIO') && (
+                          <div className="flex items-center gap-2 text-emerald-500">
+                            <Ticket className="w-3 h-3" />
+                            <span className="text-[10px] font-mono">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                trip.expenses
+                                  .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                  .reduce((sum, e) => sum + e.value, 0)
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">

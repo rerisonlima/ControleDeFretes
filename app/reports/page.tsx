@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Header } from '@/components/Header';
 import { 
@@ -77,23 +77,7 @@ export default function ReportsPage() {
   const [aiAnalysis, setAiAnalysis] = useState<string>("");
   const [analyzing, setAnalyzing] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/reports/data?startDate=${startDate}&endDate=${endDate}`);
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
-        generateAiAnalysis(result);
-      }
-    } catch (error) {
-      console.error("Error fetching report data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateAiAnalysis = async (reportData: { trips: Trip[], expenses: Expense[] }) => {
+  const generateAiAnalysis = useCallback(async (reportData: { trips: Trip[], expenses: Expense[] }) => {
     if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) return;
     
     setAnalyzing(true);
@@ -141,11 +125,27 @@ export default function ReportsPage() {
     } finally {
       setAnalyzing(false);
     }
-  };
+  }, [startDate, endDate]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/reports/data?startDate=${startDate}&endDate=${endDate}`);
+      if (res.ok) {
+        const result = await res.json();
+        setData(result);
+        generateAiAnalysis(result);
+      }
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate, generateAiAnalysis]);
 
   useEffect(() => {
     fetchData();
-  }, [startDate, endDate]);
+  }, [fetchData]);
 
   // Process data for charts
   const revenueByVehicle = data.trips.reduce((acc: any, trip) => {
@@ -174,6 +174,36 @@ export default function ReportsPage() {
   }, {});
 
   const weeklyChartData = Object.values(weeklyExpenses);
+
+  const monthlyComparisonData = useMemo(() => {
+    const monthsMap: Record<string, { name: string; value: number; sortKey: string }> = {};
+    
+    if (activeTab === 'revenue') {
+      data.trips.forEach(trip => {
+        const date = parseISO(trip.scheduledAt);
+        const monthKey = format(date, 'MMM/yy', { locale: ptBR });
+        const sortKey = format(date, 'yyyy-MM');
+        
+        if (!monthsMap[monthKey]) {
+          monthsMap[monthKey] = { name: monthKey, value: 0, sortKey };
+        }
+        monthsMap[monthKey].value += trip.value;
+      });
+    } else {
+      data.expenses.forEach(exp => {
+        const date = parseISO(exp.date);
+        const monthKey = format(date, 'MMM/yy', { locale: ptBR });
+        const sortKey = format(date, 'yyyy-MM');
+        
+        if (!monthsMap[monthKey]) {
+          monthsMap[monthKey] = { name: monthKey, value: 0, sortKey };
+        }
+        monthsMap[monthKey].value += exp.value;
+      });
+    }
+    
+    return Object.values(monthsMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [data, activeTab]);
 
   const totalRevenue = data.trips.reduce((acc, t) => acc + t.value, 0);
   const totalExpenses = data.expenses.reduce((acc, e) => acc + e.value, 0);
@@ -480,6 +510,61 @@ export default function ReportsPage() {
               </>
             )}
           </div>
+
+          {/* Monthly Comparison Chart */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <TrendingUp className={cn("w-5 h-5", activeTab === 'revenue' ? "text-primary" : "text-rose-500")} />
+                <h3 className="text-white font-bold">
+                  Comparativo Mensal - {activeTab === 'revenue' ? 'Receita' : 'Despesas'}
+                </h3>
+              </div>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyComparisonData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#64748b" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    dy={10}
+                  />
+                  <YAxis 
+                    stroke="#64748b" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(value) => `R$ ${value >= 1000 ? (value/1000).toFixed(1) + 'k' : value}`} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                    itemStyle={{ color: activeTab === 'revenue' ? '#3b82f6' : '#ef4444' }}
+                    formatter={(value: number) => [
+                      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value), 
+                      activeTab === 'revenue' ? 'Receita' : 'Despesa'
+                    ]}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke={activeTab === 'revenue' ? '#3b82f6' : '#ef4444'} 
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: activeTab === 'revenue' ? '#3b82f6' : '#ef4444', strokeWidth: 2, stroke: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                    animationDuration={1500}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
           {/* Detailed Analysis Table */}
           <div className="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden shadow-xl">

@@ -90,7 +90,8 @@ export async function GET(req: Request) {
               name: true,
               username: true
             }
-          }
+          },
+          expenses: true
         },
         orderBy,
         skip,

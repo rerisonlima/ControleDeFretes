@@ -23,7 +23,8 @@ import {
   Navigation,
   User,
   Receipt,
-  Gauge
+  Gauge,
+  Ticket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -66,6 +67,8 @@ interface Trip {
   romaneio?: string;
   paymentDate?: string;
   distance?: number;
+  odometer?: number | string;
+  expenses?: { id: number; type: string; value: number }[];
   vehicle?: { plate: string; model: string };
   contratante?: { ContratanteNome: string };
   frete?: { cidade: string };
@@ -532,9 +535,27 @@ export default function RecebimentosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-primary/60" />
-                          <span className="text-sm font-medium text-slate-300">{trip.vehicle?.plate || '-'}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-primary/60" />
+                            <span className="text-sm font-medium text-slate-300">{trip.vehicle?.plate || '-'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Gauge className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
+                          </div>
+                          {trip.expenses?.some(e => e.type.toUpperCase() === 'PEDÁGIO') && (
+                            <div className="flex items-center gap-2 text-emerald-500">
+                              <Ticket className="w-3 h-3" />
+                              <span className="text-[10px] font-mono">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                  trip.expenses
+                                    .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                    .reduce((sum, e) => sum + e.value, 0)
+                                )}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -652,9 +673,27 @@ export default function RecebimentosPage() {
                   </div>
 
                   <div className="flex justify-between items-center pt-2 border-t border-border-dark/30">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-3 h-3 text-primary/60" />
-                      <span className="text-xs text-slate-400">{trip.vehicle?.plate || '-'}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-3 h-3 text-primary/60" />
+                        <span className="text-xs text-slate-400">{trip.vehicle?.plate || '-'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Gauge className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] text-slate-500 font-mono">{trip.odometer || '0'} km</span>
+                      </div>
+                      {trip.expenses?.some(e => e.type.toUpperCase() === 'PEDÁGIO') && (
+                        <div className="flex items-center gap-2 text-emerald-500">
+                          <Ticket className="w-3 h-3" />
+                          <span className="text-[10px] font-mono">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                              trip.expenses
+                                .filter(e => e.type.toUpperCase() === 'PEDÁGIO')
+                                .reduce((sum, e) => sum + e.value, 0)
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <span className={cn(
                       "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
