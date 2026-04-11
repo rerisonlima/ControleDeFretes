@@ -21,7 +21,10 @@ export async function GET(request: Request) {
     const [trips, reimbursableExpenses] = await Promise.all([
       prisma.trip.findMany({
         where: {
-          scheduledAt: { gte: startDate, lte: endDate }
+          OR: [
+            { scheduledAt: { gte: startDate, lte: endDate } },
+            { paymentDate: { gte: startDate, lte: endDate } }
+          ]
         },
         include: {
           contratante: { select: { id: true, ContratanteNome: true } }
@@ -29,48 +32,68 @@ export async function GET(request: Request) {
       }),
       prisma.expense.findMany({
         where: {
-          date: { gte: startDate, lte: endDate },
+          OR: [
+            { date: { gte: startDate, lte: endDate } },
+            { reimbursementDate: { gte: startDate, lte: endDate } }
+          ],
           reimbursable: true
         }
       })
     ]);
 
-    const totalTripRevenue = trips.reduce((sum, t) => sum + (t.value || 0), 0);
-    const totalReimbursement = reimbursableExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
+    const totalTripRevenue = trips
+      .filter(t => t.scheduledAt >= startDate && t.scheduledAt <= endDate)
+      .reduce((sum, t) => sum + (t.value || 0), 0);
+    
+    const totalReimbursement = reimbursableExpenses
+      .filter(e => e.date >= startDate && e.date <= endDate)
+      .reduce((sum, e) => sum + (e.value || 0), 0);
+    
     const totalRevenue = totalTripRevenue + totalReimbursement;
 
     const receivedTrips = trips
-      .filter(t => t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago')
+      .filter(t => {
+        const isPaid = t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago';
+        // Logic: Scheduled in month AND is paid (regardless of payment date)
+        return t.scheduledAt >= startDate && t.scheduledAt <= endDate && isPaid;
+      })
       .reduce((sum, t) => sum + (t.value || 0), 0);
     
     const receivedReimbursement = reimbursableExpenses
-      .filter(e => e.status === 'PAID')
+      .filter(e => {
+        // Logic: Scheduled in month AND is paid
+        return e.date >= startDate && e.date <= endDate && e.status === 'PAID';
+      })
       .reduce((sum, e) => sum + (e.value || 0), 0);
     
     const received = receivedTrips + receivedReimbursement;
-    const toReceive = totalRevenue - received;
+    
+    // toReceive is the complement of received for the trips scheduled in the month
+    const toReceive = Math.max(0, totalRevenue - received);
 
-    // Group by contractor
+    // Group by contractor (based on scheduled revenue)
     const contractorStats = new Map<number, { name: string; total: number; received: number; toReceive: number; count: number }>();
 
-    trips.forEach(t => {
-      const cId = t.contratanteId || 0;
-      const cName = t.contratante?.ContratanteNome || 'Sem Contratante';
-      const isPaid = t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago';
-      
-      if (!contractorStats.has(cId)) {
-        contractorStats.set(cId, { name: cName, total: 0, received: 0, toReceive: 0, count: 0 });
-      }
-      
-      const stats = contractorStats.get(cId)!;
-      stats.total += (t.value || 0);
-      stats.count += 1;
-      if (isPaid) {
-        stats.received += (t.value || 0);
-      } else {
-        stats.toReceive += (t.value || 0);
-      }
-    });
+    trips
+      .filter(t => t.scheduledAt >= startDate && t.scheduledAt <= endDate)
+      .forEach(t => {
+        const cId = t.contratanteId || 0;
+        const cName = t.contratante?.ContratanteNome || 'Sem Contratante';
+        const isPaid = t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago';
+        
+        if (!contractorStats.has(cId)) {
+          contractorStats.set(cId, { name: cName, total: 0, received: 0, toReceive: 0, count: 0 });
+        }
+        
+        const stats = contractorStats.get(cId)!;
+        stats.total += (t.value || 0);
+        stats.count += 1;
+        if (isPaid) {
+          stats.received += (t.value || 0);
+        } else {
+          stats.toReceive += (t.value || 0);
+        }
+      });
 
     // Add Reimbursement as a virtual contractor or handle it in stats
     if (totalReimbursement > 0) {
@@ -85,18 +108,17 @@ export async function GET(request: Request) {
 
     const sortedContractors = Array.from(contractorStats.values()).sort((a, b) => b.total - a.total);
 
-    // Chart data: Grouped by paymentDate
-    // Only for paid trips and paid reimbursements
-    const paidTrips = trips.filter(t => (t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago') && t.paymentDate);
-    const paidReimbursements = reimbursableExpenses.filter(e => e.status === 'PAID' && e.reimbursementDate);
-    
-    // Group by date and contractor for tooltip
+    // Chart data: Grouped by paymentDate (only for payments in the selected month)
     const chartDataMap = new Map<string, { date: string; total: number; contractors: { name: string; value: number }[] }>();
 
-    paidTrips.forEach(t => {
-      const dateStr = t.paymentDate instanceof Date 
-        ? t.paymentDate.toISOString().split('T')[0] 
-        : new Date(t.paymentDate!).toISOString().split('T')[0];
+    trips.forEach(t => {
+      const isPaid = t.paid?.toLowerCase() === 'sim' || t.paid?.toLowerCase() === 'pago';
+      if (!isPaid || !t.paymentDate) return;
+      
+      const pDate = t.paymentDate instanceof Date ? t.paymentDate : new Date(t.paymentDate);
+      if (pDate < startDate || pDate > endDate) return;
+
+      const dateStr = pDate.toISOString().split('T')[0];
       
       if (!chartDataMap.has(dateStr)) {
         chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
@@ -113,10 +135,13 @@ export async function GET(request: Request) {
       }
     });
 
-    paidReimbursements.forEach(e => {
-      const dateStr = e.reimbursementDate instanceof Date 
-        ? e.reimbursementDate.toISOString().split('T')[0] 
-        : new Date(e.reimbursementDate!).toISOString().split('T')[0];
+    reimbursableExpenses.forEach(e => {
+      if (e.status !== 'PAID' || !e.reimbursementDate) return;
+      
+      const rDate = e.reimbursementDate instanceof Date ? e.reimbursementDate : new Date(e.reimbursementDate);
+      if (rDate < startDate || rDate > endDate) return;
+
+      const dateStr = rDate.toISOString().split('T')[0];
         
       if (!chartDataMap.has(dateStr)) {
         chartDataMap.set(dateStr, { date: dateStr, total: 0, contractors: [] });
@@ -139,7 +164,7 @@ export async function GET(request: Request) {
       totalRevenue,
       received,
       toReceive,
-      totalTrips: trips.length,
+      totalTrips: trips.filter(t => t.scheduledAt >= startDate && t.scheduledAt <= endDate).length,
       contractors: sortedContractors,
       chartData
     });
