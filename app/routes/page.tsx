@@ -198,6 +198,7 @@ function RoutesPageContent() {
   const errorRef = React.useRef<HTMLDivElement>(null);
   const [user, setUser] = React.useState<{ name: string; role: string; username: string } | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
+  const [showOdometerWarning, setShowOdometerWarning] = React.useState(false);
   const [userIp, setUserIp] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -313,6 +314,7 @@ function RoutesPageContent() {
     }
     if (shouldOpen) {
       setIsDrawerOpen(true);
+      setShowOdometerWarning(false);
     }
   }, []);
 
@@ -485,6 +487,12 @@ function RoutesPageContent() {
               type="number"
               value={formData.odometer}
               onChange={(e) => setFormData({...formData, odometer: e.target.value})}
+              onBlur={() => {
+                const currentOdo = Number(formData.odometer);
+                if (formData.odometer && currentOdo > lastOdometer + 1000) {
+                  setShowOdometerWarning(true);
+                }
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleNextField(contratanteIdRef)}
               disabled={!formData.vehicleId}
             />
@@ -493,6 +501,32 @@ function RoutesPageContent() {
             <p className="text-[10px] text-rose-500 font-bold animate-in fade-in slide-in-from-top-1">
               Odômetro atual não pode ser menor do que o anterior ({lastOdometer} km)
             </p>
+          )}
+          {showOdometerWarning && (
+            <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1">
+              <p className="text-xs font-bold text-amber-500">
+                Você está informando uma diferença de mais de 1000 km do odômetro anterior. Esta correto?
+              </p>
+              <div className="flex gap-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowOdometerWarning(false)}
+                  className="px-3 py-1 bg-amber-500 text-background-dark text-[10px] font-bold rounded uppercase tracking-widest hover:bg-amber-400 transition-colors"
+                >
+                  Sim
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowOdometerWarning(false);
+                    setTimeout(() => odometerRef.current?.focus(), 10);
+                  }}
+                  className="px-3 py-1 bg-surface-dark border border-border-dark text-slate-300 text-[10px] font-bold rounded uppercase tracking-widest hover:bg-white/5 transition-colors"
+                >
+                  Não
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
