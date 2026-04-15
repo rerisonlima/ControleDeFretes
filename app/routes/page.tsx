@@ -530,7 +530,7 @@ function RoutesPageContent() {
           )}
         </div>
 
-        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : ""}>
+        <div className="space-y-2" title={!formData.vehicleId ? "Primeiro selecione o veículo" : showOdometerWarning ? "Confirme a quilometragem primeiro" : ""}>
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Contrato</label>
           <select 
             ref={contratanteIdRef}
@@ -541,7 +541,7 @@ function RoutesPageContent() {
               setFormData({...formData, contratanteId, freteId: '', value: '', valor1aViagemMotorista: '', valor2aViagemMotorista: '', valor1aViagemAjudante: '', valor2aViagemAjudante: ''});
               if (contratanteId) handleNextField(freteIdRef);
             }}
-            disabled={!formData.vehicleId}
+            disabled={!formData.vehicleId || showOdometerWarning}
           >
             <option value="">Selecionar Contratante</option>
             {contratantes.map(c => (
